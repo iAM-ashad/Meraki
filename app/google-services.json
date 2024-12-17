@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "920939571800",
+    "project_id": "meraki-f4da7",
+    "storage_bucket": "meraki-f4da7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:920939571800:android:1c86db3d3a21f4cfd6b82d",
+        "android_client_info": {
+          "package_name": "com.iamashad.meraki"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "920939571800-kek16fil7uoj4gf8co4u07c5peqr00fo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.iamashad.meraki",
+            "certificate_hash": "1b64a9eeb9d1914acf90c7d5f386868215649ab5"
+          }
+        },
+        {
+          "client_id": "920939571800-r94v67gt2pjbjedhrpflhbn8nmi2njsq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcGrn_y35yQpG9MkxPO2nt0y7zEolBsyM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "920939571800-r94v67gt2pjbjedhrpflhbn8nmi2njsq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
