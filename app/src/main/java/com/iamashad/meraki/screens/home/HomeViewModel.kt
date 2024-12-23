@@ -1,5 +1,6 @@
 package com.iamashad.meraki.screens.home
 
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -25,6 +26,9 @@ class HomeScreenViewModel @Inject constructor(
     // User data in StateFlow
     private val _user = MutableStateFlow<FirebaseUser?>(firebaseAuth.currentUser)
     val user: StateFlow<FirebaseUser?> get() = _user
+
+    private val _photoUrl = MutableStateFlow(firebaseAuth.currentUser?.photoUrl)
+    val photoUrl: StateFlow<Uri?> = _photoUrl
 
     init {
         fetchAdvice()
