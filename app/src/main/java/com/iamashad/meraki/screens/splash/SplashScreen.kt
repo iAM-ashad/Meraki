@@ -13,22 +13,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.R
 import com.iamashad.meraki.navigation.Screens
-import com.iamashad.meraki.ui.theme.MerakiTheme
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(
     navController: NavController
 ) {
+    // Check if a user is logged in using FirebaseAuth
+    val isLoggedIn = FirebaseAuth.getInstance().currentUser != null
 
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.splash_animation))
 
@@ -54,17 +54,17 @@ fun SplashScreen(
             )
         }
     }
+
     LaunchedEffect(key1 = true) {
         delay(2500)
-        navController.navigate(Screens.HOME.name)
-    }
-}
-
-@Preview
-@Composable
-fun ScreenPreview() {
-    MerakiTheme {
-        val navController = rememberNavController()
-        SplashScreen(navController)
+        if (isLoggedIn) {
+            navController.navigate(Screens.HOME.name) {
+                popUpTo(Screens.SPLASH.name) { inclusive = true }
+            }
+        } else {
+            navController.navigate(Screens.REGISTER.name) {
+                popUpTo(Screens.SPLASH.name) { inclusive = true }
+            }
+        }
     }
 }

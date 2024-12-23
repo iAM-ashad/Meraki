@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.navigation.compose.rememberNavController
 import com.iamashad.meraki.navigation.MerakiNavigation
-import com.iamashad.meraki.screens.splash.SplashScreen
+import com.iamashad.meraki.screens.register.RegisterScreen
 import com.iamashad.meraki.ui.theme.MerakiTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -18,6 +18,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             MerakiTheme {
                 MerakiNavigation()
+//                val navController = rememberNavController()
+//                RegisterScreen(navController)
             }
         }
     }

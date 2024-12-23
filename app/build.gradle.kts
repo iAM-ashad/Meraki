@@ -80,14 +80,12 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
-
-
-
-
-
-
-
-
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    // Exoplayer
+    implementation("androidx.media3:media3-exoplayer:1.5.0")
+    implementation("androidx.media3:media3-ui:1.5.0")
+    // LiveData
+    implementation ("androidx.compose.runtime:runtime-livedata:1.7.6")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
