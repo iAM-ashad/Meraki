@@ -7,24 +7,27 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Qualifier
 import javax.inject.Singleton
 
 @Module
-@InstallIn(SingletonComponent::class) // This ensures the scope is Singleton
+@InstallIn(SingletonComponent::class)
 object NetworkModule {
 
+    @Qualifier
+    @Retention(AnnotationRetention.BINARY)
+    annotation class AdviceRetrofit
+
+    @AdviceRetrofit
     @Provides
-    @Singleton // Ensure Retrofit is also Singleton
-    fun provideRetrofit(): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl("https://api.adviceslip.com/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
+    @Singleton
+    fun provideAdviceRetrofit(): Retrofit = Retrofit.Builder()
+        .baseUrl("https://advice.api.example.com/") // Replace with the actual Advice API base URL
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
 
     @Provides
-    @Singleton // Ensure AdviceApi is Singleton too
-    fun provideAdviceApi(retrofit: Retrofit): AdviceApi {
-        return retrofit.create(AdviceApi::class.java)
-    }
+    @Singleton
+    fun provideAdviceApi(@AdviceRetrofit retrofit: Retrofit): AdviceApi =
+        retrofit.create(AdviceApi::class.java)
 }

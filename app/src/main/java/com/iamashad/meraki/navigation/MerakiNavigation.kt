@@ -12,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.iamashad.meraki.R
+import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
 import com.iamashad.meraki.screens.healthmetrics.HealthMetricsScreen
 import com.iamashad.meraki.screens.home.HomeScreen
@@ -49,7 +50,8 @@ fun MerakiNavigation() {
                 RegisterScreen(navController)
             }
             composable(Screens.CHATBOT.name) {
-                ChatbotScreen(navController)
+                val viewModel = ChatViewModel()
+                ChatbotScreen(viewModel = viewModel)
             }
             composable(Screens.HEALTHMETRICS.name) {
                 HealthMetricsScreen(navController)

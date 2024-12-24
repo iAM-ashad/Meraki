@@ -57,8 +57,10 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     // Json Parsing
     implementation("com.google.code.gson:gson:2.10.1")
+    implementation ("org.json:json:20210307")
     // OkHTTP Logging
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+    implementation ("com.squareup.okhttp3:okhttp:4.12.0")
     // Mock WebServer
     testImplementation("com.squareup.okhttp3:mockwebserver:4.11.0")
     // Coroutines
@@ -86,6 +88,9 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.5.0")
     // LiveData
     implementation ("androidx.compose.runtime:runtime-livedata:1.7.6")
+   // Gemini SDK
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

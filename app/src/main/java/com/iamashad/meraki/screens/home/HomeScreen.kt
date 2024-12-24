@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -25,11 +26,13 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -44,10 +47,9 @@ fun HomeScreen(
     navController: NavController,
     homeViewModel: HomeScreenViewModel = hiltViewModel()
 ) {
-    // Observe user data (FirebaseUser) using collectAsState for the StateFlow
     val user by homeViewModel.user.collectAsState()
+    val firstName = user?.displayName?.split(" ")?.firstOrNull() ?: "User"
 
-    // Observe advice LiveData using observeAsState for the LiveData
     val advice by homeViewModel.advice.observeAsState("Loading advice...")
 
     val photoUrl by homeViewModel.photoUrl.collectAsState()
@@ -65,9 +67,11 @@ fun HomeScreen(
                 )
             )
     ) {
-        // Other content is added on top of the gradient background
         Column(
-            modifier = Modifier.fillMaxSize()
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
             Box(
                 modifier = Modifier.fillMaxWidth()
@@ -110,28 +114,79 @@ fun HomeScreen(
                         )
                     }
                 }
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Card(
-                        shape = RoundedCornerShape(topStart = 25.dp, bottomEnd = 25.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer
-                        ),
-                        elevation = CardDefaults.cardElevation(10.dp),
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .align(Alignment.Center)
-                    ) {
-                        Text(
-                            text = advice,
-                            fontSize = 16.sp,
-                            fontFamily = displayFontFamily,
-                            modifier = Modifier.padding(8.dp)
-                        )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Card(
+                shape = RoundedCornerShape(topStart = 25.dp, bottomEnd = 25.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                elevation = CardDefaults.cardElevation(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp)
+            ) {
+                Text(
+                    text = advice,
+                    fontSize = 16.sp,
+                    fontFamily = displayFontFamily,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Welcome Back, ${firstName}!",
+                fontSize = 25.sp,
+                fontFamily = bodyFontFamily,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+
+            Spacer(modifier = Modifier.padding(vertical = 15.dp))
+
+            Card(
+                shape = CircleShape,
+                elevation = CardDefaults.cardElevation(10.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.Transparent
+                ),
+                modifier = Modifier
+                    .size(100.dp)
+                    .clickable {
+                        // TODO
                     }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White,
+                                    MaterialTheme.colorScheme.tertiaryContainer,
+                                    MaterialTheme.colorScheme.tertiary
+                                ),
+                                center = Offset.Infinite,
+                                radius = 150f
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Meditate?",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
                 }
             }
+
         }
     }
 }
