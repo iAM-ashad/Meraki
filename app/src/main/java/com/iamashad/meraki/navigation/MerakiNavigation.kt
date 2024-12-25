@@ -14,7 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import com.iamashad.meraki.R
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
-import com.iamashad.meraki.screens.healthmetrics.HealthMetricsScreen
+import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
 import com.iamashad.meraki.screens.home.HomeScreen
 import com.iamashad.meraki.screens.register.RegisterScreen
 import com.iamashad.meraki.screens.splash.SplashScreen
@@ -53,8 +53,8 @@ fun MerakiNavigation() {
                 val viewModel = ChatViewModel()
                 ChatbotScreen(viewModel = viewModel)
             }
-            composable(Screens.HEALTHMETRICS.name) {
-                HealthMetricsScreen(navController)
+            composable(Screens.MOODTRACKER.name) {
+                MoodTrackerScreen(navController)
             }
         }
     }
@@ -65,7 +65,7 @@ fun shouldShowBottomBar(currentDestination: String?): Boolean {
     return currentDestination in listOf(
         Screens.HOME.name,
         Screens.CHATBOT.name,
-        Screens.HEALTHMETRICS.name
+        Screens.MOODTRACKER.name
     )
 }
 
@@ -105,10 +105,10 @@ fun BottomNavigationBar(navController: NavController) {
                 Icon(painter = painterResource(id = R.drawable.metrics_icon), contentDescription = null)
             },
             label = { Text("Health") },
-            selected = navController.currentDestination?.route == Screens.HEALTHMETRICS.name,
+            selected = navController.currentDestination?.route == Screens.MOODTRACKER.name,
             onClick = {
-                navController.navigate(Screens.HEALTHMETRICS.name) {
-                    popUpTo(Screens.HEALTHMETRICS.name) { saveState = true }
+                navController.navigate(Screens.MOODTRACKER.name) {
+                    popUpTo(Screens.MOODTRACKER.name) { saveState = true }
                     launchSingleTop = true
                 }
             }

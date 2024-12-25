@@ -90,7 +90,7 @@ fun HomeScreen(
                     elevation = CardDefaults.cardElevation(10.dp),
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(10.dp)
+                        //.padding(10.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -169,10 +169,10 @@ fun HomeScreen(
                             Brush.radialGradient(
                                 colors = listOf(
                                     Color.White,
-                                    MaterialTheme.colorScheme.tertiaryContainer,
-                                    MaterialTheme.colorScheme.tertiary
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    MaterialTheme.colorScheme.inversePrimary
                                 ),
-                                center = Offset.Infinite,
+                                center = Offset.Zero,
                                 radius = 150f
                             )
                         ),
@@ -182,7 +182,7 @@ fun HomeScreen(
                         text = "Meditate?",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
             }

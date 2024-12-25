@@ -22,7 +22,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAdviceRetrofit(): Retrofit = Retrofit.Builder()
-        .baseUrl("https://advice.api.example.com/") // Replace with the actual Advice API base URL
+        .baseUrl("https://api.adviceslip.com/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
