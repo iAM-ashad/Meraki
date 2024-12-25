@@ -5,5 +5,9 @@ enum class Screens {
     SPLASH,
     REGISTER,
     CHATBOT,
-    MOODTRACKER
+    MOODTRACKER,
+    BREATHING,
+    MINDFULNESS,
+    JOURNAL,
+    CELEBRATION
 }

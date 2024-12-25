@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,17 +34,21 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.content
 import com.iamashad.meraki.R
 import com.iamashad.meraki.model.Message
 
 @Composable
 fun ChatbotScreen(
-    modifier: Modifier = Modifier,
-    viewModel: ChatViewModel
+    viewModel: ChatViewModel,
+    initialPrompt: String? = null
 ) {
-    Column(
-        modifier = modifier
-    ) {
+    LaunchedEffect(Unit) {
+        viewModel.processInitialPrompt(initialPrompt)
+    }
+
+    Column {
         AppHeader()
         MessageList(
             modifier = Modifier.weight(1f),
@@ -56,6 +61,8 @@ fun ChatbotScreen(
         )
     }
 }
+
+
 
 
 @Composable
@@ -84,8 +91,6 @@ fun MessageList(modifier: Modifier = Modifier, messageList: List<Message>) {
             }
         }
     }
-
-
 }
 
 @Composable
@@ -99,7 +104,6 @@ fun MessageRow(messageModel: Message) {
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
-
             Box(
                 modifier = Modifier
                     .align(if (isModel) Alignment.BottomStart else Alignment.BottomEnd)
@@ -113,7 +117,6 @@ fun MessageRow(messageModel: Message) {
                     .background(if (isModel) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary)
                     .padding(16.dp)
             ) {
-
                 SelectionContainer {
                     Text(
                         text = messageModel.message,
@@ -121,16 +124,9 @@ fun MessageRow(messageModel: Message) {
                         color = Color.White
                     )
                 }
-
-
             }
-
         }
-
-
     }
-
-
 }
 
 
@@ -182,3 +178,4 @@ fun AppHeader() {
         )
     }
 }
+

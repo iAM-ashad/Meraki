@@ -7,11 +7,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.iamashad.meraki.R
+import com.iamashad.meraki.screens.celebration.CelebrationScreen
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
@@ -49,12 +52,20 @@ fun MerakiNavigation() {
             composable(Screens.REGISTER.name) {
                 RegisterScreen(navController)
             }
-            composable(Screens.CHATBOT.name) {
-                val viewModel = ChatViewModel()
-                ChatbotScreen(viewModel = viewModel)
+            composable(
+                route = "${Screens.CHATBOT.name}/{prompt}",
+                arguments = listOf(navArgument("prompt") { defaultValue = "" })
+            ) { backStackEntry ->
+                val prompt = backStackEntry.arguments?.getString("prompt") ?: ""
+                val viewModel = hiltViewModel<ChatViewModel>()
+                ChatbotScreen(viewModel = viewModel, initialPrompt = prompt)
             }
+
             composable(Screens.MOODTRACKER.name) {
                 MoodTrackerScreen(navController)
+            }
+            composable(Screens.CELEBRATION.name) {
+                CelebrationScreen(navController)
             }
         }
     }
@@ -93,7 +104,7 @@ fun BottomNavigationBar(navController: NavController) {
             label = { Text("Chatbot") },
             selected = navController.currentDestination?.route == Screens.CHATBOT.name,
             onClick = {
-                navController.navigate(Screens.CHATBOT.name) {
+                navController.navigate("${Screens.CHATBOT.name}/Hi.") {
                     popUpTo(Screens.CHATBOT.name) { saveState = true }
                     launchSingleTop = true
                 }
