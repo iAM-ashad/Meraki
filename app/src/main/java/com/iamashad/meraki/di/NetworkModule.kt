@@ -1,6 +1,7 @@
 package com.iamashad.meraki.di
 
 import com.iamashad.meraki.network.AdviceApi
+import com.iamashad.meraki.repository.FirestoreRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,4 +31,10 @@ object NetworkModule {
     @Singleton
     fun provideAdviceApi(@AdviceRetrofit retrofit: Retrofit): AdviceApi =
         retrofit.create(AdviceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFirestoreRepository(): FirestoreRepository {
+        return FirestoreRepository()
+    }
 }

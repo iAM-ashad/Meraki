@@ -13,13 +13,18 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.R
 import com.iamashad.meraki.screens.breathing.BreathingScreen
 import com.iamashad.meraki.screens.celebration.CelebrationScreen
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
-import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
 import com.iamashad.meraki.screens.home.HomeScreen
+import com.iamashad.meraki.screens.journal.AddJournalScreen
+import com.iamashad.meraki.screens.journal.JournalScreen
+import com.iamashad.meraki.screens.journal.JournalViewModel
+import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
 import com.iamashad.meraki.screens.register.RegisterScreen
 import com.iamashad.meraki.screens.splash.SplashScreen
 
@@ -71,6 +76,33 @@ fun MerakiNavigation() {
             composable(Screens.BREATHING.name) {
                 BreathingScreen(navController)
             }
+            composable(Screens.JOURNAL.name) {
+                val viewModel = hiltViewModel<JournalViewModel>()
+                JournalScreen(
+                    viewModel = viewModel,
+                    userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                    onAddJournalClick = {
+                        // Generate a unique ID for the new journal
+                        val uniqueId = FirebaseFirestore.getInstance().collection("journals").document().id
+                        navController.navigate("${Screens.ADDJOURNAL.name}/$uniqueId")
+                    }
+                )
+            }
+
+
+            composable(
+                route = "${Screens.ADDJOURNAL.name}/{journalId}",
+                arguments = listOf(navArgument("journalId") { defaultValue = "" })
+            ) { backStackEntry ->
+                val journalId = backStackEntry.arguments?.getString("journalId") ?: ""
+                val viewModel = hiltViewModel<JournalViewModel>()
+                AddJournalScreen(
+                    viewModel = viewModel,
+                    userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                    journalId = journalId,
+                    onSave = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
@@ -80,7 +112,8 @@ fun shouldShowBottomBar(currentDestination: String?): Boolean {
     return currentDestination in listOf(
         Screens.HOME.name,
         Screens.CHATBOT.name,
-        Screens.MOODTRACKER.name
+        Screens.MOODTRACKER.name,
+        Screens.JOURNAL.name,
     )
 }
 
@@ -124,6 +157,19 @@ fun BottomNavigationBar(navController: NavController) {
             onClick = {
                 navController.navigate(Screens.MOODTRACKER.name) {
                     popUpTo(Screens.MOODTRACKER.name) { saveState = true }
+                    launchSingleTop = true
+                }
+            }
+        )
+        NavigationBarItem(
+            icon = {
+                Icon(painter = painterResource(id = R.drawable.journal), contentDescription = null)
+            },
+            label = { Text("Journal") },
+            selected = navController.currentDestination?.route == Screens.JOURNAL.name,
+            onClick = {
+                navController.navigate(Screens.JOURNAL.name) {
+                    popUpTo(Screens.JOURNAL.name) { saveState = true }
                     launchSingleTop = true
                 }
             }

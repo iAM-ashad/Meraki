@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.model.Mood
 import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.screens.home.HomeScreenViewModel
@@ -112,6 +113,9 @@ fun GreetingCard(userName: String) {
 
 @Composable
 fun MoodCard(mood: Mood, navController: NavController) {
+
+    val uniqueId = FirebaseFirestore.getInstance().collection("journals").document().id
+
     Card(
         modifier = Modifier
             .size(120.dp)
@@ -121,7 +125,7 @@ fun MoodCard(mood: Mood, navController: NavController) {
                     "Sad" -> navController.navigate("${Screens.CHATBOT.name}/I feel sad. Please tell me a joke.")
                     "Anxious" -> navController.navigate(Screens.BREATHING.name)
                     "Calm" -> navController.navigate(Screens.MINDFULNESS.name)
-                    "Excited" -> navController.navigate(Screens.JOURNAL.name)
+                    "Excited" -> navController.navigate("${Screens.ADDJOURNAL.name}/$uniqueId")
                 }
             },
         shape = MaterialTheme.shapes.medium,
