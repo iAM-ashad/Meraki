@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.iamashad.meraki.R
+import com.iamashad.meraki.screens.breathing.BreathingScreen
 import com.iamashad.meraki.screens.celebration.CelebrationScreen
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
@@ -66,6 +67,9 @@ fun MerakiNavigation() {
             }
             composable(Screens.CELEBRATION.name) {
                 CelebrationScreen(navController)
+            }
+            composable(Screens.BREATHING.name) {
+                BreathingScreen(navController)
             }
         }
     }

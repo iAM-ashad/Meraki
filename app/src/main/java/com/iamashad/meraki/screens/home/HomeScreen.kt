@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.iamashad.meraki.R
+import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.ui.theme.bodyFontFamily
 import com.iamashad.meraki.ui.theme.displayFontFamily
 import com.iamashad.meraki.utils.LoadImageWithGlide
@@ -175,7 +176,10 @@ fun HomeScreen(
                                 center = Offset.Zero,
                                 radius = 150f
                             )
-                        ),
+                        )
+                        .clickable{
+                            navController.navigate(Screens.BREATHING.name)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
