@@ -2,12 +2,15 @@ package com.iamashad.meraki.screens.journal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.repository.FirestoreRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -16,32 +19,53 @@ class JournalViewModel @Inject constructor(
     private val repository: FirestoreRepository
 ) : ViewModel() {
 
-    private val _journals = MutableStateFlow<List<Journal>>(emptyList())
-    val journals: StateFlow<List<Journal>> get() = _journals
+    private val userId: String = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
-    init {
-        listenToJournals(FirebaseAuth.getInstance().currentUser?.uid ?: "")
-    }
+    // Paging Data for lazy loading
+    val pagedJournals: Flow<PagingData<Journal>> = Pager(
+        config = PagingConfig(pageSize = 10),
+        pagingSourceFactory = { repository.getJournalPagingSource(userId) }
+    ).flow.cachedIn(viewModelScope)
 
-    private fun listenToJournals(userId: String) {
-        repository.listenToJournals(userId) { updatedJournals ->
-            _journals.value = updatedJournals
-        }
-    }
+    // Search functionality
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> get() = _searchQuery
 
+    private val _searchResults = MutableStateFlow<List<Journal>>(emptyList())
+    val searchResults: StateFlow<List<Journal>> get() = _searchResults
+
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> get() = _isSearching
+
+    // Add a new journal
     fun addJournal(journal: Journal) {
         viewModelScope.launch {
             repository.addJournal(journal)
-            // No need to call loadJournals because real-time updates handle it
         }
     }
 
-    fun deleteJournal(journalId: String, userId: String) {
+    // Delete a journal
+    fun deleteJournal(journalId: String) {
         viewModelScope.launch {
             repository.deleteJournal(journalId)
-            // No need to call loadJournals because real-time updates handle it
         }
     }
+
+    // Search journals based on query
+    fun searchJournals(query: String) {
+        viewModelScope.launch {
+            _isSearching.value = true
+            _searchResults.value = repository.searchJournals(userId, query)
+            _isSearching.value = false
+        }
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun clearSearchResults() {
+        _searchResults.value = emptyList()
+        _isSearching.value = false
+    }
 }
-
-

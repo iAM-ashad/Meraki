@@ -10,5 +10,6 @@ enum class Screens {
     MINDFULNESS,
     JOURNAL,
     CELEBRATION,
-    ADDJOURNAL
+    ADDJOURNAL,
+    VIEWJOURNAL
 }

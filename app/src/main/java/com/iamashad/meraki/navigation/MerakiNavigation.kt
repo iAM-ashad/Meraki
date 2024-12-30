@@ -1,10 +1,12 @@
 package com.iamashad.meraki.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -13,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.R
@@ -24,21 +27,21 @@ import com.iamashad.meraki.screens.home.HomeScreen
 import com.iamashad.meraki.screens.journal.AddJournalScreen
 import com.iamashad.meraki.screens.journal.JournalScreen
 import com.iamashad.meraki.screens.journal.JournalViewModel
+import com.iamashad.meraki.screens.journal.ViewJournalScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
 import com.iamashad.meraki.screens.register.RegisterScreen
 import com.iamashad.meraki.screens.splash.SplashScreen
+import androidx.compose.runtime.getValue
 
 @Composable
 fun MerakiNavigation() {
     val navController = rememberNavController()
 
-    // Get the current route to determine when to show the bottom bar
     val currentDestination = navController.currentBackStackEntryFlow.collectAsState(initial = null).value?.destination?.route
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            // Show BottomNavigationBar only for specific screens
             if (shouldShowBottomBar(currentDestination)) {
                 BottomNavigationBar(navController)
             }
@@ -62,11 +65,10 @@ fun MerakiNavigation() {
                 route = "${Screens.CHATBOT.name}/{prompt}",
                 arguments = listOf(navArgument("prompt") { defaultValue = "" })
             ) { backStackEntry ->
-                val prompt = backStackEntry.arguments?.getString("prompt") ?: ""
+                val prompt = backStackEntry.arguments?.getString("prompt").orEmpty()
                 val viewModel = hiltViewModel<ChatViewModel>()
                 ChatbotScreen(viewModel = viewModel, initialPrompt = prompt)
             }
-
             composable(Screens.MOODTRACKER.name) {
                 MoodTrackerScreen(navController)
             }
@@ -76,25 +78,11 @@ fun MerakiNavigation() {
             composable(Screens.BREATHING.name) {
                 BreathingScreen(navController)
             }
-            composable(Screens.JOURNAL.name) {
-                val viewModel = hiltViewModel<JournalViewModel>()
-                JournalScreen(
-                    viewModel = viewModel,
-                    userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
-                    onAddJournalClick = {
-                        // Generate a unique ID for the new journal
-                        val uniqueId = FirebaseFirestore.getInstance().collection("journals").document().id
-                        navController.navigate("${Screens.ADDJOURNAL.name}/$uniqueId")
-                    }
-                )
-            }
-
-
             composable(
                 route = "${Screens.ADDJOURNAL.name}/{journalId}",
                 arguments = listOf(navArgument("journalId") { defaultValue = "" })
             ) { backStackEntry ->
-                val journalId = backStackEntry.arguments?.getString("journalId") ?: ""
+                val journalId = backStackEntry.arguments?.getString("journalId").orEmpty()
                 val viewModel = hiltViewModel<JournalViewModel>()
                 AddJournalScreen(
                     viewModel = viewModel,
@@ -103,6 +91,59 @@ fun MerakiNavigation() {
                     onSave = { navController.popBackStack() }
                 )
             }
+            composable(Screens.JOURNAL.name) {
+                val viewModel = hiltViewModel<JournalViewModel>()
+                JournalScreen(
+                    viewModel = viewModel,
+                    //userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                    onAddJournalClick = {
+                        val newJournalId = FirebaseFirestore.getInstance().collection("journals").document().id
+                        navController.navigate("${Screens.ADDJOURNAL.name}/$newJournalId")
+                    },
+                    onViewJournal = { journal ->
+                        navController.navigate("${Screens.VIEWJOURNAL.name}/${journal.journalId}")
+                    }
+                )
+            }
+            composable(
+                route = "${Screens.VIEWJOURNAL.name}/{journalId}",
+                arguments = listOf(navArgument("journalId") { defaultValue = "" })
+            ) { backStackEntry ->
+                val journalId = backStackEntry.arguments?.getString("journalId") ?: ""
+                val viewModel = hiltViewModel<JournalViewModel>()
+
+                // Get the list of journals in a Composable-safe way
+                val pagedJournals = viewModel.pagedJournals.collectAsLazyPagingItems()
+                val searchResults by viewModel.searchResults.collectAsState()
+                val isSearching by viewModel.isSearching.collectAsState()
+
+                // Determine which list to search
+                val displayedJournals = if (isSearching) searchResults else pagedJournals.itemSnapshotList.items
+
+                // Find the journal with the given ID
+                val journal = displayedJournals.find { it.journalId == journalId }
+
+                if (journal != null) {
+                    ViewJournalScreen(
+                        journal = journal,
+                        onBack = { navController.popBackStack() }
+                    )
+                } else {
+                    // Show loading or fallback UI
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Loading...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                }
+            }
+
+
         }
     }
 }
@@ -113,7 +154,7 @@ fun shouldShowBottomBar(currentDestination: String?): Boolean {
         Screens.HOME.name,
         Screens.CHATBOT.name,
         Screens.MOODTRACKER.name,
-        Screens.JOURNAL.name,
+        Screens.JOURNAL.name
     )
 }
 
@@ -121,9 +162,7 @@ fun shouldShowBottomBar(currentDestination: String?): Boolean {
 fun BottomNavigationBar(navController: NavController) {
     NavigationBar {
         NavigationBarItem(
-            icon = {
-                Icon(painter = painterResource(id = R.drawable.home_icon), contentDescription = null)
-            },
+            icon = { Icon(painter = painterResource(id = R.drawable.home_icon), contentDescription = null) },
             label = { Text("Home") },
             selected = navController.currentDestination?.route == Screens.HOME.name,
             onClick = {
@@ -133,11 +172,8 @@ fun BottomNavigationBar(navController: NavController) {
                 }
             }
         )
-
         NavigationBarItem(
-            icon = {
-                Icon(painter = painterResource(id = R.drawable.chat_icon), contentDescription = null)
-            },
+            icon = { Icon(painter = painterResource(id = R.drawable.chat_icon), contentDescription = null) },
             label = { Text("Chatbot") },
             selected = navController.currentDestination?.route == Screens.CHATBOT.name,
             onClick = {
@@ -147,11 +183,8 @@ fun BottomNavigationBar(navController: NavController) {
                 }
             }
         )
-
         NavigationBarItem(
-            icon = {
-                Icon(painter = painterResource(id = R.drawable.metrics_icon), contentDescription = null)
-            },
+            icon = { Icon(painter = painterResource(id = R.drawable.metrics_icon), contentDescription = null) },
             label = { Text("Health") },
             selected = navController.currentDestination?.route == Screens.MOODTRACKER.name,
             onClick = {
@@ -162,9 +195,7 @@ fun BottomNavigationBar(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon = {
-                Icon(painter = painterResource(id = R.drawable.journal), contentDescription = null)
-            },
+            icon = { Icon(painter = painterResource(id = R.drawable.journal), contentDescription = null) },
             label = { Text("Journal") },
             selected = navController.currentDestination?.route == Screens.JOURNAL.name,
             onClick = {
@@ -176,5 +207,3 @@ fun BottomNavigationBar(navController: NavController) {
         )
     }
 }
-
-

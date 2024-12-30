@@ -92,6 +92,9 @@ dependencies {
     implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
     // Animated Navigation
     implementation ("androidx.navigation:navigation-compose:2.8.5")
+    // Pagination
+    implementation ("androidx.paging:paging-runtime-ktx:3.3.5")
+    implementation ("androidx.paging:paging-compose:3.3.5")
 
 
 
