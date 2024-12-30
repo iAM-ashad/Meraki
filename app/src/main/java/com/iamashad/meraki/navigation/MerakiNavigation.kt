@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -15,7 +16,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.paging.compose.collectAsLazyPagingItems
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.R
@@ -31,13 +31,13 @@ import com.iamashad.meraki.screens.journal.ViewJournalScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
 import com.iamashad.meraki.screens.register.RegisterScreen
 import com.iamashad.meraki.screens.splash.SplashScreen
-import androidx.compose.runtime.getValue
 
 @Composable
 fun MerakiNavigation() {
     val navController = rememberNavController()
 
-    val currentDestination = navController.currentBackStackEntryFlow.collectAsState(initial = null).value?.destination?.route
+    val currentDestination =
+        navController.currentBackStackEntryFlow.collectAsState(initial = null).value?.destination?.route
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -97,7 +97,8 @@ fun MerakiNavigation() {
                     viewModel = viewModel,
                     //userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
                     onAddJournalClick = {
-                        val newJournalId = FirebaseFirestore.getInstance().collection("journals").document().id
+                        val newJournalId =
+                            FirebaseFirestore.getInstance().collection("journals").document().id
                         navController.navigate("${Screens.ADDJOURNAL.name}/$newJournalId")
                     },
                     onViewJournal = { journal ->
@@ -112,13 +113,13 @@ fun MerakiNavigation() {
                 val journalId = backStackEntry.arguments?.getString("journalId") ?: ""
                 val viewModel = hiltViewModel<JournalViewModel>()
 
-                // Get the list of journals in a Composable-safe way
-                val pagedJournals = viewModel.pagedJournals.collectAsLazyPagingItems()
+                // Collect state for journals and search
+                val journals by viewModel.journals.collectAsState()
                 val searchResults by viewModel.searchResults.collectAsState()
                 val isSearching by viewModel.isSearching.collectAsState()
 
-                // Determine which list to search
-                val displayedJournals = if (isSearching) searchResults else pagedJournals.itemSnapshotList.items
+                // Determine which list to use
+                val displayedJournals = if (isSearching) searchResults else journals
 
                 // Find the journal with the given ID
                 val journal = displayedJournals.find { it.journalId == journalId }
@@ -129,21 +130,19 @@ fun MerakiNavigation() {
                         onBack = { navController.popBackStack() }
                     )
                 } else {
-                    // Show loading or fallback UI
+                    // Fallback UI in case the journal is not found
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Loading...",
+                            text = "Loading or Journal not found.",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
             }
-
-
         }
     }
 }
@@ -162,7 +161,12 @@ fun shouldShowBottomBar(currentDestination: String?): Boolean {
 fun BottomNavigationBar(navController: NavController) {
     NavigationBar {
         NavigationBarItem(
-            icon = { Icon(painter = painterResource(id = R.drawable.home_icon), contentDescription = null) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.home_icon),
+                    contentDescription = null
+                )
+            },
             label = { Text("Home") },
             selected = navController.currentDestination?.route == Screens.HOME.name,
             onClick = {
@@ -173,7 +177,12 @@ fun BottomNavigationBar(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon = { Icon(painter = painterResource(id = R.drawable.chat_icon), contentDescription = null) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.chat_icon),
+                    contentDescription = null
+                )
+            },
             label = { Text("Chatbot") },
             selected = navController.currentDestination?.route == Screens.CHATBOT.name,
             onClick = {
@@ -184,7 +193,12 @@ fun BottomNavigationBar(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon = { Icon(painter = painterResource(id = R.drawable.metrics_icon), contentDescription = null) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.metrics_icon),
+                    contentDescription = null
+                )
+            },
             label = { Text("Health") },
             selected = navController.currentDestination?.route == Screens.MOODTRACKER.name,
             onClick = {
@@ -195,7 +209,12 @@ fun BottomNavigationBar(navController: NavController) {
             }
         )
         NavigationBarItem(
-            icon = { Icon(painter = painterResource(id = R.drawable.journal), contentDescription = null) },
+            icon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.journal),
+                    contentDescription = null
+                )
+            },
             label = { Text("Journal") },
             selected = navController.currentDestination?.route == Screens.JOURNAL.name,
             onClick = {

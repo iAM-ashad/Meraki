@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.paging.compose.collectAsLazyPagingItems
 import com.iamashad.meraki.model.Journal
 
 @Composable
@@ -40,12 +38,12 @@ fun JournalScreen(
     onAddJournalClick: () -> Unit,
     onViewJournal: (Journal) -> Unit
 ) {
-    val pagedJournals = viewModel.pagedJournals.collectAsLazyPagingItems()
+    val journals by viewModel.journals.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
 
-    val displayedJournals = if (isSearching) searchResults else pagedJournals.itemSnapshotList.items
+    val displayedJournals = if (isSearching) searchResults else journals
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         // Header
@@ -62,11 +60,7 @@ fun JournalScreen(
         ) {
             BasicTextField(
                 value = searchQuery,
-                onValueChange = {
-                    viewModel.updateSearchQuery(it)
-                    if (it.isEmpty()) viewModel.clearSearchResults()
-                    else viewModel.searchJournals(it)
-                },
+                onValueChange = { viewModel.updateSearchQuery(it) },
                 modifier = Modifier
                     .weight(1f)
                     .padding(8.dp)
@@ -78,9 +72,8 @@ fun JournalScreen(
             Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
         }
 
-        // Journal List
         LazyColumn(
-            modifier = Modifier.weight(1f), // Make the list scrollable and take available space
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (displayedJournals.isEmpty()) {
@@ -106,13 +99,6 @@ fun JournalScreen(
                         )
                     }
                 }
-                item {
-                    if (pagedJournals.loadState.append == androidx.paging.LoadState.Loading) {
-                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                }
             }
         }
 
@@ -126,7 +112,6 @@ fun JournalScreen(
         }
     }
 }
-
 
 
 

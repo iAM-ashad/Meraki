@@ -2,10 +2,6 @@ package com.iamashad.meraki.screens.journal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.paging.Pager
-import androidx.paging.PagingConfig
-import androidx.paging.PagingData
-import androidx.paging.cachedIn
 import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.repository.FirestoreRepository
@@ -21,21 +17,56 @@ class JournalViewModel @Inject constructor(
 
     private val userId: String = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
-    // Paging Data for lazy loading
-    val pagedJournals: Flow<PagingData<Journal>> = Pager(
-        config = PagingConfig(pageSize = 10),
-        pagingSourceFactory = { repository.getJournalPagingSource(userId) }
-    ).flow.cachedIn(viewModelScope)
+    // Real-time journal flow
+    private val _journals = MutableStateFlow<List<Journal>>(emptyList())
+    val journals: StateFlow<List<Journal>> get() = _journals
 
     // Search functionality
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> get() = _searchQuery
-
     private val _searchResults = MutableStateFlow<List<Journal>>(emptyList())
     val searchResults: StateFlow<List<Journal>> get() = _searchResults
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> get() = _searchQuery
+
     private val _isSearching = MutableStateFlow(false)
     val isSearching: StateFlow<Boolean> get() = _isSearching
+
+    init {
+        listenToJournals()
+    }
+
+    private fun listenToJournals() {
+        viewModelScope.launch {
+            repository.listenToJournals(userId).collect { updatedJournals ->
+                if (!_isSearching.value) {
+                    _journals.value = updatedJournals
+                }
+            }
+        }
+    }
+
+    fun searchJournals(query: String) {
+        viewModelScope.launch {
+            _isSearching.value = true
+            _searchQuery.value = query
+            _searchResults.value = repository.searchJournals(userId, query)
+        }
+    }
+
+    fun clearSearchResults() {
+        _isSearching.value = false
+        _searchResults.value = emptyList()
+        _searchQuery.value = ""
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+        if (query.isEmpty()) {
+            clearSearchResults()
+        } else {
+            searchJournals(query)
+        }
+    }
 
     // Add a new journal
     fun addJournal(journal: Journal) {
@@ -50,22 +81,5 @@ class JournalViewModel @Inject constructor(
             repository.deleteJournal(journalId)
         }
     }
-
-    // Search journals based on query
-    fun searchJournals(query: String) {
-        viewModelScope.launch {
-            _isSearching.value = true
-            _searchResults.value = repository.searchJournals(userId, query)
-            _isSearching.value = false
-        }
-    }
-
-    fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
-    }
-
-    fun clearSearchResults() {
-        _searchResults.value = emptyList()
-        _isSearching.value = false
-    }
 }
+

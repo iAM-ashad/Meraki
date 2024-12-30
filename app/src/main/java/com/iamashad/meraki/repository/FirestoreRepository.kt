@@ -5,13 +5,14 @@ import androidx.paging.PagingState
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.iamashad.meraki.model.Journal
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository {
     private val db = FirebaseFirestore.getInstance()
     private val journalsCollection = db.collection("journals")
 
-    // Add Journal
     suspend fun addJournal(journal: Journal) {
         val docId = if (journal.journalId.isNotEmpty()) journal.journalId else journalsCollection.document().id
         val dataToSave = hashMapOf(
@@ -24,28 +25,27 @@ class FirestoreRepository {
         journalsCollection.document(docId).set(dataToSave).await()
     }
 
-    // Delete Journal
     suspend fun deleteJournal(journalId: String) {
         journalsCollection.document(journalId).delete().await()
     }
 
-    // Search Journals
-    suspend fun searchJournals(userId: String, query: String): List<Journal> {
-        return journalsCollection
+    fun listenToJournals(userId: String) = callbackFlow {
+        val listenerRegistration = journalsCollection
             .whereEqualTo("userId", userId)
-            .get()
-            .await()
-            .documents
-            .mapNotNull { doc ->
-                val title = doc.getString("title").orEmpty()
-                val content = doc.getString("content").orEmpty()
-                if (title.contains(query, true) || content.contains(query, true)) {
-                    mapToJournal(doc)
-                } else null
+            .orderBy("date", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val journals = snapshot?.documents?.mapNotNull { mapToJournal(it) } ?: emptyList()
+                trySend(journals)
             }
+        awaitClose { listenerRegistration.remove() }
     }
 
-    // Firestore PagingSource for pagination
+
+
     fun getJournalPagingSource(userId: String): PagingSource<Query, Journal> {
         return object : PagingSource<Query, Journal>() {
             override suspend fun load(params: LoadParams<Query>): LoadResult<Query, Journal> {
@@ -74,6 +74,21 @@ class FirestoreRepository {
 
             override fun getRefreshKey(state: PagingState<Query, Journal>): Query? = null
         }
+    }
+
+    suspend fun searchJournals(userId: String, query: String): List<Journal> {
+        return journalsCollection
+            .whereEqualTo("userId", userId)
+            .get()
+            .await()
+            .documents
+            .mapNotNull { doc ->
+                val title = doc.getString("title").orEmpty()
+                val content = doc.getString("content").orEmpty()
+                if (title.contains(query, true) || content.contains(query, true)) {
+                    mapToJournal(doc)
+                } else null
+            }
     }
 
     private fun mapToJournal(doc: com.google.firebase.firestore.DocumentSnapshot): Journal? {
