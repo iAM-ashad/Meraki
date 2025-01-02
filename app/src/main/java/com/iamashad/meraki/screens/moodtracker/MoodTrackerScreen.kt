@@ -3,6 +3,7 @@ package com.iamashad.meraki.screens.moodtracker
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -75,8 +76,62 @@ fun MoodTrackerScreen(
                 .padding(horizontal = 8.dp)
         ) {
             items(moodTrackerViewModel.moods) { mood ->
-                MoodCard(mood, navController)
+                MoodItem(mood, navController)
             }
+        }
+    }
+}
+
+@Composable
+fun MoodItem(mood: Mood, navController: NavController) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(vertical = 8.dp)
+    ) {
+        // Emoji Card
+        MoodCard(mood = mood, navController = navController)
+
+        // Mood Label
+        Text(
+            text = mood.label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun MoodCard(mood: Mood, navController: NavController) {
+    val uniqueId = FirebaseFirestore.getInstance().collection("journals").document().id
+
+    Card(
+        modifier = Modifier
+            .size(80.dp) // Adjusted size for better alignment with labels
+            .clickable {
+                when (mood.label) {
+                    "Happy" -> navController.navigate(Screens.CELEBRATION.name)
+                    "Sad" -> navController.navigate("${Screens.CHATBOT.name}/I feel sad. Please tell me a joke.")
+                    "Anxious" -> navController.navigate(Screens.BREATHING.name)
+                    "Calm" -> navController.navigate(Screens.MINDFULNESS.name)
+                    "Excited" -> navController.navigate("${Screens.ADDJOURNAL.name}/$uniqueId")
+                }
+            },
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Text(
+                text = mood.emoji,
+                style = MaterialTheme.typography.headlineLarge
+            )
         }
     }
 }
@@ -111,48 +166,3 @@ fun GreetingCard(userName: String) {
     }
 }
 
-@Composable
-fun MoodCard(mood: Mood, navController: NavController) {
-
-    val uniqueId = FirebaseFirestore.getInstance().collection("journals").document().id
-
-    Card(
-        modifier = Modifier
-            .size(120.dp)
-            .clickable {
-                when (mood.label) {
-                    "Happy" -> navController.navigate(Screens.CELEBRATION.name)
-                    "Sad" -> navController.navigate("${Screens.CHATBOT.name}/I feel sad. Please tell me a joke.")
-                    "Anxious" -> navController.navigate(Screens.BREATHING.name)
-                    "Calm" -> navController.navigate(Screens.MINDFULNESS.name)
-                    "Excited" -> navController.navigate("${Screens.ADDJOURNAL.name}/$uniqueId")
-                }
-            },
-        shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-        ) {
-            Text(
-                text = mood.emoji,
-                style = MaterialTheme.typography.headlineLarge
-            )
-
-            Text(
-                text = mood.label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
-    }
-}
