@@ -7,7 +7,6 @@ enum class Screens {
     CHATBOT,
     MOODTRACKER,
     BREATHING,
-    MINDFULNESS,
     JOURNAL,
     CELEBRATION,
     ADDJOURNAL,

@@ -29,6 +29,7 @@ import com.iamashad.meraki.screens.journal.JournalScreen
 import com.iamashad.meraki.screens.journal.JournalViewModel
 import com.iamashad.meraki.screens.journal.ViewJournalScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
+import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
 import com.iamashad.meraki.screens.register.RegisterScreen
 import com.iamashad.meraki.screens.splash.SplashScreen
 
@@ -52,15 +53,19 @@ fun MerakiNavigation() {
             startDestination = Screens.SPLASH.name,
             modifier = Modifier.padding(paddingValues)
         ) {
+
             composable(Screens.SPLASH.name) {
                 SplashScreen(navController)
             }
+
             composable(Screens.HOME.name) {
                 HomeScreen(navController)
             }
+
             composable(Screens.REGISTER.name) {
                 RegisterScreen(navController)
             }
+
             composable(
                 route = "${Screens.CHATBOT.name}/{prompt}",
                 arguments = listOf(navArgument("prompt") { defaultValue = "" })
@@ -70,14 +75,24 @@ fun MerakiNavigation() {
                 ChatbotScreen(viewModel = viewModel, initialPrompt = prompt)
             }
             composable(Screens.MOODTRACKER.name) {
-                MoodTrackerScreen(navController)
+                val moodTrackerViewModel = hiltViewModel<MoodTrackerViewModel>()
+                MoodTrackerScreen(
+                    navController = navController,
+                    onMoodLogged = {
+                        moodTrackerViewModel.fetchMoodTrend()
+                    }
+                )
             }
+
+
             composable(Screens.CELEBRATION.name) {
                 CelebrationScreen(navController)
             }
+
             composable(Screens.BREATHING.name) {
                 BreathingScreen(navController)
             }
+
             composable(
                 route = "${Screens.ADDJOURNAL.name}/{journalId}",
                 arguments = listOf(navArgument("journalId") { defaultValue = "" })
@@ -91,6 +106,7 @@ fun MerakiNavigation() {
                     onSave = { navController.popBackStack() }
                 )
             }
+
             composable(Screens.JOURNAL.name) {
                 val viewModel = hiltViewModel<JournalViewModel>()
                 JournalScreen(
@@ -106,6 +122,7 @@ fun MerakiNavigation() {
                     }
                 )
             }
+
             composable(
                 route = "${Screens.VIEWJOURNAL.name}/{journalId}",
                 arguments = listOf(navArgument("journalId") { defaultValue = "" })

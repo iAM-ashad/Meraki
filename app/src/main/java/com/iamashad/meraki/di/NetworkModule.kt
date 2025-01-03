@@ -2,6 +2,8 @@ package com.iamashad.meraki.di
 
 import com.iamashad.meraki.network.AdviceApi
 import com.iamashad.meraki.repository.FirestoreRepository
+import com.iamashad.meraki.repository.MoodRepository
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -36,5 +38,17 @@ object NetworkModule {
     @Singleton
     fun provideFirestoreRepository(): FirestoreRepository {
         return FirestoreRepository()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseFirestore(): FirebaseFirestore {
+        return FirebaseFirestore.getInstance()
+    }
+
+    @Provides
+    @Singleton
+    fun provideMoodRepository(firestore: FirebaseFirestore): MoodRepository {
+        return MoodRepository(firestore)
     }
 }
