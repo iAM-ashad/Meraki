@@ -68,7 +68,7 @@ class JournalViewModel @Inject constructor(
         }
     }
 
-    // Add a new journal
+    // Add a new journal with mood score
     fun addJournal(journal: Journal) {
         viewModelScope.launch {
             repository.addJournal(journal)
@@ -82,4 +82,5 @@ class JournalViewModel @Inject constructor(
         }
     }
 }
+
 

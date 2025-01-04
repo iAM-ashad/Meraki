@@ -73,4 +73,18 @@ fun LoadImageWithGlide(
         }
     )
 }
+fun getMoodScore(emotions: List<String>): Int {
+    val emotionToScore = mapOf(
+        "Happy" to 90,
+        "Excited" to 80,
+        "Calm" to 70,
+        "Surprised" to 50,
+        "Confused" to 40,
+        "Sad" to 25
+    )
+
+    val scores = emotions.mapNotNull { emotionToScore[it] }
+    return if (scores.isNotEmpty()) scores.average().toInt() else 50 // Default to neutral
+}
+
 

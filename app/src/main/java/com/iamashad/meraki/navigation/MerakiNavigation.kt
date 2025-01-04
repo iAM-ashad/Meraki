@@ -99,10 +99,12 @@ fun MerakiNavigation() {
             ) { backStackEntry ->
                 val journalId = backStackEntry.arguments?.getString("journalId").orEmpty()
                 val viewModel = hiltViewModel<JournalViewModel>()
+
                 AddJournalScreen(
                     viewModel = viewModel,
-                    userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
+                    userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty(),
                     journalId = journalId,
+                    onClose = { navController.popBackStack() },
                     onSave = { navController.popBackStack() }
                 )
             }
@@ -111,17 +113,17 @@ fun MerakiNavigation() {
                 val viewModel = hiltViewModel<JournalViewModel>()
                 JournalScreen(
                     viewModel = viewModel,
-                    //userId = FirebaseAuth.getInstance().currentUser?.uid ?: "",
                     onAddJournalClick = {
                         val newJournalId =
                             FirebaseFirestore.getInstance().collection("journals").document().id
                         navController.navigate("${Screens.ADDJOURNAL.name}/$newJournalId")
                     },
-                    onViewJournal = { journal ->
+                    onEditJournalClick = { journal ->
                         navController.navigate("${Screens.VIEWJOURNAL.name}/${journal.journalId}")
                     }
                 )
             }
+
 
             composable(
                 route = "${Screens.VIEWJOURNAL.name}/{journalId}",

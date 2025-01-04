@@ -126,16 +126,6 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Welcome Message
-        Text(
-            text = "Welcome Back, $firstName!",
-            fontSize = 25.sp,
-            fontFamily = bodyFontFamily,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 8.dp)
-        )
-
         Spacer(modifier = Modifier.height(15.dp))
 
         // Meditate Button
@@ -199,7 +189,7 @@ fun StreakMeterCard(streakCount: Int) {
 fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        colors = CardDefaults.cardColors(containerColor = Color(34, 56, 67)),
         elevation = CardDefaults.cardElevation(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -213,7 +203,7 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
             Text(
                 text = "Mood Chart",
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = Color.White
             )
 
             Spacer(modifier = Modifier.height(80.dp))

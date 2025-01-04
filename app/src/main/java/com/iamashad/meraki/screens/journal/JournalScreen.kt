@@ -2,177 +2,220 @@ package com.iamashad.meraki.screens.journal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.iamashad.meraki.model.Journal
-import com.iamashad.meraki.R
 
 @Composable
 fun JournalScreen(
     viewModel: JournalViewModel,
     onAddJournalClick: () -> Unit,
-    onViewJournal: (Journal) -> Unit
+    onEditJournalClick: (Journal) -> Unit
 ) {
     val journals by viewModel.journals.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
-    val isSearching by viewModel.isSearching.collectAsState()
-
-    val displayedJournals = if (isSearching) searchResults else journals
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp)
     ) {
-        // Header
+
         Text(
             text = "Your Journals",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.Start)
         )
 
-        // Enhanced Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = {
-                viewModel.updateSearchQuery(it)
-                if (it.isEmpty()) {
-                    viewModel.clearSearchResults()
-                } else {
-                    viewModel.searchJournals(it)
-                }
-            },
-            label = { Text("Search journals") },
-            leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search Icon") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            singleLine = true
-        )
-
-        // Journal List
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            if (displayedJournals.isEmpty()) {
-                item {
-                    Box(
-                        modifier = Modifier.fillParentMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = if (isSearching) "No results found." else "No journals available.",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = onAddJournalClick) {
-                                Text("Create Your First Journal")
-                            }
-                        }
-                    }
-                }
-            } else {
-                items(displayedJournals) { journal ->
-                    journal?.let {
-                        JournalCard(
-                            journal = it,
-                            onDelete = { viewModel.deleteJournal(it.journalId) },
-                            onClick = { onViewJournal(it) }
-                        )
-                    }
+        Box(modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+            ) {
+                items(journals) { journal ->
+                    JournalCard(
+                        journal = journal,
+                        onEditClick = { onEditJournalClick(it) },
+                        onDeleteButtonClick = {viewModel.deleteJournal(journal.journalId)}
+                    )
                 }
             }
         }
 
-        // Add Journal Button
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = onAddJournalClick,
-            modifier = Modifier.align(Alignment.End)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             Text(text = "Add Journal")
         }
     }
 }
 
+
 @Composable
-fun JournalCard(journal: Journal, onDelete: () -> Unit, onClick: (Journal) -> Unit) {
+fun JournalCard(
+    journal: Journal,
+    onEditClick: (Journal) -> Unit,
+    onDeleteButtonClick: (String) -> Unit
+) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick(journal) }
-            .background(MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = journal.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = journal.content,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Date: ${android.text.format.DateFormat.format("yyyy-MM-dd HH:mm", journal.date)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = getMoodEmoji(journal.title),
+                        fontSize = 24.sp,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    Column {
+                        Text(
+                            text = getMoodLabelFromTitle(journal.title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = android.text.format.DateFormat.format("HH:mm", journal.date)
+                                .toString(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                IconButton(onClick = { onEditClick(journal) }) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "View Journal",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_delete),
-                    contentDescription = "Delete Journal",
-                    tint = MaterialTheme.colorScheme.error
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "You felt ${journal.title}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = if (journal.reasons.isNotEmpty()) {
+                    "Because of ${journal.reasons.joinToString()}"
+                } else {
+                    "Because of Unknown Reasons"
+                },
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Fixed note display
+            Text(
+                text = if (journal.content.isNotBlank()) {
+                    "Note: ${journal.content}"
+                } else {
+                    "No additional notes provided."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 3
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Divider(color = MaterialTheme.colorScheme.onSurfaceVariant, thickness = 0.5.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Find peace",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary
                 )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Icon",
+                        tint = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clickable{
+                                onDeleteButtonClick(journal.journalId)
+                            }
+                    )
+                    Text(
+                        text = "Delete",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
             }
+            Text(
+                text = "Spend time outdoors, surrounded by greenery and fresh air",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+    }
+}
+
+
+fun getMoodEmoji(title: String): String {
+    return when {
+        title.contains("Happy", true) -> "😊"
+        title.contains("Sad", true) -> "😢"
+        title.contains("Excited", true) -> "🤩"
+        title.contains("Calm", true) -> "😌"
+        title.contains("Confused", true) -> "😕"
+        title.contains("Surprised", true) -> "😲"
+        else -> "😶"
+    }
+}
+
+fun getMoodLabelFromTitle(title: String): String {
+    return when {
+        title.contains("Happy", true) -> "Good"
+        title.contains("Sad", true) -> "Bad"
+        title.contains("Excited", true) -> "Excited"
+        title.contains("Calm", true) -> "Calm"
+        title.contains("Confused", true) -> "Confused"
+        title.contains("Surprised", true) -> "Surprised"
+        else -> "Unknown"
     }
 }

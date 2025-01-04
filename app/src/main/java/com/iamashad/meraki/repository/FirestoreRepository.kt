@@ -1,7 +1,5 @@
 package com.iamashad.meraki.repository
 
-import androidx.paging.PagingSource
-import androidx.paging.PagingState
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.iamashad.meraki.model.Journal
@@ -20,8 +18,11 @@ class FirestoreRepository {
             "userId" to journal.userId,
             "title" to journal.title,
             "content" to journal.content,
+            "moodScore" to journal.moodScore,
+            "reasons" to journal.reasons, // Save reasons here
             "date" to com.google.firebase.Timestamp(journal.date / 1000, ((journal.date % 1000) * 1000000).toInt())
         )
+
         journalsCollection.document(docId).set(dataToSave).await()
     }
 
@@ -44,38 +45,6 @@ class FirestoreRepository {
         awaitClose { listenerRegistration.remove() }
     }
 
-
-
-    fun getJournalPagingSource(userId: String): PagingSource<Query, Journal> {
-        return object : PagingSource<Query, Journal>() {
-            override suspend fun load(params: LoadParams<Query>): LoadResult<Query, Journal> {
-                return try {
-                    val query = if (params.key == null) {
-                        journalsCollection
-                            .whereEqualTo("userId", userId)
-                            .orderBy("date", Query.Direction.DESCENDING)
-                            .limit(params.loadSize.toLong())
-                    } else {
-                        params.key!!.startAfter(params.key!!)
-                    }
-
-                    val result = query.get().await()
-                    val data = result.documents.mapNotNull { mapToJournal(it) }
-
-                    LoadResult.Page(
-                        data = data,
-                        prevKey = null,
-                        nextKey = if (result.documents.isEmpty()) null else query
-                    )
-                } catch (e: Exception) {
-                    LoadResult.Error(e)
-                }
-            }
-
-            override fun getRefreshKey(state: PagingState<Query, Journal>): Query? = null
-        }
-    }
-
     suspend fun searchJournals(userId: String, query: String): List<Journal> {
         return journalsCollection
             .whereEqualTo("userId", userId)
@@ -95,6 +64,8 @@ class FirestoreRepository {
         val journalId = doc.getString("journalId").orEmpty()
         val title = doc.getString("title").orEmpty()
         val content = doc.getString("content").orEmpty()
+        val moodScore = doc.getLong("moodScore")?.toInt() ?: 50 // Default to 50 if missing
+        val reasons = doc.get("reasons") as? List<String> ?: emptyList() // Map the reasons field
         val dateValue = doc.get("date")
         val date = when (dateValue) {
             is com.google.firebase.Timestamp -> dateValue.toDate().time
@@ -103,7 +74,17 @@ class FirestoreRepository {
         val fetchedUserId = doc.getString("userId").orEmpty()
 
         return if (fetchedUserId.isNotEmpty()) {
-            Journal(journalId, fetchedUserId, title, content, date)
+            Journal(
+                journalId = journalId,
+                userId = fetchedUserId,
+                title = title,
+                content = content,
+                date = date,
+                moodScore = moodScore,
+                reasons = reasons // Add the reasons to the Journal object
+            )
         } else null
     }
+
 }
+

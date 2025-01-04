@@ -95,6 +95,9 @@ dependencies {
     // Pagination
     implementation ("androidx.paging:paging-runtime-ktx:3.3.5")
     implementation ("androidx.paging:paging-compose:3.3.5")
+    // Material 3
+    implementation ("androidx.compose.material3:material3:1.3.1")
+
 
 
 
