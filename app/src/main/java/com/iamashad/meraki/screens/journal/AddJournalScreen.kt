@@ -1,19 +1,28 @@
 package com.iamashad.meraki.screens.journal
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -111,7 +120,7 @@ fun AddJournalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    brush =  Brush.linearGradient(
+                    brush = Brush.linearGradient(
                         colors = listOf(
                             MaterialTheme.colorScheme.primary,
                             MaterialTheme.colorScheme.secondary
@@ -129,7 +138,7 @@ fun AddJournalScreen(
     }
 }
 
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EmotionSelectionSheet(
     selectedEmotions: List<String>,
@@ -137,39 +146,172 @@ fun EmotionSelectionSheet(
     onNext: () -> Unit,
     onClose: () -> Unit
 ) {
-    val emotions = listOf("Happy", "Sad", "Excited", "Calm", "Confused", "Surprised")
+    val allEmotions = listOf(
+        "Happy" to "😊",
+        "Sad" to "😢",
+        "Excited" to "🤩",
+        "Calm" to "😌",
+        "Confused" to "😕",
+        "Surprised" to "😲",
+        "Amazed" to "😮",
+        "Peaceful" to "🕊️",
+        "Cool" to "😎",
+        "Stressed" to "😣",
+        "Angry" to "😡",
+        "Lonely" to "🥺",
+        "Grateful" to "🙏",
+        "Hopeful" to "🌟",
+        "Tired" to "😴",
+        "Awkward" to "😅"
+    )
+
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredEmotions = allEmotions.filter {
+        it.first.contains(searchQuery, ignoreCase = true)
+    }
+
+    val commonlyUsed = listOf(
+        "Confused" to "😕",
+        "Excited" to "🤩",
+        "Cool" to "😎",
+        "Surprised" to "😲",
+        "Peaceful" to "🕊️",
+        "Amazed" to "😮"
+    )
+
     var selected by remember { mutableStateOf(selectedEmotions) }
 
     SheetLayout(
-        title = "Choose emotions",
-        onClose = onClose
+        title = "Choose the emotions that match your mood",
+        onClose = onClose,
     ) {
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
         ) {
-            items(emotions) { emotion ->
-                OutlinedButton(
-                    onClick = {
-                        selected =
-                            if (selected.contains(emotion)) selected - emotion else selected + emotion
-                        onEmotionsSelected(selected)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 72.dp) // Leave space for the floating button
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search emotions") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search Icon")
                     },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (selected.contains(emotion)) Color.LightGray else Color.Transparent
-                    )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                )
+                Text(
+                    text = "Commonly Used",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    items(commonlyUsed) { (emotionName, emoji) ->
+                        EmotionChip(
+                            emotionName = emotionName,
+                            emoji = emoji,
+                            isSelected = selected.contains(emotionName),
+                            onClick = {
+                                selected =
+                                    if (selected.contains(emotionName)) selected - emotionName else selected + emotionName
+                                onEmotionsSelected(selected)
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "All Emotions",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxHeight()
                 ) {
-                    Text(text = emotion, fontSize = 16.sp)
+                    items(filteredEmotions) { (emotionName, emoji) ->
+                        EmotionChip(
+                            emotionName = emotionName,
+                            emoji = emoji,
+                            isSelected = selected.contains(emotionName),
+                            onClick = {
+                                selected =
+                                    if (selected.contains(emotionName)) selected - emotionName else selected + emotionName
+                                onEmotionsSelected(selected)
+                            }
+                        )
+                    }
                 }
             }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onNext, modifier = Modifier.align(Alignment.End)) {
-            Text("Next")
+
+            FloatingActionButton(
+                onClick = onNext,
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+                    .clip(CircleShape)
+            ) {
+                Text(
+                    "→",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
     }
 }
 
+
+@Composable
+fun EmotionChip(
+    emotionName: String,
+    emoji: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .padding(4.dp)
+            .size(80.dp)
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .size(60.dp)
+                .background(
+                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else Color.Transparent,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(text = emoji, fontSize = 28.sp)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = emotionName,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1
+        )
+    }
+}
+
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ReasonSelectionSheet(
     selectedReasons: List<String>,
@@ -177,36 +319,131 @@ fun ReasonSelectionSheet(
     onNext: () -> Unit,
     onClose: () -> Unit
 ) {
-    val reasons = listOf("Family", "Work", "Hobbies", "Weather", "Love", "Sleep")
+    // Hardcoded commonly used reasons
+    val commonlyUsedReasons = listOf("Family", "Self-esteem", "Sleep", "Social")
+
+    // Full list of reasons
+    val allReasons = listOf(
+        "Family",
+        "Work",
+        "Hobbies",
+        "Weather",
+        "Love",
+        "Sleep",
+        "Breakup",
+        "Social",
+        "Food",
+        "Party",
+        "Self-esteem",
+        "Wife",
+        "Friends",
+        "Health",
+        "Career",
+        "Exercise"
+    )
+
     var selected by remember { mutableStateOf(selectedReasons) }
 
     SheetLayout(
-        title = "What's the reason?",
+        title = "What's the reason making you feel this way?",
         onClose = onClose
     ) {
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(reasons) { reason ->
-                OutlinedButton(
-                    onClick = {
-                        selected =
-                            if (selected.contains(reason)) selected - reason else selected + reason
-                        onReasonsSelected(selected)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = if (selected.contains(reason)) Color.LightGray else Color.Transparent
-                    )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 72.dp) // Leave space for the floating button
+            ) {
+                // Commonly Used Reasons Section
+                Text(
+                    text = "Commonly Used Reasons",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    items(commonlyUsedReasons) { reason ->
+                        ReasonChip(
+                            reason = reason,
+                            isSelected = selected.contains(reason),
+                            onClick = {
+                                selected =
+                                    if (selected.contains(reason)) selected - reason else selected + reason
+                                onReasonsSelected(selected)
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // All Reasons Section
+                Text(
+                    text = "All Reasons",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxHeight()
                 ) {
-                    Text(text = reason, fontSize = 16.sp)
+                    items(allReasons) { reason ->
+                        ReasonChip(
+                            reason = reason,
+                            isSelected = selected.contains(reason),
+                            onClick = {
+                                selected =
+                                    if (selected.contains(reason)) selected - reason else selected + reason
+                                onReasonsSelected(selected)
+                            }
+                        )
+                    }
                 }
             }
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onNext, modifier = Modifier.align(Alignment.End)) {
-            Text("Next")
+
+            // Floating Action Button to Navigate to Next Screen
+            FloatingActionButton(
+                onClick = onNext,
+                containerColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .align(Alignment.BottomEnd)
+                    .padding(16.dp)
+            ) {
+                Text("→", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+            }
         }
     }
 }
+
+@Composable
+fun ReasonChip(
+    reason: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(4.dp)
+    ) {
+        Text(
+            text = reason,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+        )
+    }
+}
+
 
 @Composable
 fun JournalEntrySheet(
@@ -216,25 +453,70 @@ fun JournalEntrySheet(
     onClose: () -> Unit
 ) {
     SheetLayout(
-        title = "Write your journal",
+        title = "Any thing you want to add",
         onClose = onClose
     ) {
-        BasicTextField(
-            value = journalEntry,
-            onValueChange = onJournalEntryChanged,
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                .padding(8.dp),
-            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onSave, modifier = Modifier.align(Alignment.End)) {
-            Text("Save")
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Instructions
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = "Add notes reflecting on your mood",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            // Text input with placeholder
+            OutlinedTextField(
+                value = journalEntry,
+                onValueChange = onJournalEntryChanged,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                placeholder = {
+                    Text(
+                        text = "Start writing here...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.background.copy(alpha = 0.6f)
+                    )
+                },
+                textStyle = MaterialTheme.typography.bodyMedium,
+                colors = TextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.inverseSurface,
+                    focusedContainerColor = MaterialTheme.colorScheme.background
+                ),
+                shape = RoundedCornerShape(24.dp),
+                singleLine = false,
+                maxLines = 10
+            )
+
+            // Save Button
+            Button(
+                onClick = onSave,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = 16.dp)
+                    .fillMaxWidth(.6f), // Make the button smaller
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    text = "Save",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+            }
         }
     }
 }
+
 
 @Composable
 fun SheetLayout(
@@ -247,7 +529,10 @@ fun SheetLayout(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color.White, Color.LightGray)
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.inversePrimary
+                    )
                 )
             )
             .padding(16.dp),
@@ -261,7 +546,8 @@ fun SheetLayout(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Bold
             )
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.Close, contentDescription = "Close")
@@ -273,7 +559,7 @@ fun SheetLayout(
 }
 
 fun calculateMoodScore(selectedEmotions: List<String>): Int {
-    if (selectedEmotions.isEmpty()) return 50 // Default mood score
+    if (selectedEmotions.isEmpty()) return 50
 
     val emotionScores = mapOf(
         "Happy" to 90,
@@ -281,7 +567,17 @@ fun calculateMoodScore(selectedEmotions: List<String>): Int {
         "Excited" to 80,
         "Calm" to 70,
         "Confused" to 40,
-        "Surprised" to 50
+        "Surprised" to 50,
+        "Amazed" to 85,
+        "Peaceful" to 75,
+        "Cool" to 60,
+        "Stressed" to 30,
+        "Angry" to 20,
+        "Lonely" to 35,
+        "Grateful" to 95,
+        "Hopeful" to 80,
+        "Tired" to 40,
+        "Awkward" to 45
     )
 
     val totalScore = selectedEmotions.sumOf { emotionScores[it] ?: 50 }
