@@ -120,20 +120,15 @@ fun AddJournalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    brush = Brush.linearGradient(
+                    brush = Brush.horizontalGradient(
                         colors = listOf(
                             MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.secondary
+                            MaterialTheme.colorScheme.inversePrimary
                         )
                     )
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "Preparing Journal Screen...",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
         }
     }
 }
@@ -261,7 +256,12 @@ fun EmotionSelectionSheet(
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp)
+                    .padding(
+                        top = 16.dp,
+                        bottom = 4.dp,
+                        end = 12.dp,
+                        start = 16.dp
+                    )
                     .clip(CircleShape)
             ) {
                 Text(
@@ -319,10 +319,8 @@ fun ReasonSelectionSheet(
     onNext: () -> Unit,
     onClose: () -> Unit
 ) {
-    // Hardcoded commonly used reasons
     val commonlyUsedReasons = listOf("Family", "Self-esteem", "Sleep", "Social")
 
-    // Full list of reasons
     val allReasons = listOf(
         "Family",
         "Work",
@@ -378,7 +376,6 @@ fun ReasonSelectionSheet(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // All Reasons Section
                 Text(
                     text = "All Reasons",
                     style = MaterialTheme.typography.labelMedium,
@@ -411,11 +408,20 @@ fun ReasonSelectionSheet(
                 onClick = onNext,
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
-                    .clip(CircleShape)
                     .align(Alignment.BottomEnd)
-                    .padding(16.dp)
+                    .padding(
+                        top = 16.dp,
+                        bottom = 4.dp,
+                        end = 12.dp,
+                        start = 16.dp
+                    )
+                    .clip(CircleShape)
             ) {
-                Text("→", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
+                Text(
+                    "→",
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
             }
         }
     }
