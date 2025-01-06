@@ -77,7 +77,6 @@ fun MerakiNavigation() {
             composable(Screens.MOODTRACKER.name) {
                 val moodTrackerViewModel = hiltViewModel<MoodTrackerViewModel>()
                 MoodTrackerScreen(
-                    navController = navController,
                     onMoodLogged = {
                         moodTrackerViewModel.fetchMoodTrend()
                     }
