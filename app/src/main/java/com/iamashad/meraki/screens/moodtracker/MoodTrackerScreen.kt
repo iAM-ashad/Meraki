@@ -23,9 +23,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.iamashad.meraki.R
 import kotlin.math.roundToInt
 
 @Composable
@@ -34,7 +36,8 @@ fun MoodTrackerScreen(
     onMoodLogged: () -> Unit
 ) {
     val moodTrend by moodTrackerViewModel.moodTrend.collectAsState()
-    var entryCount by remember { mutableIntStateOf(7) } // Toggle state for last 7 or 14 entries
+    var entryCount by remember { mutableIntStateOf(7) }
+    var showInfoDialog by remember { mutableStateOf(false) } // State for showing the dialog
 
     Box(
         modifier = Modifier
@@ -48,43 +51,68 @@ fun MoodTrackerScreen(
                 )
             )
     ) {
-        // Top Section: Mood Label and Graph
         if (moodTrend.isNotEmpty()) {
             val recentMoodTrend = moodTrend.takeLast(entryCount)
-            val averageMood = recentMoodTrend.map { it.second }.average().roundToInt() // Average mood from selected entries
+            val averageMood = recentMoodTrend.map { it.second }.average().roundToInt()
             val moodLabel = getMoodLabel(averageMood)
-            val moodChange = calculateMoodChange(moodTrend)
+            val moodChange = calculateMoodChange(moodTrend, entryCount)
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.4f), // Top half for graph and label
+                    .fillMaxHeight(0.4f),
                 horizontalAlignment = Alignment.Start,
                 verticalArrangement = Arrangement.Center
             ) {
-                // Mood Label (Calculated from average mood)
-                Text(
-                    text = moodLabel,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier
-                        .padding(start = 24.dp)
-                )
-
-                // Mood Change
-                if (moodChange != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 24.dp)
+                ) {
                     Text(
-                        text = "Mood changes - $moodChange%",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondary,
-                        modifier = Modifier
-                            .padding(start = 28.dp)
+                        text = moodLabel,
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.background
                     )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    IconButton(
+                        onClick = { showInfoDialog = true },
+                        modifier = Modifier.size(16.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_info),
+                            contentDescription = "Info",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+
+                if (moodChange != null) {
+                    Row(
+                        modifier = Modifier
+                            .padding(start = 28.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Mood changes - $moodChange%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSecondary
+                        )
+
+                        Icon(
+                            painter = if (moodChange > 0) painterResource(R.drawable.ic_arrow_up) else painterResource(
+                                R.drawable.ic_arrow_down
+                            ),
+                            contentDescription = if (moodChange > 0) "Positive Change" else "Negative Change",
+                            tint = if (moodChange > 0) Color.Green else Color.Red,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Graph
                 MoodTrendGraph(
                     moodData = recentMoodTrend,
                     modifier = Modifier
@@ -95,6 +123,34 @@ fun MoodTrackerScreen(
             }
         }
 
+        if (showInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showInfoDialog = false },
+                title = {
+                    Text(
+                        text = "How Trends and Changes Are Calculated",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                },
+                text = {
+                    Text(
+                        text = "Mood trends are displayed based on your last 7 or 14 logged moods. The average mood score is calculated from these entries, and mood change is determined by comparing the first and last entries in the selected period.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { showInfoDialog = false }) {
+                        Text("OK")
+                    }
+                },
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .padding(16.dp)
+            )
+        }
+
+        // Bottom Section
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -114,8 +170,9 @@ fun MoodTrackerScreen(
                     viewModel = moodTrackerViewModel
                 )
 
-                // Toggle Button Bar
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Toggle Button Bar
                 ToggleButtonBar(
                     options = listOf("Last 7", "Last 14"),
                     selectedOption = if (entryCount == 7) "Last 7" else "Last 14",
@@ -127,6 +184,7 @@ fun MoodTrackerScreen(
         }
     }
 }
+
 
 @Composable
 fun ToggleButtonBar(
@@ -174,13 +232,20 @@ fun getMoodLabel(score: Int): String {
     }
 }
 
-fun calculateMoodChange(moodTrend: List<Pair<String, Int>>): Int? {
-    if (moodTrend.size < 2) return null
-    val lastMood = moodTrend[moodTrend.size - 1].second
-    val secondLastMood = moodTrend[moodTrend.size - 2].second
-    val change = ((lastMood - secondLastMood).toDouble() / secondLastMood * 100).roundToInt()
-    return change
+fun calculateMoodChange(moodTrend: List<Pair<String, Int>>, entryCount: Int): Int? {
+    if (moodTrend.size < entryCount) return null
+    val recentMoodTrend = moodTrend.takeLast(entryCount)
+    val firstMood = recentMoodTrend.first().second
+    val lastMood = recentMoodTrend.last().second
+
+    // Avoid division by zero and handle edge cases
+    return if (firstMood == 0) {
+        null // Return null or handle as no change
+    } else {
+        ((lastMood - firstMood).toDouble() / firstMood * 100).roundToInt()
+    }
 }
+
 
 @Composable
 fun MoodTrendGraph(
@@ -215,9 +280,12 @@ fun MoodTrendGraph(
                 val y = height - verticalPadding - (mood - minMood) * yStep
                 if (index == 0) moveTo(x, y)
                 else cubicTo(
-                    x - xStep / 2, getY(moodData, index - 1, minMood, yStep, height, verticalPadding),
-                    x - xStep / 2, y,
-                    x, y
+                    x - xStep / 2,
+                    getY(moodData, index - 1, minMood, yStep, height, verticalPadding),
+                    x - xStep / 2,
+                    y,
+                    x,
+                    y
                 )
             }
         }
@@ -349,13 +417,20 @@ fun CircularMoodSelector(
                 detectDragGestures { change, _ ->
                     change.consume() // Consume the gesture event
                     val canvasSize = size // Access Canvas size dynamically
-                    val center = Offset(x = canvasSize.width.toFloat() / 2, y = canvasSize.height.toFloat() / 2)
-                    val angle = Math.toDegrees(
-                        kotlin.math.atan2(
-                            change.position.y - center.y,
-                            change.position.x - center.x
-                        ).toDouble()
-                    ).toFloat() + 90
+                    val center = Offset(
+                        x = canvasSize.width.toFloat() / 2,
+                        y = canvasSize.height.toFloat() / 2
+                    )
+                    val angle = Math
+                        .toDegrees(
+                            kotlin.math
+                                .atan2(
+                                    change.position.y - center.y,
+                                    change.position.x - center.x
+                                )
+                                .toDouble()
+                        )
+                        .toFloat() + 90
 
                     val adjustedAngle = if (angle < 0) angle + 360 else angle
                     val mood = (adjustedAngle / 360) * 100
@@ -368,21 +443,22 @@ fun CircularMoodSelector(
             drawCircle(
                 brush = gradientBrush,
                 radius = size.minDimension / 2,
-                style = Stroke(width = 12.dp.toPx())
+                style = Stroke(width = 16.dp.toPx())
             )
         }
 
         // Glow effect
         Canvas(modifier = Modifier.size(200.dp * animatedGlow)) {
             drawCircle(
-                color = Color.White.copy(alpha = 0.2f),
+                color = Color.White,
                 radius = size.minDimension / 2
             )
         }
 
         // Circular slider handle
         Canvas(modifier = Modifier.size(200.dp)) {
-            val center = Offset(x = size.width / 2, y = size.height / 2) // Correct center inside Canvas
+            val center =
+                Offset(x = size.width / 2, y = size.height / 2) // Correct center inside Canvas
             val angle = (moodScore / 100) * 360
             val radius = size.minDimension / 2 - 12.dp.toPx()
 
@@ -390,9 +466,9 @@ fun CircularMoodSelector(
             val y = center.y + radius * kotlin.math.sin(Math.toRadians(angle - 90.0).toFloat())
 
             drawCircle(
-                color = Color.White,
+                color = Color(0, 0, 0, 255),
                 center = Offset(x, y),
-                radius = 10.dp.toPx()
+                radius = 7.dp.toPx()
             )
         }
     }
