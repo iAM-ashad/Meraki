@@ -40,14 +40,11 @@ fun MerakiNavigation() {
     val currentDestination =
         navController.currentBackStackEntryFlow.collectAsState(initial = null).value?.destination?.route
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            if (shouldShowBottomBar(currentDestination)) {
-                BottomNavigationBar(navController)
-            }
+    Scaffold(modifier = Modifier.fillMaxSize(), bottomBar = {
+        if (shouldShowBottomBar(currentDestination)) {
+            BottomNavigationBar(navController)
         }
-    ) { paddingValues ->
+    }) { paddingValues ->
         NavHost(
             navController = navController,
             startDestination = Screens.SPLASH.name,
@@ -70,19 +67,15 @@ fun MerakiNavigation() {
                 route = "${Screens.CHATBOT.name}/{prompt}",
                 arguments = listOf(navArgument("prompt") { defaultValue = "" })
             ) { backStackEntry ->
-                val prompt = backStackEntry.arguments?.getString("prompt").orEmpty()
                 val viewModel = hiltViewModel<ChatViewModel>()
-                ChatbotScreen(viewModel = viewModel, initialPrompt = prompt)
+                ChatbotScreen(viewModel, navController)
             }
             composable(Screens.MOODTRACKER.name) {
                 val moodTrackerViewModel = hiltViewModel<MoodTrackerViewModel>()
-                MoodTrackerScreen(
-                    onMoodLogged = {
-                        moodTrackerViewModel.fetchMoodTrend()
-                    }
-                )
+                MoodTrackerScreen(onMoodLogged = {
+                    moodTrackerViewModel.fetchMoodTrend()
+                })
             }
-
 
             composable(Screens.CELEBRATION.name) {
                 CelebrationScreen(navController)
@@ -99,28 +92,22 @@ fun MerakiNavigation() {
                 val journalId = backStackEntry.arguments?.getString("journalId").orEmpty()
                 val viewModel = hiltViewModel<JournalViewModel>()
 
-                AddJournalScreen(
-                    viewModel = viewModel,
+                AddJournalScreen(viewModel = viewModel,
                     userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty(),
                     journalId = journalId,
                     onClose = { navController.popBackStack() },
-                    onSave = { navController.popBackStack() }
-                )
+                    onSave = { navController.popBackStack() })
             }
 
             composable(Screens.JOURNAL.name) {
                 val viewModel = hiltViewModel<JournalViewModel>()
-                JournalScreen(
-                    viewModel = viewModel,
-                    onAddJournalClick = {
-                        val newJournalId =
-                            FirebaseFirestore.getInstance().collection("journals").document().id
-                        navController.navigate("${Screens.ADDJOURNAL.name}/$newJournalId")
-                    },
-                    onEditJournalClick = { journal ->
-                        navController.navigate("${Screens.VIEWJOURNAL.name}/${journal.journalId}")
-                    }
-                )
+                JournalScreen(viewModel = viewModel, onAddJournalClick = {
+                    val newJournalId =
+                        FirebaseFirestore.getInstance().collection("journals").document().id
+                    navController.navigate("${Screens.ADDJOURNAL.name}/$newJournalId")
+                }, onEditJournalClick = { journal ->
+                    navController.navigate("${Screens.VIEWJOURNAL.name}/${journal.journalId}")
+                })
             }
 
 
@@ -143,15 +130,11 @@ fun MerakiNavigation() {
                 val journal = displayedJournals.find { it.journalId == journalId }
 
                 if (journal != null) {
-                    ViewJournalScreen(
-                        journal = journal,
-                        onBack = { navController.popBackStack() }
-                    )
+                    ViewJournalScreen(journal = journal, onBack = { navController.popBackStack() })
                 } else {
                     // Fallback UI in case the journal is not found
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "Loading or Journal not found.",
@@ -168,23 +151,18 @@ fun MerakiNavigation() {
 @Composable
 fun shouldShowBottomBar(currentDestination: String?): Boolean {
     return currentDestination in listOf(
-        Screens.HOME.name,
-        Screens.CHATBOT.name,
-        Screens.MOODTRACKER.name,
-        Screens.JOURNAL.name
+        Screens.HOME.name, Screens.CHATBOT.name, Screens.MOODTRACKER.name, Screens.JOURNAL.name
     )
 }
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
     NavigationBar {
-        NavigationBarItem(
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.home_icon),
-                    contentDescription = null
-                )
-            },
+        NavigationBarItem(icon = {
+            Icon(
+                painter = painterResource(id = R.drawable.home_icon), contentDescription = null
+            )
+        },
             label = { Text("Home") },
             selected = navController.currentDestination?.route == Screens.HOME.name,
             onClick = {
@@ -192,15 +170,12 @@ fun BottomNavigationBar(navController: NavController) {
                     popUpTo(Screens.HOME.name) { saveState = true }
                     launchSingleTop = true
                 }
-            }
-        )
-        NavigationBarItem(
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.chat_icon),
-                    contentDescription = null
-                )
-            },
+            })
+        NavigationBarItem(icon = {
+            Icon(
+                painter = painterResource(id = R.drawable.chat_icon), contentDescription = null
+            )
+        },
             label = { Text("Chatbot") },
             selected = navController.currentDestination?.route == Screens.CHATBOT.name,
             onClick = {
@@ -208,15 +183,13 @@ fun BottomNavigationBar(navController: NavController) {
                     popUpTo(Screens.CHATBOT.name) { saveState = true }
                     launchSingleTop = true
                 }
-            }
-        )
-        NavigationBarItem(
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.metrics_icon),
-                    contentDescription = null
-                )
-            },
+            })
+        NavigationBarItem(icon = {
+            Icon(
+                painter = painterResource(id = R.drawable.metrics_icon),
+                contentDescription = null
+            )
+        },
             label = { Text("Health") },
             selected = navController.currentDestination?.route == Screens.MOODTRACKER.name,
             onClick = {
@@ -224,15 +197,12 @@ fun BottomNavigationBar(navController: NavController) {
                     popUpTo(Screens.MOODTRACKER.name) { saveState = true }
                     launchSingleTop = true
                 }
-            }
-        )
-        NavigationBarItem(
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.journal),
-                    contentDescription = null
-                )
-            },
+            })
+        NavigationBarItem(icon = {
+            Icon(
+                painter = painterResource(id = R.drawable.journal), contentDescription = null
+            )
+        },
             label = { Text("Journal") },
             selected = navController.currentDestination?.route == Screens.JOURNAL.name,
             onClick = {
@@ -240,7 +210,6 @@ fun BottomNavigationBar(navController: NavController) {
                     popUpTo(Screens.JOURNAL.name) { saveState = true }
                     launchSingleTop = true
                 }
-            }
-        )
+            })
     }
 }

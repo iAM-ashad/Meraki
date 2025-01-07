@@ -1,53 +1,107 @@
 package com.iamashad.meraki.screens.chatbot
 
+import android.app.Application
 import androidx.compose.runtime.mutableStateListOf
-import androidx.lifecycle.ViewModel
+import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
+import com.google.firebase.auth.FirebaseAuth
+import com.iamashad.meraki.data.ChatDatabase
+import com.iamashad.meraki.data.ChatMessage
 import com.iamashad.meraki.model.Message
+import com.iamashad.meraki.repository.ChatRepository
+import com.iamashad.meraki.utils.analyzeEmotion
+import com.iamashad.meraki.utils.gradientMap
+import com.iamashad.meraki.utils.provideGenerativeModel
 import kotlinx.coroutines.launch
 
-class ChatViewModel : ViewModel() {
+class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
-    val messageList by lazy { mutableStateListOf<Message>() }
+    private val chatRepository: ChatRepository
+    var activeContext: String? = null
 
-    private var isPromptProcessed = false
+    init {
+        val chatDao = ChatDatabase.getInstance(application).chatDao()
+        chatRepository = ChatRepository(chatDao)
+    }
 
-    val generativeModel: GenerativeModel = GenerativeModel(
-        modelName = "gemini-2.0-flash-exp",
-        apiKey = "AIzaSyDJm4lS9PSG83ximY7bX0JFk1epNQQtyZA",
-        systemInstruction = content {text(" You are a professional mental health assistant trained to provide empathetic, supportive, and non-judgmental responses. Act as a compassionate therapist, focusing on the user's emotions and concerns.Provide concise yet thoughtful answers that are warm and understanding. Avoid lengthy explanations unless absolutely necessary. Offer actionable suggestions when appropriate, but prioritize listening and validating the user's feelings. Avoid asking excessive questions; instead, encourage the user to share at their own pace. Always aim to foster trust, safety, and comfort in the conversation.")}
+    val messageList = mutableStateListOf<Message>()
+
+    val generativeModel: GenerativeModel = provideGenerativeModel(
+        apiKey = "AIzaSyDJm4lS9PSG83ximY7bX0JFk1epNQQtyZA"
     )
 
-    fun processInitialPrompt(prompt: String?) {
-        if (!isPromptProcessed && !prompt.isNullOrEmpty()) {
-            isPromptProcessed = true
-            sendMessage(prompt)
+    fun startNewConversation() {
+        viewModelScope.launch {
+            messageList.clear()
+            activeContext = chatRepository.getLastContext()
+
+            val userName = FirebaseAuth.getInstance().currentUser?.displayName
+
+            val greetingMessage = if (activeContext != null) {
+                "Hi $userName! Last time we talked about $activeContext. How are you doing now?"
+            } else {
+                "Hello $userName! How can I help you today?"
+            }
+
+            val botMessage = Message(greetingMessage, "model")
+            messageList.add(botMessage)
+            storeMessageInDatabase(botMessage)
         }
     }
 
-    fun sendMessage(question: String) {
+    fun finishConversation(tag: String) {
         viewModelScope.launch {
-            try {
-                messageList.add(Message(question, "user"))
-                messageList.add(Message("Typing....", "model"))
+            activeContext = tag // Save the tag as context
+            val lastMessage = messageList.lastOrNull() ?: return@launch
+            val chatMessage = ChatMessage(
+                message = lastMessage.message,
+                role = lastMessage.role,
+                context = tag
+            )
+            chatRepository.insertMessage(chatMessage)
+        }
+    }
 
-                val chat = generativeModel.startChat(
+    private fun storeMessageInDatabase(message: Message) {
+        viewModelScope.launch {
+            chatRepository.insertMessage(ChatMessage(message = message.message, role = message.role))
+        }
+    }
+
+    fun sendMessage(messageText: String, role: String = "user") {
+        viewModelScope.launch {
+            val message = Message(messageText, role)
+            messageList.add(message)
+            storeMessageInDatabase(message)
+
+            if (role == "user") {
+                activeContext = analyzeEmotion(messageText) // Update context based on input
+                val response = generativeModel.startChat(
                     history = messageList.map {
                         content(it.role) { text(it.message) }
-                    }.toList()
-                )
+                    }
+                ).sendMessage(messageText)
 
-                val response = chat.sendMessage(question)
-                messageList.removeAt(messageList.lastIndex)
-                messageList.add(Message(response.text.toString(), "model"))
-            } catch (e: Exception) {
-                messageList.removeAt(messageList.lastIndex)
-                messageList.add(Message("Error: ${e.message}", "model"))
+                val botMessage = Message(response.text.toString(), "model")
+                messageList.add(botMessage)
+                storeMessageInDatabase(botMessage)
             }
         }
     }
+
+    fun clearChatHistory() {
+        viewModelScope.launch {
+            chatRepository.clearChatHistory()
+            messageList.clear()
+            activeContext = null
+        }
+    }
+
+    fun determineGradientColors(): List<Color> {
+        return gradientMap[activeContext] ?: gradientMap["neutral"]!!
+    }
+
 }
-
-
