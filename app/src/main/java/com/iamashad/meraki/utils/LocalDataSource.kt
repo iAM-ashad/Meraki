@@ -1,8 +1,6 @@
 package com.iamashad.meraki.utils
 
 import androidx.compose.ui.graphics.Color
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
 
 val emotionKeywords = mapOf(
     "calm" to listOf(
@@ -94,30 +92,69 @@ val gradientMap = mapOf(
     "angry" to listOf(Color(0xFFFF8A80), Color(0xFFD32F2F)) // Intense reds
 )
 
-fun provideGenerativeModel(apiKey: String): GenerativeModel {
-    return GenerativeModel(
-        modelName = "gemini-2.0-flash-exp",
-        apiKey = apiKey,
-        systemInstruction = content {
-            text(getSystemInstructions())
-        }
+val allEmotions = listOf(
+    "Happy" to "😊",
+    "Sad" to "😢",
+    "Excited" to "🤩",
+    "Calm" to "😌",
+    "Confused" to "😕",
+    "Surprised" to "😲",
+    "Amazed" to "😮",
+    "Peaceful" to "🕊️",
+    "Cool" to "😎",
+    "Stressed" to "😣",
+    "Angry" to "😡",
+    "Lonely" to "🥺",
+    "Grateful" to "🙏",
+    "Hopeful" to "🌟",
+    "Tired" to "😴",
+    "Awkward" to "😅"
+)
+
+val commonlyUsedEmotions = listOf(
+    "Confused" to "😕",
+    "Excited" to "🤩",
+    "Cool" to "😎",
+    "Surprised" to "😲",
+    "Peaceful" to "🕊️",
+    "Amazed" to "😮"
+)
+
+val allReasons = listOf(
+    "Family", "Work", "Hobbies", "Weather", "Love", "Sleep", "Breakup", "Social",
+    "Food", "Party", "Self-esteem", "Wife", "Friends", "Health", "Career", "Exercise"
+)
+
+val commonlyUsedReasons = listOf(
+    "Family", "Self-esteem", "Sleep", "Social"
+)
+
+fun calculateMoodScore(selectedEmotions: List<String>): Int {
+    if (selectedEmotions.isEmpty()) return 50
+
+    val emotionScores = mapOf(
+        "Happy" to 90,
+        "Sad" to 25,
+        "Excited" to 80,
+        "Calm" to 70,
+        "Confused" to 40,
+        "Surprised" to 50,
+        "Amazed" to 85,
+        "Peaceful" to 75,
+        "Cool" to 60,
+        "Stressed" to 30,
+        "Angry" to 20,
+        "Lonely" to 35,
+        "Grateful" to 95,
+        "Hopeful" to 80,
+        "Tired" to 40,
+        "Awkward" to 45
     )
+
+    val totalScore = selectedEmotions.sumOf { emotionScores[it] ?: 50 }
+    return totalScore / selectedEmotions.size
 }
 
-fun analyzeEmotion(input: String): String {
-    for ((category, keywords) in emotionKeywords) {
-        if (keywords.any { keyword -> input.contains(keyword, ignoreCase = true) }) {
-            return category
-        }
-    }
-    return "neutral"
-}
 
-fun getSystemInstructions(): String {
-    return """
-        You are a professional mental health assistant trained to provide empathetic, supportive, 
-        and non-judgmental responses. Act as a compassionate therapist, focusing on the user's 
-        emotions and concerns.
-    """.trimIndent()
-}
+
 

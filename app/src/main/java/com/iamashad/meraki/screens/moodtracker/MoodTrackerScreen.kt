@@ -37,7 +37,7 @@ fun MoodTrackerScreen(
 ) {
     val moodTrend by moodTrackerViewModel.moodTrend.collectAsState()
     var entryCount by remember { mutableIntStateOf(7) }
-    var showInfoDialog by remember { mutableStateOf(false) } // State for showing the dialog
+    var showInfoDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -70,7 +70,7 @@ fun MoodTrackerScreen(
                 ) {
                     Text(
                         text = moodLabel,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.background
                     )
 
@@ -95,8 +95,8 @@ fun MoodTrackerScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Mood changes - $moodChange%",
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = "Average Mood $moodChange%",
+                            style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSecondary
                         )
 
@@ -129,7 +129,7 @@ fun MoodTrackerScreen(
                 title = {
                     Text(
                         text = "How Trends and Changes Are Calculated",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleLarge
                     )
                 },
                 text = {
@@ -333,7 +333,7 @@ fun MoodSelectionBar(
             // Title
             Text(
                 text = "Rate Your Mood by rotating the slider",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
 

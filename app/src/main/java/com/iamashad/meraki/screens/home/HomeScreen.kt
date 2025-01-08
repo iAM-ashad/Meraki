@@ -46,8 +46,9 @@ import androidx.navigation.NavController
 import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
 import com.iamashad.meraki.ui.theme.bodyFontFamily
-import com.iamashad.meraki.ui.theme.displayFontFamily
 import com.iamashad.meraki.utils.LoadImageWithGlide
+import com.iamashad.meraki.utils.getMoodColor
+import com.iamashad.meraki.utils.getMoodEmoji
 
 @Composable
 fun HomeScreen(
@@ -56,7 +57,6 @@ fun HomeScreen(
     moodTrackerViewModel: MoodTrackerViewModel = hiltViewModel()
 ) {
     val user by homeViewModel.user.collectAsState()
-    val firstName = user?.displayName?.split(" ")?.firstOrNull() ?: "User"
 
     val advice by homeViewModel.advice.observeAsState("Loading advice...")
 
@@ -99,7 +99,12 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ProfileCard(photoUrl = photoUrl.toString(), userName = user?.displayName ?: "User")
+            ProfileCard(
+                photoUrl = photoUrl.toString(),
+                userName = user?.displayName ?: "User"
+            ) {
+                navController.navigate(Screens.SETTINGS.name)
+            }
             StreakMeterCard(streakCount = streakCount.intValue)
         }
 
@@ -134,7 +139,11 @@ fun HomeScreen(
 }
 
 @Composable
-fun ProfileCard(photoUrl: String, userName: String) {
+fun ProfileCard(
+    photoUrl: String,
+    userName: String,
+    onProfileClick: () -> Unit
+) {
     Card(
         shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.background
@@ -148,14 +157,14 @@ fun ProfileCard(photoUrl: String, userName: String) {
                     .size(40.dp)
                     .clip(CircleShape)
                     .clickable {
-                        // TODO: Navigate to Profile Screen
+                        onProfileClick.invoke()
                     })
             Spacer(modifier = Modifier.width(5.dp))
             Text(
                 text = userName,
-                fontSize = 16.sp,
-                fontFamily = bodyFontFamily,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 18.sp
+                )
             )
         }
     }
@@ -177,7 +186,9 @@ fun StreakMeterCard(streakCount: Int) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "$streakCount",
-                fontSize = 20.sp,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 20.sp
+                ),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -202,7 +213,7 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
         ) {
             Text(
                 text = "Mood Chart",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 color = Color.White
             )
 
@@ -260,38 +271,12 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
     }
 }
 
-// Function to get the appropriate emoji for a mood score
-fun getMoodEmoji(score: Int): String {
-    return when (score) {
-        in 0..10 -> "😡" // Angry face
-        in 11..20 -> "😞" // Sad face
-        in 21..30 -> "😔" // Pensive face
-        in 31..40 -> "😟" // Worried face
-        in 41..50 -> "😐" // Neutral face
-        in 51..60 -> "🙂" // Slightly smiling face
-        in 61..70 -> "😊" // Smiling face
-        in 71..80 -> "😃" // Big smile
-        in 81..90 -> "😄" // Grinning face
-        in 91..100 -> "😍" // Heart eyes
-        else -> "😶" // Blank face
-    }
-}
-
-// Function to get the appropriate color for a mood score
-fun getMoodColor(score: Int): Color {
-    return when (score) {
-        in 0..39 -> Color(227, 56, 0, 255)
-        in 40..60 -> Color(222, 202, 43, 255)
-        else -> Color(60, 187, 65, 255)
-    }
-}
-
 @Composable
 fun AdviceCard(advice: String) {
     Card(
         shape = RoundedCornerShape(topStart = 25.dp, bottomEnd = 25.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
+            containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(10.dp),
         modifier = Modifier
@@ -300,10 +285,13 @@ fun AdviceCard(advice: String) {
     ) {
         Text(
             text = advice,
-            fontSize = 16.sp,
-            fontFamily = displayFontFamily,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(8.dp)
+            style = MaterialTheme.typography.bodyLarge.copy(
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
         )
     }
 }
@@ -335,9 +323,10 @@ fun MeditateButton(navController: NavController) {
         ) {
             Text(
                 text = "Meditate?",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
             )
         }
     }

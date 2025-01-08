@@ -8,7 +8,7 @@ enum class Screens {
     MOODTRACKER,
     BREATHING,
     JOURNAL,
-    CELEBRATION,
     ADDJOURNAL,
-    VIEWJOURNAL
+    VIEWJOURNAL,
+    SETTINGS
 }

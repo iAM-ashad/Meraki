@@ -20,7 +20,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.R
 import com.iamashad.meraki.screens.breathing.BreathingScreen
-import com.iamashad.meraki.screens.celebration.CelebrationScreen
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
 import com.iamashad.meraki.screens.home.HomeScreen
@@ -31,6 +30,7 @@ import com.iamashad.meraki.screens.journal.ViewJournalScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
 import com.iamashad.meraki.screens.register.RegisterScreen
+import com.iamashad.meraki.screens.settings.SettingsScreen
 import com.iamashad.meraki.screens.splash.SplashScreen
 
 @Composable
@@ -77,8 +77,8 @@ fun MerakiNavigation() {
                 })
             }
 
-            composable(Screens.CELEBRATION.name) {
-                CelebrationScreen(navController)
+            composable(Screens.SETTINGS.name) {
+                SettingsScreen(navController)
             }
 
             composable(Screens.BREATHING.name) {

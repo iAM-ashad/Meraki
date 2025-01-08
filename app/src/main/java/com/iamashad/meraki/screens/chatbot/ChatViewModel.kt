@@ -2,6 +2,7 @@ package com.iamashad.meraki.screens.chatbot
 
 import android.app.Application
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,17 +34,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         apiKey = "AIzaSyDJm4lS9PSG83ximY7bX0JFk1epNQQtyZA"
     )
 
+    var isTyping = mutableStateOf(false)
+        private set
+
     fun startNewConversation() {
         viewModelScope.launch {
             messageList.clear()
             activeContext = chatRepository.getLastContext()
 
             val userName = FirebaseAuth.getInstance().currentUser?.displayName
+            val firstName = userName?.split(" ")?.firstOrNull()
 
             val greetingMessage = if (activeContext != null) {
-                "Hi $userName! Last time we talked about $activeContext. How are you doing now?"
+                "Hi $firstName! Last time we talked about $activeContext. How are you doing now?"
             } else {
-                "Hello $userName! How can I help you today?"
+                "Hello $firstName! How can I help you today?"
             }
 
             val botMessage = Message(greetingMessage, "model")
@@ -57,9 +62,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             activeContext = tag // Save the tag as context
             val lastMessage = messageList.lastOrNull() ?: return@launch
             val chatMessage = ChatMessage(
-                message = lastMessage.message,
-                role = lastMessage.role,
-                context = tag
+                message = lastMessage.message, role = lastMessage.role, context = tag
             )
             chatRepository.insertMessage(chatMessage)
         }
@@ -67,7 +70,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun storeMessageInDatabase(message: Message) {
         viewModelScope.launch {
-            chatRepository.insertMessage(ChatMessage(message = message.message, role = message.role))
+            chatRepository.insertMessage(
+                ChatMessage(
+                    message = message.message, role = message.role
+                )
+            )
         }
     }
 
@@ -78,12 +85,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             storeMessageInDatabase(message)
 
             if (role == "user") {
-                activeContext = analyzeEmotion(messageText) // Update context based on input
-                val response = generativeModel.startChat(
-                    history = messageList.map {
-                        content(it.role) { text(it.message) }
-                    }
-                ).sendMessage(messageText)
+                activeContext = analyzeEmotion(messageText)
+                isTyping.value = true // Set typing state to true
+
+                val response = generativeModel.startChat(history = messageList.map {
+                    content(it.role) { text(it.message) }
+                }).sendMessage(messageText)
+
+                isTyping.value = false // Reset typing state
 
                 val botMessage = Message(response.text.toString(), "model")
                 messageList.add(botMessage)

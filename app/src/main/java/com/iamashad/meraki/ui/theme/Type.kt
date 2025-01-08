@@ -12,7 +12,7 @@ val bodyFontFamily = FontFamily(
 )
 
 val displayFontFamily = FontFamily(
-    Font(R.font.delius_unicase_regular)
+    Font(R.font.oswald_regular)
 )
 
 // Default Material 3 typography values

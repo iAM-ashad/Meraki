@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -35,11 +37,9 @@ import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.navigation.Screens
 
 @Composable
-fun ChatbotScreen(
-    viewModel: ChatViewModel,
-    navController: NavController
-) {
+fun ChatbotScreen(viewModel: ChatViewModel, navController: NavController) {
     val chatMessages = remember { viewModel.messageList }
+    val isTyping by viewModel.isTyping
 
     val gradientColors = viewModel.determineGradientColors()
     val animatedColors = gradientColors.map { targetColor ->
@@ -76,6 +76,11 @@ fun ChatbotScreen(
                     messageList = chatMessages
                 )
 
+                // Typing indicator
+                if (isTyping) {
+                    TypingIndicator() // Replace with PulsatingDots() if preferred
+                }
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -96,6 +101,12 @@ fun ChatbotScreen(
 
 @Composable
 fun ChatHeader() {
+
+    val lottieComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_chatheader))
+    val lottieProgress by animateLottieCompositionAsState(
+        composition = lottieComposition, iterations = LottieConstants.IterateForever
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -109,6 +120,11 @@ fun ChatHeader() {
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
+            LottieAnimation(
+                composition = lottieComposition,
+                progress = { lottieProgress },
+                modifier = Modifier.size(100.dp)
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text(
@@ -132,49 +148,81 @@ fun NewConversationScreen(viewModel: ChatViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.background, MaterialTheme.colorScheme.primary
-                    )
-                )
-            ), contentAlignment = Alignment.Center
+            .background(Color.White),
+        contentAlignment = Alignment.Center
     ) {
         Column(
+            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp)
+            modifier = Modifier.fillMaxSize()
         ) {
-            AnimatedAvatar(modifier = Modifier.size(200.dp))
+            AnimatedAvatar(modifier = Modifier.size(300.dp))
 
-            Spacer(modifier = Modifier.padding(vertical = 12.dp))
+            Spacer(modifier = Modifier.padding(vertical = 8.dp))
 
-            Text(
-                text = "Welcome to Meraki",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-            Text(
-                text = "Your safe space to express and explore.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
-
-            Button(
-                onClick = { viewModel.startNewConversation() },
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentColor = MaterialTheme.colorScheme.onBackground
-                ),
-                modifier = Modifier.fillMaxWidth(0.8f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(topStart = 48.dp, topEnd = 48.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primaryContainer,
+                                MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    )
             ) {
-                Text(
-                    text = "Start New Conversation", fontSize = 18.sp
-                )
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Unable to escape your thoughts?",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(top = 24.dp, bottom = 4.dp)
+                    )
+                    Text(
+                        text = "This is your safe space to express.",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 16.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                        modifier = Modifier.padding(bottom = 48.dp)
+                    )
+                    Text(
+                        text = "Tap below to start a conversation :)",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    )
+
+                    val lottieComposition by rememberLottieComposition(
+                        LottieCompositionSpec.RawRes(
+                            R.raw.lottie_beating_heart
+                        )
+                    )
+                    val lottieProgress by animateLottieCompositionAsState(
+                        composition = lottieComposition, iterations = LottieConstants.IterateForever
+                    )
+
+                    Box(
+                        modifier = Modifier.background(Color.Transparent),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        LottieAnimation(composition = lottieComposition,
+                            progress = { lottieProgress },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .clickable {
+                                    viewModel.startNewConversation()
+                                })
+                    }
+
+                }
             }
         }
 
@@ -194,16 +242,13 @@ fun NewConversationScreen(viewModel: ChatViewModel) {
 
 @Composable
 fun AnimatedAvatar(modifier: Modifier = Modifier) {
-    val lottieComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_chatbot))
+    val lottieComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_chatscreen))
     val lottieProgress by animateLottieCompositionAsState(
         composition = lottieComposition, iterations = LottieConstants.IterateForever
     )
 
     Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(Color.Transparent),
-        contentAlignment = Alignment.Center
+        modifier = modifier.background(Color.Transparent), contentAlignment = Alignment.Center
     ) {
         LottieAnimation(
             composition = lottieComposition,
@@ -215,12 +260,16 @@ fun AnimatedAvatar(modifier: Modifier = Modifier) {
 
 @Composable
 fun ConfidentialityFooter() {
+
+    var showDialog by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(75.dp)
             .padding(12.dp)
-            .background(Color.Transparent),
+            .background(Color.Transparent)
+            .clickable { showDialog = true },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
@@ -233,9 +282,40 @@ fun ConfidentialityFooter() {
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = "Your conversations are private and secure.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.surface.copy(.7f),
         )
+    }
+
+    if (showDialog) {
+        AlertDialog(onDismissRequest = { showDialog = false }, title = {
+            Text(
+                text = "Privacy Assurance",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }, text = {
+            Text(
+                text = "All your conversations are stored securely on your device and are not uploaded to the cloud. You have complete control over your data.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+            )
+        }, confirmButton = {
+            Button(
+                onClick = { showDialog = false },
+                shape = RoundedCornerShape(24.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    "Got it!"
+                )
+            }
+        })
     }
 }
 
@@ -254,8 +334,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
             )
         }, text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text("Enter a tag for this conversation (e.g., Sleep Issues, Anxiety):")
                 OutlinedTextField(value = conversationTag,
@@ -303,9 +382,30 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
             contentColor = MaterialTheme.colorScheme.onSurface
         )
     ) {
-        Text("Finish Conversation")
+        Text("Finish")
     }
 }
+
+@Composable
+fun TypingIndicator() {
+    val lottieComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_typing_indicator))
+    val lottieProgress by animateLottieCompositionAsState(
+        composition = lottieComposition, iterations = LottieConstants.IterateForever
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp), contentAlignment = Alignment.Center
+    ) {
+        LottieAnimation(
+            composition = lottieComposition,
+            progress = { lottieProgress },
+            modifier = Modifier.size(100.dp)
+        )
+    }
+}
+
 
 @Composable
 fun MessageList(modifier: Modifier = Modifier, messageList: List<Message>) {
@@ -331,7 +431,14 @@ fun MessageRow(message: Message) {
     ) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
+                .clip(
+                    if (isModel) RoundedCornerShape(
+                        bottomStart = 24.dp, topEnd = 24.dp, topStart = 4.dp, bottomEnd = 4.dp
+                    )
+                    else RoundedCornerShape(
+                        topStart = 24.dp, bottomEnd = 24.dp, topEnd = 4.dp, bottomStart = 4.dp
+                    )
+                )
                 .background(if (isModel) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.inversePrimary)
                 .padding(12.dp)
         ) {
