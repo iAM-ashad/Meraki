@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
@@ -28,12 +27,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.iamashad.meraki.R
+import com.iamashad.meraki.components.MoodTrendGraph
+import com.iamashad.meraki.utils.calculateMoodChange
+import com.iamashad.meraki.utils.getMoodLabel
 import kotlin.math.roundToInt
 
 @Composable
 fun MoodTrackerScreen(
-    moodTrackerViewModel: MoodTrackerViewModel = hiltViewModel(),
-    onMoodLogged: () -> Unit
+    moodTrackerViewModel: MoodTrackerViewModel = hiltViewModel(), onMoodLogged: () -> Unit
 ) {
     val moodTrend by moodTrackerViewModel.moodTrend.collectAsState()
     var entryCount by remember { mutableIntStateOf(7) }
@@ -45,8 +46,7 @@ fun MoodTrackerScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.inversePrimary,
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.inversePrimary, MaterialTheme.colorScheme.primary
                     )
                 )
             )
@@ -77,8 +77,7 @@ fun MoodTrackerScreen(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     IconButton(
-                        onClick = { showInfoDialog = true },
-                        modifier = Modifier.size(16.dp)
+                        onClick = { showInfoDialog = true }, modifier = Modifier.size(16.dp)
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_info),
@@ -90,8 +89,7 @@ fun MoodTrackerScreen(
 
                 if (moodChange != null) {
                     Row(
-                        modifier = Modifier
-                            .padding(start = 28.dp),
+                        modifier = Modifier.padding(start = 28.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
@@ -124,29 +122,22 @@ fun MoodTrackerScreen(
         }
 
         if (showInfoDialog) {
-            AlertDialog(
-                onDismissRequest = { showInfoDialog = false },
-                title = {
-                    Text(
-                        text = "How Trends and Changes Are Calculated",
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                text = {
-                    Text(
-                        text = "Mood trends are displayed based on your last 7 or 14 logged moods. The average mood score is calculated from these entries, and mood change is determined by comparing the first and last entries in the selected period.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = { showInfoDialog = false }) {
-                        Text("OK")
-                    }
-                },
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier
-                    .padding(16.dp)
+            AlertDialog(onDismissRequest = { showInfoDialog = false }, title = {
+                Text(
+                    text = "How Trends and Changes Are Calculated",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }, text = {
+                Text(
+                    text = "Mood trends are displayed based on your last 7 or 14 logged moods. The average mood score is calculated from these entries, and mood change is determined by comparing the first and last entries in the selected period.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }, confirmButton = {
+                TextButton(onClick = { showInfoDialog = false }) {
+                    Text("OK")
+                }
+            }, shape = RoundedCornerShape(24.dp), modifier = Modifier.padding(16.dp)
             )
         }
 
@@ -166,20 +157,16 @@ fun MoodTrackerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 MoodSelectionBar(
-                    onMoodLogged = onMoodLogged,
-                    viewModel = moodTrackerViewModel
+                    onMoodLogged = onMoodLogged, viewModel = moodTrackerViewModel
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Toggle Button Bar
-                ToggleButtonBar(
-                    options = listOf("Last 7", "Last 14"),
+                ToggleButtonBar(options = listOf("Last 7", "Last 14"),
                     selectedOption = if (entryCount == 7) "Last 7" else "Last 14",
                     onOptionSelected = { selected ->
                         entryCount = if (selected == "Last 7") 7 else 14
-                    }
-                )
+                    })
             }
         }
     }
@@ -188,9 +175,7 @@ fun MoodTrackerScreen(
 
 @Composable
 fun ToggleButtonBar(
-    options: List<String>,
-    selectedOption: String,
-    onOptionSelected: (String) -> Unit
+    options: List<String>, selectedOption: String, onOptionSelected: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -216,105 +201,10 @@ fun ToggleButtonBar(
     }
 }
 
-fun getMoodLabel(score: Int): String {
-    return when (score) {
-        in 0..10 -> "Abysmal"
-        in 11..20 -> "Terrible"
-        in 21..30 -> "Very Bad"
-        in 31..40 -> "Bad"
-        in 41..50 -> "Below Average"
-        in 51..60 -> "Average"
-        in 61..70 -> "Good"
-        in 71..80 -> "Very Good"
-        in 81..90 -> "Great"
-        in 91..100 -> "Amazing"
-        else -> "Unknown"
-    }
-}
-
-fun calculateMoodChange(moodTrend: List<Pair<String, Int>>, entryCount: Int): Int? {
-    if (moodTrend.size < entryCount) return null
-    val recentMoodTrend = moodTrend.takeLast(entryCount)
-    val firstMood = recentMoodTrend.first().second
-    val lastMood = recentMoodTrend.last().second
-
-    // Avoid division by zero and handle edge cases
-    return if (firstMood == 0) {
-        null // Return null or handle as no change
-    } else {
-        ((lastMood - firstMood).toDouble() / firstMood * 100).roundToInt()
-    }
-}
-
-
-@Composable
-fun MoodTrendGraph(
-    moodData: List<Pair<String, Int>>,
-    modifier: Modifier = Modifier
-) {
-    if (moodData.isEmpty()) return
-
-    val maxMood = moodData.maxOfOrNull { it.second } ?: 100
-    val minMood = moodData.minOfOrNull { it.second } ?: 0
-    val moodRange = maxMood - minMood
-    val gradientBrush = Brush.verticalGradient(
-        colors = listOf(
-            Color(220, 141, 243, 255),
-            Color(53, 33, 59, 255)
-        )
-    )
-
-    Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-    ) {
-        val width = size.width
-        val height = size.height
-        val xStep = width / (moodData.size - 1).coerceAtLeast(1)
-        val verticalPadding = 16.dp.toPx()
-        val yStep = (height - 2 * verticalPadding) / moodRange.coerceAtLeast(1)
-
-        val path = Path().apply {
-            moodData.forEachIndexed { index, (_, mood) ->
-                val x = index * xStep
-                val y = height - verticalPadding - (mood - minMood) * yStep
-                if (index == 0) moveTo(x, y)
-                else cubicTo(
-                    x - xStep / 2,
-                    getY(moodData, index - 1, minMood, yStep, height, verticalPadding),
-                    x - xStep / 2,
-                    y,
-                    x,
-                    y
-                )
-            }
-        }
-
-        // Draw the path
-        drawPath(
-            path = path,
-            brush = gradientBrush,
-            style = Stroke(width = 6.dp.toPx())
-        )
-    }
-}
-
-private fun getY(
-    moodData: List<Pair<String, Int>>,
-    index: Int,
-    minMood: Int,
-    yStep: Float,
-    height: Float,
-    verticalPadding: Float
-): Float {
-    return height - verticalPadding - (moodData[index].second - minMood) * yStep
-}
-
 
 @Composable
 fun MoodSelectionBar(
-    onMoodLogged: () -> Unit,
-    viewModel: MoodTrackerViewModel
+    onMoodLogged: () -> Unit, viewModel: MoodTrackerViewModel
 ) {
     var moodScore by remember { mutableFloatStateOf(50f) }
 
@@ -323,14 +213,12 @@ fun MoodSelectionBar(
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Make the entire bar scrollable
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState()) // Enable scroll
+                .verticalScroll(rememberScrollState())
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Title
             Text(
                 text = "Rate Your Mood by rotating the slider",
                 style = MaterialTheme.typography.titleLarge,
@@ -339,15 +227,10 @@ fun MoodSelectionBar(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Circular Mood Selector
-            CircularMoodSelector(
-                moodScore = moodScore,
-                onMoodScoreChanged = { moodScore = it }
-            )
+            CircularMoodSelector(moodScore = moodScore, onMoodScoreChanged = { moodScore = it })
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Display Current Mood
             Text(
                 text = "Mood: ${getMoodLabel(moodScore.toInt())}",
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
@@ -356,7 +239,6 @@ fun MoodSelectionBar(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Log Mood Button
             Button(
                 onClick = {
                     viewModel.logMood(moodScore.toInt())
@@ -382,8 +264,7 @@ fun MoodSelectionBar(
 
 @Composable
 fun CircularMoodSelector(
-    moodScore: Float,
-    onMoodScoreChanged: (Float) -> Unit
+    moodScore: Float, onMoodScoreChanged: (Float) -> Unit
 ) {
     val gradientBrush = Brush.sweepGradient(
         colors = listOf(
@@ -398,35 +279,29 @@ fun CircularMoodSelector(
         )
     )
 
-    // Animation for glowing effect
     val animatedGlow by rememberInfiniteTransition(label = "").animateFloat(
-        initialValue = 1f,
-        targetValue = 1.38f,
-        animationSpec = infiniteRepeatable(
+        initialValue = 1f, targetValue = 1.38f, animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1500, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ), label = ""
     )
 
-    Box(
-        contentAlignment = Alignment.Center,
+    Box(contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(175.dp)
             .padding(16.dp)
-            .pointerInput(Unit) { // Attach pointer input directly to the Box
+            .pointerInput(Unit) {
                 detectDragGestures { change, _ ->
-                    change.consume() // Consume the gesture event
-                    val canvasSize = size // Access Canvas size dynamically
+                    change.consume()
+                    val canvasSize = size
                     val center = Offset(
-                        x = canvasSize.width.toFloat() / 2,
-                        y = canvasSize.height.toFloat() / 2
+                        x = canvasSize.width.toFloat() / 2, y = canvasSize.height.toFloat() / 2
                     )
                     val angle = Math
                         .toDegrees(
                             kotlin.math
                                 .atan2(
-                                    change.position.y - center.y,
-                                    change.position.x - center.x
+                                    change.position.y - center.y, change.position.x - center.x
                                 )
                                 .toDouble()
                         )
@@ -436,9 +311,7 @@ fun CircularMoodSelector(
                     val mood = (adjustedAngle / 360) * 100
                     onMoodScoreChanged(mood.coerceIn(0f, 100f))
                 }
-            }
-    ) {
-        // Circular Slider Background
+            }) {
         Canvas(modifier = Modifier.size(200.dp)) {
             drawCircle(
                 brush = gradientBrush,
@@ -447,18 +320,14 @@ fun CircularMoodSelector(
             )
         }
 
-        // Glow effect
         Canvas(modifier = Modifier.size(200.dp * animatedGlow)) {
             drawCircle(
-                color = Color.White,
-                radius = size.minDimension / 2
+                color = Color.White, radius = size.minDimension / 2
             )
         }
 
-        // Circular slider handle
         Canvas(modifier = Modifier.size(200.dp)) {
-            val center =
-                Offset(x = size.width / 2, y = size.height / 2) // Correct center inside Canvas
+            val center = Offset(x = size.width / 2, y = size.height / 2)
             val angle = (moodScore / 100) * 360
             val radius = size.minDimension / 2 - 12.dp.toPx()
 
@@ -466,9 +335,7 @@ fun CircularMoodSelector(
             val y = center.y + radius * kotlin.math.sin(Math.toRadians(angle - 90.0).toFloat())
 
             drawCircle(
-                color = Color(0, 0, 0, 255),
-                center = Offset(x, y),
-                radius = 7.dp.toPx()
+                color = Color(0, 0, 0, 255), center = Offset(x, y), radius = 7.dp.toPx()
             )
         }
     }

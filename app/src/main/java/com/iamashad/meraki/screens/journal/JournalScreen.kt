@@ -4,10 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.iamashad.meraki.components.JournalCard
 import com.iamashad.meraki.model.Journal
@@ -20,22 +24,21 @@ fun JournalScreen(
 ) {
     val journals by viewModel.journals.collectAsState()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Text(
+                text = "Your Journals",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .align(Alignment.Start)
+            )
 
-        Text(
-            text = "Your Journals",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .padding(16.dp)
-                .align(Alignment.Start)
-        )
-
-        Box(modifier = Modifier.weight(1f)) {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
@@ -50,15 +53,20 @@ fun JournalScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
+        // Floating Action Button
+        FloatingActionButton(
             onClick = onAddJournalClick,
+            containerColor = MaterialTheme.colorScheme.onPrimary,
+            elevation = FloatingActionButtonDefaults.elevation(8.dp),
+            contentColor = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .clip(CircleShape)
         ) {
-            Text(text = "Add Journal")
+            Icon(
+                imageVector = Icons.Default.Add, contentDescription = "Add Journal"
+            )
         }
     }
 }
-

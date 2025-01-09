@@ -8,6 +8,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.bumptech.glide.Glide
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
+import kotlin.math.roundToInt
 
 @Composable
 fun LoadImageWithGlide(
@@ -65,7 +66,7 @@ fun getMoodColor(score: Int): Color {
 }
 
 fun provideGenerativeModel(apiKey: String): GenerativeModel {
-    return GenerativeModel(modelName = "gemini-2.0-flash-exp",
+    return GenerativeModel(modelName = "gemini-1.5-flash",
         apiKey = apiKey,
         systemInstruction = content {
             text(getSystemInstructions())
@@ -133,4 +134,31 @@ fun getMoodLabelFromTitle(title: String): String {
     }
 }
 
+fun getMoodLabel(score: Int): String {
+    return when (score) {
+        in 0..10 -> "Abysmal"
+        in 11..20 -> "Terrible"
+        in 21..30 -> "Very Bad"
+        in 31..40 -> "Bad"
+        in 41..50 -> "Below Average"
+        in 51..60 -> "Average"
+        in 61..70 -> "Good"
+        in 71..80 -> "Great"
+        in 81..90 -> "Amazing"
+        in 91..100 -> "Ecstatic"
+        else -> "Unknown"
+    }
+}
 
+fun calculateMoodChange(moodTrend: List<Pair<String, Int>>, entryCount: Int): Int? {
+    if (moodTrend.size < entryCount) return null
+    val recentMoodTrend = moodTrend.takeLast(entryCount)
+    val firstMood = recentMoodTrend.first().second
+    val lastMood = recentMoodTrend.last().second
+
+    return if (firstMood == 0) {
+        null
+    } else {
+        ((lastMood - firstMood).toDouble() / firstMood * 100).roundToInt()
+    }
+}

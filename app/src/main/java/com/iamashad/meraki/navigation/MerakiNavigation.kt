@@ -1,7 +1,10 @@
 package com.iamashad.meraki.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -9,7 +12,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -42,7 +48,17 @@ fun MerakiNavigation() {
 
     Scaffold(modifier = Modifier.fillMaxSize(), bottomBar = {
         if (shouldShowBottomBar(currentDestination)) {
-            BottomNavigationBar(navController)
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight(.07f)
+                    .fillMaxWidth()
+                    .background(
+                        Color.Black
+                    )
+            ) {
+                BottomNavigationBar(navController)
+            }
+
         }
     }) { paddingValues ->
         NavHost(
@@ -157,59 +173,52 @@ fun shouldShowBottomBar(currentDestination: String?): Boolean {
 
 @Composable
 fun BottomNavigationBar(navController: NavController) {
-    NavigationBar {
-        NavigationBarItem(icon = {
-            Icon(
-                painter = painterResource(id = R.drawable.home_icon), contentDescription = null
-            )
-        },
-            label = { Text("Home") },
-            selected = navController.currentDestination?.route == Screens.HOME.name,
-            onClick = {
-                navController.navigate(Screens.HOME.name) {
-                    popUpTo(Screens.HOME.name) { saveState = true }
-                    launchSingleTop = true
+    val items = listOf(
+        NavigationItem("Home", Screens.HOME.name, R.drawable.home_123),
+        NavigationItem("Chatbot", "${Screens.CHATBOT.name}/Hi", R.drawable.ic_chat),
+        NavigationItem("Health", Screens.MOODTRACKER.name, R.drawable.ic_moodtracker),
+        NavigationItem("Journal", Screens.JOURNAL.name, R.drawable.ic_journal)
+    )
+
+    NavigationBar(
+        containerColor = Color.Transparent,
+        tonalElevation = 0.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        items.forEach { item ->
+            val currentDestination = navController.currentBackStackEntry?.destination?.route
+            val isSelected = currentDestination == item.route
+
+            NavigationBarItem(icon = {
+                Icon(
+                    painter = painterResource(id = item.icon),
+                    contentDescription = item.label,
+                    tint = if (isSelected) Color.White else Color.White.copy(
+                        alpha = 0.5f
+                    ),
+                    modifier = Modifier.scale(.35f)
+                )
+            }, selected = isSelected, onClick = {
+                if (!isSelected) { // Prevent redundant navigation
+                    try {
+                        navController.navigate(item.route) {
+                            popUpTo(Screens.HOME.name) { saveState = true }
+                            launchSingleTop = true
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace() // Log navigation errors
+                    }
                 }
-            })
-        NavigationBarItem(icon = {
-            Icon(
-                painter = painterResource(id = R.drawable.chat_icon), contentDescription = null
+            }, colors = NavigationBarItemDefaults.colors(
+                indicatorColor = Color.Transparent
             )
-        },
-            label = { Text("Chatbot") },
-            selected = navController.currentDestination?.route == Screens.CHATBOT.name,
-            onClick = {
-                navController.navigate("${Screens.CHATBOT.name}/Hi.") {
-                    popUpTo(Screens.CHATBOT.name) { saveState = true }
-                    launchSingleTop = true
-                }
-            })
-        NavigationBarItem(icon = {
-            Icon(
-                painter = painterResource(id = R.drawable.metrics_icon),
-                contentDescription = null
             )
-        },
-            label = { Text("Health") },
-            selected = navController.currentDestination?.route == Screens.MOODTRACKER.name,
-            onClick = {
-                navController.navigate(Screens.MOODTRACKER.name) {
-                    popUpTo(Screens.MOODTRACKER.name) { saveState = true }
-                    launchSingleTop = true
-                }
-            })
-        NavigationBarItem(icon = {
-            Icon(
-                painter = painterResource(id = R.drawable.journal), contentDescription = null
-            )
-        },
-            label = { Text("Journal") },
-            selected = navController.currentDestination?.route == Screens.JOURNAL.name,
-            onClick = {
-                navController.navigate(Screens.JOURNAL.name) {
-                    popUpTo(Screens.JOURNAL.name) { saveState = true }
-                    launchSingleTop = true
-                }
-            })
+        }
     }
 }
+
+
+data class NavigationItem(
+    val label: String, val route: String, val icon: Int
+)
+

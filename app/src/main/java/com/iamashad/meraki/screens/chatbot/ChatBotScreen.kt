@@ -128,13 +128,13 @@ fun ChatHeader() {
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text(
-                    text = "Meraki Assistant",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.surface
+                    text = "MERAKI ASSISTANT", style = MaterialTheme.typography.headlineMedium.copy(
+                        letterSpacing = 2.sp, fontWeight = FontWeight.Bold
+                    ), color = MaterialTheme.colorScheme.surface
                 )
                 Text(
                     text = "Your AI mental health assistant",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.surface
                 )
             }
@@ -326,52 +326,63 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
     var conversationTag by remember { mutableStateOf("") }
 
     if (showPopup) {
-        AlertDialog(onDismissRequest = { showPopup = false }, title = {
-            Text(
-                "End Conversation",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }, text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text("Enter a tag for this conversation (e.g., Sleep Issues, Anxiety):")
-                OutlinedTextField(value = conversationTag,
-                    onValueChange = { conversationTag = it },
-                    placeholder = { Text("What was this conversation about?") },
-                    singleLine = true,
+        AlertDialog(onDismissRequest = { showPopup = false },
+            title = {
+                Text(
+                    "End Conversation",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp)
-                )
-            }
-        }, confirmButton = {
-            Button(
-                onClick = {
-                    if (conversationTag.isNotEmpty()) {
-                        onFinish(conversationTag)
-                        showPopup = false
-                    }
-                }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            ) {
-                Text("Save")
-            }
-        }, dismissButton = {
-            Button(
-                onClick = { showPopup = false },
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer,
-                    contentColor = MaterialTheme.colorScheme.onErrorContainer
-                ),
-                elevation = ButtonDefaults.buttonElevation(8.dp)
-            ) {
-                Text("Cancel")
-            }
-        })
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Enter a tag for this conversation (e.g., Sleep Issues, Anxiety):",
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    OutlinedTextField(value = conversationTag,
+                        onValueChange = { conversationTag = it },
+                        placeholder = { Text("What was this conversation about?") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (conversationTag.isNotEmpty()) {
+                            onFinish(conversationTag)
+                            showPopup = false
+                        }
+                    }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showPopup = false },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(8.dp)
+                ) {
+                    Text("Cancel")
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.background,
+            textContentColor = MaterialTheme.colorScheme.onBackground
+        )
     }
 
     Button(

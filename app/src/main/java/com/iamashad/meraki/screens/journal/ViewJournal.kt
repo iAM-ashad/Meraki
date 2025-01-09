@@ -2,7 +2,9 @@ package com.iamashad.meraki.screens.journal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -20,8 +22,7 @@ import java.util.*
 
 @Composable
 fun ViewJournalScreen(
-    journal: Journal,
-    onBack: () -> Unit
+    journal: Journal, onBack: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -52,7 +53,7 @@ fun ViewJournalScreen(
                 )
             }
         }
-
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -81,8 +82,7 @@ fun ViewJournalScreen(
                         Text(
                             text = "You felt ${journal.title}",
                             style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 28.sp
+                                fontWeight = FontWeight.Bold, fontSize = 28.sp
                             ),
                             color = MaterialTheme.colorScheme.onPrimary,
                             textAlign = TextAlign.Center,
@@ -94,13 +94,11 @@ fun ViewJournalScreen(
                         Text(
                             text = "Tags: ${journal.reasons.joinToString(", ")}",
                             style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 16.sp
+                                fontWeight = FontWeight.Medium, fontSize = 16.sp
                             ),
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.padding(
-                                start = 12.dp,
-                                top = 6.dp
+                                start = 12.dp, top = 6.dp
                             )
                         )
                     }
@@ -122,7 +120,9 @@ fun ViewJournalScreen(
                             lineHeight = 24.sp
                         ),
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(12.dp)
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .verticalScroll(scrollState)
                     )
                 }
             }
