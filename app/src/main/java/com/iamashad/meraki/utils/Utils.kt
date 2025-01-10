@@ -26,37 +26,22 @@ fun LoadImageWithGlide(
     })
 }
 
-fun getMoodScore(emotions: List<String>): Int {
-    val emotionToScore = mapOf(
-        "Happy" to 90,
-        "Excited" to 80,
-        "Calm" to 70,
-        "Surprised" to 50,
-        "Confused" to 40,
-        "Sad" to 25
-    )
-
-    val scores = emotions.mapNotNull { emotionToScore[it] }
-    return if (scores.isNotEmpty()) scores.average().toInt() else 50 // Default to neutral
-}
-
 fun getMoodEmoji(score: Int): String {
     return when (score) {
-        in 0..10 -> "😡" // Angry face
-        in 11..20 -> "😞" // Sad face
-        in 21..30 -> "😔" // Pensive face
-        in 31..40 -> "😟" // Worried face
-        in 41..50 -> "😐" // Neutral face
-        in 51..60 -> "🙂" // Slightly smiling face
-        in 61..70 -> "😊" // Smiling face
-        in 71..80 -> "😃" // Big smile
-        in 81..90 -> "😄" // Grinning face
-        in 91..100 -> "😍" // Heart eyes
-        else -> "😶" // Blank face
+        in 0..10 -> "😡"
+        in 11..20 -> "😞"
+        in 21..30 -> "😔"
+        in 31..40 -> "😟"
+        in 41..50 -> "😐"
+        in 51..60 -> "🙂"
+        in 61..70 -> "😊"
+        in 71..80 -> "😃"
+        in 81..90 -> "😄"
+        in 91..100 -> "😍"
+        else -> "😶"
     }
 }
 
-// Function to get the appropriate color for a mood score
 fun getMoodColor(score: Int): Color {
     return when (score) {
         in 0..39 -> Color(227, 56, 0, 255)
@@ -66,7 +51,8 @@ fun getMoodColor(score: Int): Color {
 }
 
 fun provideGenerativeModel(apiKey: String): GenerativeModel {
-    return GenerativeModel(modelName = "gemini-1.5-flash",
+    return GenerativeModel(
+        modelName = "gemini-1.5-flash",
         apiKey = apiKey,
         systemInstruction = content {
             text(getSystemInstructions())

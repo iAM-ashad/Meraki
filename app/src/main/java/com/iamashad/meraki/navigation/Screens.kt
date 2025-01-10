@@ -10,5 +10,6 @@ enum class Screens {
     JOURNAL,
     ADDJOURNAL,
     VIEWJOURNAL,
-    SETTINGS
+    SETTINGS,
+    ABOUT
 }

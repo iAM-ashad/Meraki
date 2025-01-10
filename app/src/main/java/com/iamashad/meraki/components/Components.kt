@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -31,7 +33,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -142,6 +147,8 @@ fun SheetLayout(
 fun JournalCard(
     journal: Journal, onEditClick: (Journal) -> Unit, onDeleteButtonClick: (String) -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -198,7 +205,11 @@ fun JournalCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "You felt ${journal.title}",
+                    text = if (!journal.title.isEmpty()) {
+                        "You felt ${journal.title}"
+                    } else {
+                        "You felt Neutral"
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimary
@@ -207,7 +218,7 @@ fun JournalCard(
                     text = if (journal.reasons.isNotEmpty()) {
                         "Because of ${journal.reasons.joinToString()}"
                     } else {
-                        "Because of Unknown Reasons"
+                        "Because of unknown reasons"
                     },
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onPrimary
@@ -247,9 +258,8 @@ fun JournalCard(
                             tint = MaterialTheme.colorScheme.surface,
                             modifier = Modifier
                                 .size(16.dp)
-                                .clickable {
-                                    onDeleteButtonClick(journal.journalId)
-                                })
+                                .clickable { showDeleteDialog = true } // Show confirmation dialog
+                        )
                         Text(
                             text = "Delete",
                             style = MaterialTheme.typography.bodySmall,
@@ -266,7 +276,28 @@ fun JournalCard(
             }
         }
     }
+
+    // Confirmation AlertDialog
+    if (showDeleteDialog) {
+        AlertDialog(onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Journal") },
+            text = { Text("Are you sure you want to delete this journal? This action cannot be undone.") },
+            confirmButton = {
+                Button(onClick = {
+                    onDeleteButtonClick(journal.journalId) // Call delete action
+                    showDeleteDialog = false
+                }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            })
+    }
 }
+
 
 @Composable
 fun MoodTrendGraph(

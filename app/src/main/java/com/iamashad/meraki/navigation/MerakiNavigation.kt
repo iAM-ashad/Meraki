@@ -25,6 +25,7 @@ import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.R
+import com.iamashad.meraki.screens.about.AboutScreen
 import com.iamashad.meraki.screens.breathing.BreathingScreen
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
@@ -78,6 +79,10 @@ fun MerakiNavigation() {
             composable(Screens.REGISTER.name) {
                 RegisterScreen(navController)
             }
+            composable(Screens.ABOUT.name) {
+                AboutScreen(navController)
+            }
+
 
             composable(
                 route = "${Screens.CHATBOT.name}/{prompt}",
