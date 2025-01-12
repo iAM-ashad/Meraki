@@ -36,7 +36,9 @@ import com.iamashad.meraki.screens.journal.JournalViewModel
 import com.iamashad.meraki.screens.journal.ViewJournalScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
+import com.iamashad.meraki.screens.register.OnBoardingScreen
 import com.iamashad.meraki.screens.register.RegisterScreen
+import com.iamashad.meraki.screens.register.RegisterViewModel
 import com.iamashad.meraki.screens.settings.SettingsScreen
 import com.iamashad.meraki.screens.splash.SplashScreen
 
@@ -82,7 +84,10 @@ fun MerakiNavigation() {
             composable(Screens.ABOUT.name) {
                 AboutScreen(navController)
             }
-
+            composable(Screens.ONBOARDING.name) {
+                val viewModel = hiltViewModel<RegisterViewModel>()
+                OnBoardingScreen(navController, viewModel)
+            }
 
             composable(
                 route = "${Screens.CHATBOT.name}/{prompt}",

@@ -2,8 +2,10 @@ package com.iamashad.meraki.screens.register
 
 import android.content.Intent
 import androidx.lifecycle.ViewModel
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -24,12 +26,23 @@ class RegisterViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    // Get Google Sign-In Intent
     fun getGoogleSignInIntent(): Intent {
-        return googleSignInClient.signInIntent
+        val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken("920939571800-r94v67gt2pjbjedhrpflhbn8nmi2njsq.apps.googleusercontent.com") // Replace with your actual Web Client ID
+            .requestEmail()
+            .build()
+
+        // Create a new instance of GoogleSignInClient to avoid using cached accounts
+        val newGoogleSignInClient =
+            GoogleSignIn.getClient(googleSignInClient.applicationContext, options)
+
+        // Sign out first to ensure the account chooser always appears
+        newGoogleSignInClient.signOut()
+
+        return newGoogleSignInClient.signInIntent
     }
 
-    // Firebase Sign-In with Google Account
+
     fun firebaseAuthWithGoogle(account: GoogleSignInAccount?, onComplete: (Boolean) -> Unit) {
         if (account == null) {
             _errorMessage.value = "Google Sign-In failed."
@@ -38,24 +51,20 @@ class RegisterViewModel @Inject constructor(
         }
 
         val credential = GoogleAuthProvider.getCredential(account.idToken, null)
-        firebaseAuth.signInWithCredential(credential)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    _user.value = firebaseAuth.currentUser
-                    onComplete(true)
-                } else {
-                    _errorMessage.value = task.exception?.localizedMessage ?: "Authentication failed."
-                    onComplete(false)
-                }
+        firebaseAuth.signInWithCredential(credential).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                _user.value = firebaseAuth.currentUser
+                onComplete(true)
+            } else {
+                _errorMessage.value = task.exception?.localizedMessage ?: "Authentication failed."
+                onComplete(false)
             }
+        }
     }
 
-    // Logout
     fun logout() {
         firebaseAuth.signOut()
         googleSignInClient.signOut()
         _user.value = null
     }
 }
-
-

@@ -2,6 +2,7 @@ package com.iamashad.meraki.screens.moodtracker
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.model.Mood
 import com.iamashad.meraki.repository.MoodRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,12 +37,19 @@ class MoodTrackerViewModel @Inject constructor(
 
     fun logMood(score: Int) {
         viewModelScope.launch {
-            val currentTime = System.currentTimeMillis()
-            val mood = Mood(
-                score = score,
-                timestamp = currentTime
-            )
-            moodRepository.addMood(mood)
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            if (currentUser != null) {
+                val currentTime = System.currentTimeMillis()
+                val mood = Mood(
+                    score = score,
+                    timestamp = currentTime,
+                    userId = currentUser.uid // Bind the entry to the current user's UID
+                )
+                moodRepository.addMood(mood)
+            } else {
+                error("User not authenticated").stackTrace
+            }
         }
     }
+
 }
