@@ -12,19 +12,28 @@ import kotlin.math.roundToInt
 
 @Composable
 fun LoadImageWithGlide(
-    imageScale: ImageView.ScaleType = ImageView.ScaleType.CENTER_CROP,
     imageUrl: String,
     modifier: Modifier = Modifier
 ) {
-    AndroidView(factory = { context ->
-        ImageView(context).apply {
-            scaleType = imageScale
+    AndroidView(
+        factory = { context ->
+            ImageView(context).apply {
+                adjustViewBounds = true // Allow dynamic scaling
+                scaleType = ImageView.ScaleType.FIT_CENTER // Keep the aspect ratio intact
+            }
+        },
+        modifier = modifier,
+        update = { imageView ->
+            Glide.with(imageView.context)
+                .load(imageUrl)
+                .override(800, 600) // Limit size to prevent rendering issues
+                .placeholder(android.R.drawable.ic_menu_gallery) // Placeholder image
+                .error(android.R.drawable.stat_notify_error) // Fallback in case of an error
+                .into(imageView)
         }
-    }, modifier = modifier, update = { imageView ->
-        // Use Glide to load the image
-        Glide.with(imageView.context).load(imageUrl).into(imageView)
-    })
+    )
 }
+
 
 fun getMoodEmoji(score: Int): String {
     return when (score) {
@@ -137,8 +146,10 @@ fun getMoodLabel(score: Int): String {
 }
 
 fun calculateMoodChange(moodTrend: List<Pair<String, Int>>, entryCount: Int): Int? {
-    if (moodTrend.size < entryCount) return null
+    if (moodTrend.isEmpty()) return null // Handle empty trend
     val recentMoodTrend = moodTrend.takeLast(entryCount)
+    if (recentMoodTrend.size < 2) return null // At least two entries are needed for calculation
+
     val firstMood = recentMoodTrend.first().second
     val lastMood = recentMoodTrend.last().second
 
@@ -148,3 +159,4 @@ fun calculateMoodChange(moodTrend: List<Pair<String, Int>>, entryCount: Int): In
         ((lastMood - firstMood).toDouble() / firstMood * 100).roundToInt()
     }
 }
+

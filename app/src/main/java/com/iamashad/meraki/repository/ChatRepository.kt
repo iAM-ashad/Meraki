@@ -6,20 +6,21 @@ import kotlinx.coroutines.flow.Flow
 
 class ChatRepository(private val chatDao: ChatDao) {
 
-    val chatMessagesFlow: Flow<List<ChatMessage>> = chatDao.getAllMessagesFlow()
+    fun getChatMessagesFlow(userId: String): Flow<List<ChatMessage>> =
+        chatDao.getAllMessagesFlow(userId) // Fetch messages for the given user
 
     suspend fun insertMessage(chatMessage: ChatMessage) {
-        chatDao.insertMessage(chatMessage) // Already executed on IO in ViewModel
+        chatDao.insertMessage(chatMessage)
     }
 
-    suspend fun clearChatHistory() {
-        chatDao.clearChatHistory()
+    suspend fun clearChatHistory(userId: String) {
+        chatDao.clearChatHistory(userId) // Clear messages for the given user
     }
 
-    suspend fun getLastContext(): String? {
-        // Fetch the last message with a non-null context
-        return chatDao.getAllMessages()
+    suspend fun getLastContext(userId: String): String? {
+        return chatDao.getAllMessages(userId)
             .lastOrNull { !it.context.isNullOrBlank() }
             ?.context
     }
 }
+

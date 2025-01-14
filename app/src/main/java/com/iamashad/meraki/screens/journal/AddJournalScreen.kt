@@ -1,5 +1,14 @@
 package com.iamashad.meraki.screens.journal
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -8,8 +17,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -18,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
@@ -26,13 +38,14 @@ import com.iamashad.meraki.components.EmotionChip
 import com.iamashad.meraki.components.ReasonChip
 import com.iamashad.meraki.components.SheetLayout
 import com.iamashad.meraki.model.Journal
+import com.iamashad.meraki.utils.LoadImageWithGlide
 import com.iamashad.meraki.utils.allEmotions
 import com.iamashad.meraki.utils.allReasons
 import com.iamashad.meraki.utils.calculateMoodScore
 import com.iamashad.meraki.utils.commonlyUsedEmotions
 import com.iamashad.meraki.utils.commonlyUsedReasons
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun AddJournalScreen(
     viewModel: JournalViewModel,
@@ -55,6 +68,7 @@ fun AddJournalScreen(
     var selectedReasons by remember { mutableStateOf(listOf<String>()) }
     var journalEntry by remember { mutableStateOf("") }
     var moodScore by remember { mutableIntStateOf(50) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     BottomSheetScaffold(
         scaffoldState = bottomSheetState,
@@ -75,49 +89,63 @@ fun AddJournalScreen(
                     )
                     .padding(16.dp)
             ) {
-                when (step) {
-                    1 -> EmotionSelectionSheet(selectedEmotions = selectedEmotions,
-                        onEmotionsSelected = {
-                            selectedEmotions = it
-                            moodScore = calculateMoodScore(it)
-                        },
-                        onNext = { step = 2 },
-                        onClose = onClose
-                    )
+                AnimatedContent(
+                    targetState = step,
+                    transitionSpec = {
+                        slideInHorizontally(
+                            animationSpec = tween(500)
+                        ) { it } togetherWith
+                                slideOutHorizontally(animationSpec = tween(500)) { -it }
+                    }
+                ) { currentStep ->
+                    when (currentStep) {
+                        1 -> EmotionSelectionSheet(
+                            selectedEmotions = selectedEmotions,
+                            onEmotionsSelected = {
+                                selectedEmotions = it
+                                moodScore = calculateMoodScore(it)
+                            },
+                            onNext = { step = 2 },
+                            onClose = onClose
+                        )
 
-                    2 -> ReasonSelectionSheet(
-                        selectedReasons = selectedReasons,
-                        onReasonsSelected = { selectedReasons = it },
-                        onNext = { step = 3 },
-                        onClose = onClose
-                    )
+                        2 -> ReasonSelectionSheet(
+                            selectedReasons = selectedReasons,
+                            onReasonsSelected = { selectedReasons = it },
+                            onNext = { step = 3 },
+                            onClose = onClose
+                        )
 
-                    3 -> JournalEntrySheet(journalEntry = journalEntry,
-                        onJournalEntryChanged = { journalEntry = it },
-                        onSave = {
-                            viewModel.addJournal(
-                                Journal(
-                                    journalId = journalId,
-                                    userId = userId,
-                                    title = selectedEmotions.joinToString(),
-                                    content = journalEntry,
-                                    moodScore = moodScore,
-                                    reasons = selectedReasons,
-                                    date = System.currentTimeMillis()
+                        3 -> JournalEntrySheet(
+                            journalEntry = journalEntry,
+                            onJournalEntryChanged = { journalEntry = it },
+                            selectedImageUri = selectedImageUri,
+                            onImageSelected = { selectedImageUri = it },
+                            onSave = {
+                                viewModel.addJournal(
+                                    Journal(
+                                        journalId = journalId,
+                                        userId = userId,
+                                        title = selectedEmotions.joinToString(),
+                                        content = journalEntry,
+                                        moodScore = moodScore,
+                                        reasons = selectedReasons,
+                                        date = System.currentTimeMillis(),
+                                        imageUrl = selectedImageUri?.toString()
+                                    )
                                 )
-                            )
-                            onSave()
-                            onClose()
-                        },
-                        onClose = onClose
-                    )
+                                onSave()
+                                onClose()
+                            },
+                            onClose = onClose
+                        )
+                    }
                 }
             }
         },
         sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         modifier = Modifier.fillMaxSize()
     ) {
-        // Placeholder content for the main scaffold area
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -158,9 +186,10 @@ fun EmotionSelectionSheet(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 72.dp) // Leave space for the floating button
+                    .padding(bottom = 72.dp)
             ) {
-                OutlinedTextField(value = searchQuery,
+                OutlinedTextField(
+                    value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search emotions") },
                     leadingIcon = {
@@ -321,28 +350,37 @@ fun ReasonSelectionSheet(
 fun JournalEntrySheet(
     journalEntry: String,
     onJournalEntryChanged: (String) -> Unit,
+    selectedImageUri: Uri?,
+    onImageSelected: (Uri) -> Unit,
     onSave: () -> Unit,
     onClose: () -> Unit
 ) {
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            onImageSelected(uri)
+        }
+    }
+
     SheetLayout(
-        title = "Any thing you want to add", onClose = onClose
+        title = "Add notes to your journal",
+        onClose = onClose
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Instructions
             Text(
                 modifier = Modifier.fillMaxWidth(),
-                text = "Add notes reflecting on your mood",
+                text = "Reflect on your emotions and add an image if you wish.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-
-            // Text input with placeholder
             OutlinedTextField(
                 value = journalEntry,
                 onValueChange = onJournalEntryChanged,
@@ -365,24 +403,60 @@ fun JournalEntrySheet(
                 singleLine = false,
                 maxLines = 10
             )
-
             Button(
-                onClick = onSave,
+                onClick = {
+                    imagePickerLauncher.launch("image/*")
+                },
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(top = 16.dp)
-                    .fillMaxWidth(.6f),
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Text(
-                    text = "Save",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                    text = selectedImageUri?.let { "Change Image" } ?: "Attach Image",
+                    style = MaterialTheme.typography.bodyMedium
                 )
+            }
+
+            selectedImageUri?.let { uri ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(Color.Transparent),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LoadImageWithGlide(
+                        imageUrl = uri.toString(),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(top = 16.dp)
+                        .fillMaxWidth(.6f),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(
+                        text = "Save",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
         }
     }
 }
+

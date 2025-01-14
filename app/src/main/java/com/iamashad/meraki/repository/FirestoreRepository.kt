@@ -19,8 +19,9 @@ class FirestoreRepository {
             "title" to journal.title,
             "content" to journal.content,
             "moodScore" to journal.moodScore,
-            "reasons" to journal.reasons, // Save reasons here
-            "date" to com.google.firebase.Timestamp(journal.date / 1000, ((journal.date % 1000) * 1000000).toInt())
+            "reasons" to journal.reasons,
+            "date" to com.google.firebase.Timestamp(journal.date / 1000, ((journal.date % 1000) * 1000000).toInt()),
+            "imageUrl" to journal.imageUrl
         )
 
         journalsCollection.document(docId).set(dataToSave).await()
@@ -64,13 +65,14 @@ class FirestoreRepository {
         val journalId = doc.getString("journalId").orEmpty()
         val title = doc.getString("title").orEmpty()
         val content = doc.getString("content").orEmpty()
-        val moodScore = doc.getLong("moodScore")?.toInt() ?: 50 // Default to 50 if missing
-        val reasons = doc.get("reasons") as? List<String> ?: emptyList() // Map the reasons field
+        val moodScore = doc.getLong("moodScore")?.toInt() ?: 50
+        val reasons = doc.get("reasons") as? List<String> ?: emptyList()
         val dateValue = doc.get("date")
         val date = when (dateValue) {
             is com.google.firebase.Timestamp -> dateValue.toDate().time
             else -> System.currentTimeMillis()
         }
+        val imageUrl = doc.getString("imageUrl") // Map image URL
         val fetchedUserId = doc.getString("userId").orEmpty()
 
         return if (fetchedUserId.isNotEmpty()) {
@@ -81,10 +83,9 @@ class FirestoreRepository {
                 content = content,
                 date = date,
                 moodScore = moodScore,
-                reasons = reasons // Add the reasons to the Journal object
+                reasons = reasons,
+                imageUrl = imageUrl
             )
         } else null
     }
-
 }
-

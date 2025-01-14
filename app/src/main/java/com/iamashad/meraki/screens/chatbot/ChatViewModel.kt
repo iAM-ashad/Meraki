@@ -22,6 +22,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val chatRepository: ChatRepository
     var activeContext: String? = null
+    private val userId: String =
+        FirebaseAuth.getInstance().currentUser?.uid.orEmpty() // Add userId here
 
     init {
         val chatDao = ChatDatabase.getInstance(application).chatDao()
@@ -40,7 +42,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun startNewConversation() {
         viewModelScope.launch {
             messageList.clear()
-            activeContext = chatRepository.getLastContext()
+            activeContext =
+                chatRepository.getLastContext(userId) // Pass userId to fetch user-specific context
 
             val userName = FirebaseAuth.getInstance().currentUser?.displayName
             val firstName = userName?.split(" ")?.firstOrNull()
@@ -59,10 +62,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun finishConversation(tag: String) {
         viewModelScope.launch {
-            activeContext = tag // Save the tag as context
+            activeContext = tag
             val lastMessage = messageList.lastOrNull() ?: return@launch
             val chatMessage = ChatMessage(
-                message = lastMessage.message, role = lastMessage.role, context = tag
+                message = lastMessage.message,
+                role = lastMessage.role,
+                context = tag,
+                userId = userId // Associate with the current user
             )
             chatRepository.insertMessage(chatMessage)
         }
@@ -72,7 +78,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             chatRepository.insertMessage(
                 ChatMessage(
-                    message = message.message, role = message.role
+                    message = message.message,
+                    role = message.role,
+                    userId = userId // Associate with the current user
                 )
             )
         }
@@ -86,13 +94,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             if (role == "user") {
                 activeContext = analyzeEmotion(messageText)
-                isTyping.value = true // Set typing state to true
+                isTyping.value = true
 
                 val response = generativeModel.startChat(history = messageList.map {
                     content(it.role) { text(it.message) }
                 }).sendMessage(messageText)
 
-                isTyping.value = false // Reset typing state
+                isTyping.value = false
 
                 val botMessage = Message(response.text.toString(), "model")
                 messageList.add(botMessage)
@@ -103,7 +111,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearChatHistory() {
         viewModelScope.launch {
-            chatRepository.clearChatHistory()
+            chatRepository.clearChatHistory(userId) // Clear only for the current user
             messageList.clear()
             activeContext = null
         }
@@ -112,5 +120,5 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun determineGradientColors(): List<Color> {
         return gradientMap[activeContext] ?: gradientMap["neutral"]!!
     }
-
 }
+

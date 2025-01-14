@@ -1,5 +1,6 @@
 package com.iamashad.meraki.screens.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -45,6 +47,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,7 +64,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.R
 import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
-import com.iamashad.meraki.ui.theme.bodyFontFamily
 import com.iamashad.meraki.utils.LoadImageWithGlide
 import com.iamashad.meraki.utils.getMoodColor
 import com.iamashad.meraki.utils.getMoodEmoji
@@ -76,6 +78,7 @@ fun HomeScreen(
     val advice by homeViewModel.advice.observeAsState("Loading advice...")
     val photoUrl by homeViewModel.photoUrl.collectAsState()
     val lastMoods by moodTrackerViewModel.moodTrend.collectAsState()
+    val isLoading by moodTrackerViewModel.loading.collectAsState() // Observe loading state
     val streakCount = remember { mutableIntStateOf(0) }
 
     LaunchedEffect(user) {
@@ -101,7 +104,7 @@ fun HomeScreen(
             )
             .padding(16.dp)
     ) {
-        // Profile and Streak Section
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -119,41 +122,38 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Weekly Calendar Section
         WeeklyCalendar(navController)
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Mood Prompt Card
         MoodPromptCard(navController)
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Mood Logs Section
-        if (lastMoods.isNotEmpty()) {
-            MoodLogsCard(moodLogs = lastMoods.takeLast(5))
-        } else {
-            Text(
-                text = "No mood data available. Log your mood to see trends!",
-                fontSize = 16.sp,
-                fontFamily = bodyFontFamily,
-                fontWeight = FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
+        when {
+            isLoading -> {
+                LoadingIndicator()
+            }
+
+            lastMoods.isNotEmpty() -> {
+                MoodLogsCard(moodLogs = lastMoods.takeLast(5))
+            }
+
+            else -> {
+                EmptyMoodLogs()
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Advice Card
         AdviceCard(advice)
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Meditate Button
         MeditateButton(navController)
     }
 }
+
 
 @Composable
 fun CelebrationDialog(
@@ -217,7 +217,6 @@ fun CelebrationDialog(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Dismiss Button
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -295,7 +294,7 @@ fun MoodPromptCard(navController: NavController) {
     val userName = FirebaseAuth.getInstance().currentUser?.displayName
     val firstName = userName?.split(" ")?.firstOrNull()
     Card(shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(8.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -375,7 +374,6 @@ fun ProfileCard(
 fun StreakMeterCard(streakCount: Int) {
     var showCelebrationDialog by remember { mutableStateOf(false) }
 
-    // Show Dialog when the card is clicked
     if (showCelebrationDialog) {
         CelebrationDialog(
             onDismiss = { showCelebrationDialog = false }, streakCount = streakCount
@@ -383,7 +381,7 @@ fun StreakMeterCard(streakCount: Int) {
     }
 
     Card(shape = RoundedCornerShape(50),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(10.dp),
         modifier = Modifier
             .padding(start = 8.dp)
@@ -410,7 +408,7 @@ fun StreakMeterCard(streakCount: Int) {
 fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(34, 56, 67)),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(12.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -424,7 +422,12 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
             Text(
                 text = "Mood Chart",
                 style = MaterialTheme.typography.headlineSmall,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Your last 7 mood entries",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(.6f)
             )
 
             Spacer(modifier = Modifier.height(80.dp))
@@ -486,7 +489,7 @@ fun AdviceCard(advice: String) {
     Card(
         shape = RoundedCornerShape(topStart = 25.dp, bottomEnd = 25.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(10.dp),
         modifier = Modifier
@@ -536,3 +539,72 @@ fun MeditateButton(navController: NavController) {
         }
     }
 }
+
+
+@Composable
+fun EmptyMoodLogs() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.img_moodtrack),
+            contentDescription = "Make Journals"
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Your Emotional Journey Awaits!",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.background,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column {
+            Text(
+                text = """
+                 • Track your emotional highs and lows.
+             """.trimIndent(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = """
+                 • Gain insights into your mood patterns.
+             """.trimIndent(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+            Text(
+                text = """
+                • Celebrate progress and identify triggers.
+             """.trimIndent(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun LoadingIndicator() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(200.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(
+            color = MaterialTheme.colorScheme.background,
+            strokeWidth = 4.dp
+        )
+    }
+}
+
+

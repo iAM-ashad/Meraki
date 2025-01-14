@@ -1,15 +1,25 @@
 package com.iamashad.meraki.screens.moodtracker
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -22,19 +32,23 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.MoodTrendGraph
+import com.iamashad.meraki.components.showToast
 import com.iamashad.meraki.utils.calculateMoodChange
 import com.iamashad.meraki.utils.getMoodLabel
 import kotlin.math.roundToInt
 
 @Composable
 fun MoodTrackerScreen(
-    moodTrackerViewModel: MoodTrackerViewModel = hiltViewModel(), onMoodLogged: () -> Unit
+    moodTrackerViewModel: MoodTrackerViewModel = hiltViewModel(),
+    onMoodLogged: () -> Unit
 ) {
     val moodTrend by moodTrackerViewModel.moodTrend.collectAsState()
     var entryCount by remember { mutableIntStateOf(7) }
@@ -46,78 +60,98 @@ fun MoodTrackerScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        MaterialTheme.colorScheme.inversePrimary, MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.inversePrimary,
+                        MaterialTheme.colorScheme.primary
                     )
                 )
             )
     ) {
-        if (moodTrend.isNotEmpty()) {
+        if (moodTrend.isEmpty() || moodTrend.size < entryCount) {
+            EmptyMoodTrend()
+        } else {
             val recentMoodTrend = moodTrend.takeLast(entryCount)
             val averageMood = recentMoodTrend.map { it.second }.average().roundToInt()
             val moodLabel = getMoodLabel(averageMood)
             val moodChange = calculateMoodChange(moodTrend, entryCount)
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.4f),
-                horizontalAlignment = Alignment.Start,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 24.dp)
-                ) {
-                    Text(
-                        text = moodLabel,
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.background
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    IconButton(
-                        onClick = { showInfoDialog = true }, modifier = Modifier.size(16.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_info),
-                            contentDescription = "Info",
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+            AnimatedContent(
+                targetState = entryCount,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(700)) +
+                            expandVertically(
+                                animationSpec = tween(700)
+                            ) { it } togetherWith
+                            fadeOut(animationSpec = tween(700)) +
+                            shrinkVertically(
+                                animationSpec = tween(700)
+                            ) { -it }
                 }
+            ) { targetEntryCount ->
 
-                if (moodChange != null) {
+                val recentTrend = moodTrend.takeLast(targetEntryCount)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.4f),
+                    horizontalAlignment = Alignment.Start,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 24.dp)
+                    ) {
+                        Text(
+                            text = moodLabel,
+                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.background
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        IconButton(
+                            onClick = { showInfoDialog = true },
+                            modifier = Modifier.size(16.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_info),
+                                contentDescription = "Info",
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+
                     Row(
                         modifier = Modifier.padding(start = 28.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Average Mood $moodChange%",
+                            text = "Average Mood: $moodChange%",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSecondary
                         )
 
-                        Icon(
-                            painter = if (moodChange > 0) painterResource(R.drawable.ic_arrow_up) else painterResource(
-                                R.drawable.ic_arrow_down
-                            ),
-                            contentDescription = if (moodChange > 0) "Positive Change" else "Negative Change",
-                            tint = if (moodChange > 0) Color.Green else Color.Red,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        if (moodChange != null) {
+                            Icon(
+                                painter = if (moodChange > 0) painterResource(R.drawable.ic_arrow_up)
+                                else painterResource(R.drawable.ic_arrow_down),
+                                contentDescription = if (moodChange > 0) "Positive Change"
+                                else "Negative Change",
+                                tint = if (moodChange > 0) Color.Green else Color.Red,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    MoodTrendGraph(
+                        moodData = recentTrend,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(.8f)
+                            .padding(top = 4.dp)
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                MoodTrendGraph(
-                    moodData = recentMoodTrend,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(.8f)
-                        .padding(top = 4.dp)
-                )
             }
         }
 
@@ -141,7 +175,6 @@ fun MoodTrackerScreen(
             )
         }
 
-        // Bottom Section
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -172,10 +205,12 @@ fun MoodTrackerScreen(
     }
 }
 
-
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun ToggleButtonBar(
-    options: List<String>, selectedOption: String, onOptionSelected: (String) -> Unit
+    options: List<String>,
+    selectedOption: String,
+    onOptionSelected: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -195,7 +230,30 @@ fun ToggleButtonBar(
                     .weight(1f)
                     .padding(horizontal = 4.dp)
             ) {
-                Text(text = option, style = MaterialTheme.typography.bodyMedium)
+                AnimatedContent(
+                    targetState = option == selectedOption,
+                    transitionSpec = {
+                        if (targetState) {
+                            fadeIn(animationSpec = tween(300)) + slideInVertically { it } togetherWith
+                                    fadeOut(animationSpec = tween(300)) + slideOutVertically { -it }
+                        } else {
+                            fadeIn(animationSpec = tween(300)) togetherWith fadeOut(
+                                animationSpec = tween(
+                                    300
+                                )
+                            )
+                        }
+                    }
+                ) { isSelected ->
+                    if (isSelected) {
+                        Text(
+                            text = option,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    } else {
+                        Text(text = option, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         }
     }
@@ -207,6 +265,7 @@ fun MoodSelectionBar(
     onMoodLogged: () -> Unit, viewModel: MoodTrackerViewModel
 ) {
     var moodScore by remember { mutableFloatStateOf(50f) }
+    val context = LocalContext.current
 
     Box(
         modifier = Modifier
@@ -220,7 +279,7 @@ fun MoodSelectionBar(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Rate Your Mood by rotating the slider",
+                text = "Rate your mood by rotating the slider",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -243,6 +302,7 @@ fun MoodSelectionBar(
                 onClick = {
                     viewModel.logMood(moodScore.toInt())
                     onMoodLogged()
+                    showToast(context = context, "Mood Logged")
                 },
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
@@ -297,15 +357,11 @@ fun CircularMoodSelector(
                     val center = Offset(
                         x = canvasSize.width.toFloat() / 2, y = canvasSize.height.toFloat() / 2
                     )
-                    val angle = Math
-                        .toDegrees(
-                            kotlin.math
-                                .atan2(
-                                    change.position.y - center.y, change.position.x - center.x
-                                )
-                                .toDouble()
-                        )
-                        .toFloat() + 90
+                    val angle = Math.toDegrees(
+                        kotlin.math.atan2(
+                            change.position.y - center.y, change.position.x - center.x
+                        ).toDouble()
+                    ).toFloat() + 90
 
                     val adjustedAngle = if (angle < 0) angle + 360 else angle
                     val mood = (adjustedAngle / 360) * 100
@@ -340,5 +396,45 @@ fun CircularMoodSelector(
         }
     }
 }
+
+@Composable
+fun EmptyMoodTrend() {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(.4f),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "No mood trend available yet.",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Log your mood regularly to see insightful trends here.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
+        )
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(.4f),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            painter = painterResource(id = R.drawable.img_empty_graph),
+            contentDescription = "Empty Mood Graph",
+            tint = MaterialTheme.colorScheme.surface.copy(alpha = .7f),
+            modifier = Modifier
+        )
+    }
+}
+
+
 
 

@@ -8,5 +8,7 @@ data class ChatMessage(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val message: String,
     val role: String,
-    val context: String? = null
+    val context: String? = null,
+    val userId: String
 )
+

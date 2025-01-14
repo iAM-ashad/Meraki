@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -43,10 +44,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.iamashad.meraki.R
 import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.utils.getMoodEmoji
 import com.iamashad.meraki.utils.getMoodLabelFromTitle
@@ -205,7 +208,7 @@ fun JournalCard(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = if (!journal.title.isEmpty()) {
+                    text = if (journal.title.isNotEmpty()) {
                         "You felt ${journal.title}"
                     } else {
                         "You felt Neutral"
@@ -214,6 +217,7 @@ fun JournalCard(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
+
                 Text(
                     text = if (journal.reasons.isNotEmpty()) {
                         "Because of ${journal.reasons.joinToString()}"
@@ -239,6 +243,26 @@ fun JournalCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Attachment Indicator
+                if (journal.imageUrl != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_media),
+                            contentDescription = "Media Attached",
+                            tint = MaterialTheme.colorScheme.background,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Media Attached",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 0.5.dp)
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -258,7 +282,7 @@ fun JournalCard(
                             tint = MaterialTheme.colorScheme.surface,
                             modifier = Modifier
                                 .size(16.dp)
-                                .clickable { showDeleteDialog = true } // Show confirmation dialog
+                                .clickable { showDeleteDialog = true }
                         )
                         Text(
                             text = "Delete",
@@ -277,14 +301,13 @@ fun JournalCard(
         }
     }
 
-    // Confirmation AlertDialog
     if (showDeleteDialog) {
         AlertDialog(onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete Journal") },
             text = { Text("Are you sure you want to delete this journal? This action cannot be undone.") },
             confirmButton = {
                 Button(onClick = {
-                    onDeleteButtonClick(journal.journalId) // Call delete action
+                    onDeleteButtonClick(journal.journalId)
                     showDeleteDialog = false
                 }) {
                     Text("Delete")

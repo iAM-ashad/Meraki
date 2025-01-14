@@ -5,8 +5,11 @@ import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,21 +24,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.R
 import com.iamashad.meraki.navigation.Screens
+import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.utils.LoadImageWithGlide
 
 @Composable
-fun SettingsScreen(navController: NavController) {
+fun SettingsScreen(
+    navController: NavController,
+    chatViewModel: ChatViewModel = hiltViewModel()
+) {
     val auth = FirebaseAuth.getInstance()
     val user = auth.currentUser
     val firstName = user?.displayName?.split(" ")?.firstOrNull()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showChatDeleteDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -90,7 +99,8 @@ fun SettingsScreen(navController: NavController) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 SettingsCard(
@@ -107,6 +117,13 @@ fun SettingsScreen(navController: NavController) {
                     gradientColors = listOf(Color(0xFFFF416C), Color(0xFFFF4B2B))
                 ) {
                     showDeleteDialog = true
+                }
+                SettingsCard(
+                    title = "Clear Chat History",
+                    description = "Permanently delete the chats stored on your device",
+                    gradientColors = listOf(Color(0xFFB288FF), Color(0xFF3C1583))
+                ) {
+                    showChatDeleteDialog = true
                 }
 
                 SettingsCard(
@@ -136,7 +153,6 @@ fun SettingsScreen(navController: NavController) {
             containerColor = Color.Transparent,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(top = 24.dp)
                 .scale(.2f)
         ) {
             Icon(
@@ -170,11 +186,29 @@ fun SettingsScreen(navController: NavController) {
                                 val userId = user.uid
                                 FirebaseFirestore.getInstance().collection("users").document(userId)
                                     .delete()
-                                navController.popBackStack()
+                                navController.navigate(Screens.REGISTER.name)
                             }
                         }
                     }) {
                         Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteDialog = false }) {
+                        Text("Cancel")
+                    }
+                },
+                title = { Text("Delete Account") },
+                text = { Text("Are you sure you want to permanently delete your account? This action cannot be undone.") })
+        }
+        if (showChatDeleteDialog) {
+            AlertDialog(onDismissRequest = { showChatDeleteDialog = false },
+                confirmButton = {
+                    Button(onClick = {
+                        chatViewModel.clearChatHistory()
+                        navController.popBackStack()
+                    }) {
+                        Text("Clear Chats")
                     }
                 },
                 dismissButton = {

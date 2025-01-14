@@ -4,6 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -57,14 +59,18 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = "Welcome to Meraki", style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontSize = 40.sp
-                ), textAlign = TextAlign.Center
+                ),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 32.dp)
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -76,17 +82,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                 ),
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Track Mood. Make Journals. Express Feelings.",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold
-                ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp)
+                    .padding(top = 16.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -117,7 +113,6 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
             Button(
                 onClick = { navController.navigate(Screens.ONBOARDING.name) },
                 modifier = Modifier
-                    .fillMaxWidth(0.5f)
                     .padding(8.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary

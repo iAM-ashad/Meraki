@@ -1,6 +1,7 @@
 package com.iamashad.meraki.screens.journal
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,7 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -16,7 +17,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.iamashad.meraki.model.Journal
+import com.iamashad.meraki.utils.LoadImageWithGlide
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -24,6 +27,8 @@ import java.util.*
 fun ViewJournalScreen(
     journal: Journal, onBack: () -> Unit
 ) {
+    var showFullSizeImage by remember { mutableStateOf(false) } // State to toggle full-size image viewer
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -53,6 +58,7 @@ fun ViewJournalScreen(
                 )
             }
         }
+
         val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
@@ -87,6 +93,20 @@ fun ViewJournalScreen(
                             color = MaterialTheme.colorScheme.onPrimary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(16.dp)
+                        )
+                    }
+
+                    // Show image if available
+                    journal.imageUrl?.let { imageUrl ->
+                        LoadImageWithGlide(
+                            imageUrl = imageUrl,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f) // Maintain aspect ratio
+                                .padding(12.dp)
+                                .clickable {
+                                    showFullSizeImage = true
+                                } // Open full-size viewer on click
                         )
                     }
 
@@ -125,6 +145,50 @@ fun ViewJournalScreen(
                             .verticalScroll(scrollState)
                     )
                 }
+            }
+        }
+    }
+
+    // Full-Size Image Viewer Dialog
+    if (showFullSizeImage) {
+        FullSizeImageDialog(
+            imageUrl = journal.imageUrl!!,
+            onDismiss = { showFullSizeImage = false }
+        )
+    }
+}
+
+@Composable
+fun FullSizeImageDialog(
+    imageUrl: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surface)
+        ) {
+            // Display Full-Size Image
+            LoadImageWithGlide(
+                imageUrl = imageUrl,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight()
+                    .padding(16.dp)
+            )
+            // Close Button
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Close Full-Size Image",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }

@@ -1,5 +1,11 @@
 package com.iamashad.meraki.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.core.EaseIn
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -67,6 +73,22 @@ fun MerakiNavigation() {
         NavHost(
             navController = navController,
             startDestination = Screens.SPLASH.name,
+            enterTransition = {
+                fadeIn(
+                    animationSpec = tween(600, easing = EaseIn)
+                ) + slideIntoContainer(
+                    animationSpec = tween(500, easing = EaseIn),
+                    towards = AnimatedContentTransitionScope.SlideDirection.Left
+                )
+            },
+            exitTransition = {
+                fadeOut(
+                    animationSpec = tween(600, easing = LinearEasing)
+                ) + slideOutOfContainer(
+                    animationSpec = tween(500, easing = LinearEasing),
+                    towards = AnimatedContentTransitionScope.SlideDirection.Right
+                )
+            },
             modifier = Modifier.padding(paddingValues)
         ) {
 
@@ -131,7 +153,7 @@ fun MerakiNavigation() {
                     val newJournalId =
                         FirebaseFirestore.getInstance().collection("journals").document().id
                     navController.navigate("${Screens.ADDJOURNAL.name}/$newJournalId")
-                }, onEditJournalClick = { journal ->
+                }, onViewJournalClick = { journal ->
                     navController.navigate("${Screens.VIEWJOURNAL.name}/${journal.journalId}")
                 })
             }
@@ -144,21 +166,17 @@ fun MerakiNavigation() {
                 val journalId = backStackEntry.arguments?.getString("journalId") ?: ""
                 val viewModel = hiltViewModel<JournalViewModel>()
 
-                // Collect state for journals and search
                 val journals by viewModel.journals.collectAsState()
                 val searchResults by viewModel.searchResults.collectAsState()
                 val isSearching by viewModel.isSearching.collectAsState()
 
-                // Determine which list to use
                 val displayedJournals = if (isSearching) searchResults else journals
 
-                // Find the journal with the given ID
                 val journal = displayedJournals.find { it.journalId == journalId }
 
                 if (journal != null) {
                     ViewJournalScreen(journal = journal, onBack = { navController.popBackStack() })
                 } else {
-                    // Fallback UI in case the journal is not found
                     Box(
                         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                     ) {
@@ -192,8 +210,9 @@ fun BottomNavigationBar(navController: NavController) {
 
     NavigationBar(
         containerColor = Color.Transparent,
-        tonalElevation = 0.dp,
-        modifier = Modifier.fillMaxWidth()
+        tonalElevation = 8.dp,
+        modifier = Modifier
+            .fillMaxWidth()
     ) {
         items.forEach { item ->
             val currentDestination = navController.currentBackStackEntry?.destination?.route

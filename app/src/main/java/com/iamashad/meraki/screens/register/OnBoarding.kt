@@ -108,7 +108,6 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
                 }
             },
             modifier = Modifier
-                .fillMaxWidth(0.8f)
                 .padding(16.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary

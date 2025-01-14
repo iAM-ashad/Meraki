@@ -17,11 +17,9 @@ class JournalViewModel @Inject constructor(
 
     private val userId: String = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
-    // Real-time journal flow
     private val _journals = MutableStateFlow<List<Journal>>(emptyList())
     val journals: StateFlow<List<Journal>> get() = _journals
 
-    // Search functionality
     private val _searchResults = MutableStateFlow<List<Journal>>(emptyList())
     val searchResults: StateFlow<List<Journal>> get() = _searchResults
 
@@ -68,19 +66,15 @@ class JournalViewModel @Inject constructor(
         }
     }
 
-    // Add a new journal with mood score
     fun addJournal(journal: Journal) {
         viewModelScope.launch {
             repository.addJournal(journal)
         }
     }
 
-    // Delete a journal
     fun deleteJournal(journalId: String) {
         viewModelScope.launch {
             repository.deleteJournal(journalId)
         }
     }
 }
-
-

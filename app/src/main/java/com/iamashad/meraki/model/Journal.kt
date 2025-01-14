@@ -7,5 +7,6 @@ data class Journal(
     val content: String,
     val moodScore: Int,
     val reasons: List<String>,
-    val date: Long
+    val date: Long,
+    val imageUrl: String? = null
 )

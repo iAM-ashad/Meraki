@@ -326,7 +326,8 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
     var conversationTag by remember { mutableStateOf("") }
 
     if (showPopup) {
-        AlertDialog(onDismissRequest = { showPopup = false },
+        AlertDialog(
+            onDismissRequest = { showPopup = false },
             title = {
                 Text(
                     "End Conversation",
@@ -343,7 +344,8 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                         "Enter a tag for this conversation (e.g., Sleep Issues, Anxiety):",
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    OutlinedTextField(value = conversationTag,
+                    OutlinedTextField(
+                        value = conversationTag,
                         onValueChange = { conversationTag = it },
                         placeholder = { Text("What was this conversation about?") },
                         singleLine = true,
@@ -475,7 +477,8 @@ fun MessageInput(onMessageSend: (String) -> Unit) {
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedTextField(value = message,
+        OutlinedTextField(
+            value = message,
             onValueChange = { message = it },
             placeholder = { Text("Type a message...") },
             modifier = Modifier.weight(1f),
