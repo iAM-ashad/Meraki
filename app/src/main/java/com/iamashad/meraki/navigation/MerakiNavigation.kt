@@ -8,9 +8,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -20,7 +20,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -59,8 +61,8 @@ fun MerakiNavigation() {
         if (shouldShowBottomBar(currentDestination)) {
             Box(
                 modifier = Modifier
-                    .fillMaxHeight(.07f)
                     .fillMaxWidth()
+                    .height(getResponsiveNavBarHeight())
                     .background(
                         Color.Black
                     )
@@ -175,7 +177,7 @@ fun MerakiNavigation() {
                 val journal = displayedJournals.find { it.journalId == journalId }
 
                 if (journal != null) {
-                    ViewJournalScreen(journal = journal, onBack = { navController.popBackStack() })
+                    ViewJournalScreen(journal = journal)
                 } else {
                     Box(
                         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
@@ -189,6 +191,18 @@ fun MerakiNavigation() {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun getResponsiveNavBarHeight(): Dp {
+    val configuration = LocalConfiguration.current
+    val screenHeightDp = configuration.screenHeightDp
+
+    return when {
+        screenHeightDp < 600 -> 56.dp // Small devices
+        screenHeightDp < 800 -> 64.dp // Medium devices
+        else -> 72.dp // Large devices
     }
 }
 

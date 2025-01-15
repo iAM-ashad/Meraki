@@ -20,9 +20,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +31,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +41,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.MoodTrendGraph
 import com.iamashad.meraki.components.showToast
+import com.iamashad.meraki.utils.LocalDimens
+import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.calculateMoodChange
 import com.iamashad.meraki.utils.getMoodLabel
 import kotlin.math.roundToInt
@@ -53,154 +55,173 @@ fun MoodTrackerScreen(
     val moodTrend by moodTrackerViewModel.moodTrend.collectAsState()
     var entryCount by remember { mutableIntStateOf(7) }
     var showInfoDialog by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.inversePrimary,
-                        MaterialTheme.colorScheme.primary
+    ProvideDimens(screenWidth, screenHeight) {
+        val dimens = LocalDimens.current
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.inversePrimary,
+                            MaterialTheme.colorScheme.primary
+                        )
                     )
                 )
-            )
-    ) {
-        if (moodTrend.isEmpty() || moodTrend.size < entryCount) {
-            EmptyMoodTrend()
-        } else {
-            val recentMoodTrend = moodTrend.takeLast(entryCount)
-            val averageMood = recentMoodTrend.map { it.second }.average().roundToInt()
-            val moodLabel = getMoodLabel(averageMood)
-            val moodChange = calculateMoodChange(moodTrend, entryCount)
+        ) {
+            if (moodTrend.isEmpty() || moodTrend.size < entryCount) {
+                EmptyMoodTrend()
+            } else {
+                val recentMoodTrend = moodTrend.takeLast(entryCount)
+                val averageMood = recentMoodTrend.map { it.second }.average().roundToInt()
+                val moodLabel = getMoodLabel(averageMood)
+                val moodChange = calculateMoodChange(moodTrend, entryCount)
 
-            AnimatedContent(
-                targetState = entryCount,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(700)) +
-                            expandVertically(
-                                animationSpec = tween(700)
-                            ) { it } togetherWith
-                            fadeOut(animationSpec = tween(700)) +
-                            shrinkVertically(
-                                animationSpec = tween(700)
-                            ) { -it }
-                }
-            ) { targetEntryCount ->
-
-                val recentTrend = moodTrend.takeLast(targetEntryCount)
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.4f),
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(start = 24.dp)
-                    ) {
-                        Text(
-                            text = moodLabel,
-                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.background
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        IconButton(
-                            onClick = { showInfoDialog = true },
-                            modifier = Modifier.size(16.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_info),
-                                contentDescription = "Info",
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
+                AnimatedContent(
+                    targetState = entryCount,
+                    transitionSpec = {
+                        fadeIn(animationSpec = tween(700)) +
+                                expandVertically(
+                                    animationSpec = tween(700)
+                                ) { it } togetherWith
+                                fadeOut(animationSpec = tween(700)) +
+                                shrinkVertically(
+                                    animationSpec = tween(700)
+                                ) { -it }
                     }
+                ) { targetEntryCount ->
 
-                    Row(
-                        modifier = Modifier.padding(start = 28.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Average Mood: $moodChange%",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSecondary
-                        )
-
-                        if (moodChange != null) {
-                            Icon(
-                                painter = if (moodChange > 0) painterResource(R.drawable.ic_arrow_up)
-                                else painterResource(R.drawable.ic_arrow_down),
-                                contentDescription = if (moodChange > 0) "Positive Change"
-                                else "Negative Change",
-                                tint = if (moodChange > 0) Color.Green else Color.Red,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    MoodTrendGraph(
-                        moodData = recentTrend,
+                    val recentTrend = moodTrend.takeLast(targetEntryCount)
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(.8f)
-                            .padding(top = 4.dp)
+                            .fillMaxHeight(0.4f),
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = dimens.paddingLarge)
+                        ) {
+                            Text(
+                                text = moodLabel,
+                                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.background
+                            )
+
+                            Spacer(modifier = Modifier.width(dimens.paddingSmall))
+
+                            IconButton(
+                                onClick = { showInfoDialog = true },
+                                modifier = Modifier.size(dimens.avatarSize / 20)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_info),
+                                    contentDescription = "Info",
+                                    tint = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.padding(start = dimens.paddingLarge),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Average Mood: $moodChange%",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSecondary
+                            )
+
+                            if (moodChange != null) {
+                                Icon(
+                                    painter = if (moodChange > 0) painterResource(R.drawable.ic_arrow_up)
+                                    else painterResource(R.drawable.ic_arrow_down),
+                                    contentDescription = if (moodChange > 0) "Positive Change"
+                                    else "Negative Change",
+                                    tint = if (moodChange > 0) Color.Green else Color.Red,
+                                    modifier = Modifier.size(dimens.avatarSize / 15)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        MoodTrendGraph(
+                            moodData = recentTrend,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(.8f)
+                                .padding(top = dimens.paddingSmall / 2)
+                        )
+                    }
+                }
+            }
+
+            if (showInfoDialog) {
+                AlertDialog(onDismissRequest = { showInfoDialog = false }, title = {
+                    Text(
+                        text = "How Trends and Changes Are Calculated",
+                        style = MaterialTheme.typography.titleLarge
                     )
-                }
+                }, text = {
+                    Text(
+                        text = "Mood trends are displayed based on your last 7 or 14 logged moods. The average mood score is calculated from these entries, and mood change is determined by comparing the first and last entries in the selected period.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }, confirmButton = {
+                    TextButton(onClick = { showInfoDialog = false }) {
+                        Text("OK")
+                    }
+                }, shape = RoundedCornerShape(24.dp), modifier = Modifier.padding(16.dp)
+                )
             }
-        }
 
-        if (showInfoDialog) {
-            AlertDialog(onDismissRequest = { showInfoDialog = false }, title = {
-                Text(
-                    text = "How Trends and Changes Are Calculated",
-                    style = MaterialTheme.typography.titleLarge
-                )
-            }, text = {
-                Text(
-                    text = "Mood trends are displayed based on your last 7 or 14 logged moods. The average mood score is calculated from these entries, and mood change is determined by comparing the first and last entries in the selected period.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }, confirmButton = {
-                TextButton(onClick = { showInfoDialog = false }) {
-                    Text("OK")
-                }
-            }, shape = RoundedCornerShape(24.dp), modifier = Modifier.padding(16.dp)
-            )
-        }
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.6f)
-                .align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .heightIn(min = 200.dp, max = 400.dp)
+                    .align(Alignment.BottomCenter),
+                shape = RoundedCornerShape(
+                    topStart = dimens.cornerRadius,
+                    topEnd = dimens.cornerRadius
+                ),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
-                MoodSelectionBar(
-                    onMoodLogged = onMoodLogged, viewModel = moodTrackerViewModel
-                )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentPadding = PaddingValues(vertical = dimens.paddingMedium)
+                ) {
+                    item {
+                        MoodSelectionBar(
+                            onMoodLogged = onMoodLogged,
+                            viewModel = moodTrackerViewModel
+                        )
+                    }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    item {
+                        Spacer(modifier = Modifier.height(dimens.paddingMedium))
+                    }
 
-                ToggleButtonBar(options = listOf("Last 7", "Last 14"),
-                    selectedOption = if (entryCount == 7) "Last 7" else "Last 14",
-                    onOptionSelected = { selected ->
-                        entryCount = if (selected == "Last 7") 7 else 14
-                    })
+                    item {
+                        ToggleButtonBar(
+                            options = listOf("Last 7", "Last 14"),
+                            selectedOption = if (entryCount == 7) "Last 7" else "Last 14",
+                            onOptionSelected = { selected ->
+                                entryCount = if (selected == "Last 7") 7 else 14
+                            }
+                        )
+                    }
+                }
             }
+
         }
     }
 }
@@ -212,10 +233,11 @@ fun ToggleButtonBar(
     selectedOption: String,
     onOptionSelected: (String) -> Unit
 ) {
+    val dimens = LocalDimens.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = dimens.paddingMedium),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         options.forEach { option ->
@@ -225,10 +247,10 @@ fun ToggleButtonBar(
                     containerColor = if (selectedOption == option) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                     contentColor = if (selectedOption == option) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                 ),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(dimens.cornerRadius),
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 4.dp)
+                    .padding(horizontal = dimens.paddingSmall / 2)
             ) {
                 AnimatedContent(
                     targetState = option == selectedOption,
@@ -266,15 +288,15 @@ fun MoodSelectionBar(
 ) {
     var moodScore by remember { mutableFloatStateOf(50f) }
     val context = LocalContext.current
+    val dimens = LocalDimens.current
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(dimens.paddingMedium)
     ) {
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -284,11 +306,11 @@ fun MoodSelectionBar(
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
             CircularMoodSelector(moodScore = moodScore, onMoodScoreChanged = { moodScore = it })
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
             Text(
                 text = "Mood: ${getMoodLabel(moodScore.toInt())}",
@@ -296,7 +318,7 @@ fun MoodSelectionBar(
                 color = MaterialTheme.colorScheme.onBackground
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(dimens.paddingLarge))
 
             Button(
                 onClick = {
@@ -305,9 +327,8 @@ fun MoodSelectionBar(
                     showToast(context = context, "Mood Logged")
                 },
                 modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .fillMaxWidth(0.4f),
-                shape = RoundedCornerShape(24.dp),
+                    .padding(horizontal = dimens.paddingLarge),
+                shape = RoundedCornerShape(dimens.cornerRadius),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -321,6 +342,7 @@ fun MoodSelectionBar(
         }
     }
 }
+
 
 @Composable
 fun CircularMoodSelector(
@@ -338,18 +360,18 @@ fun CircularMoodSelector(
             Color(218, 40, 23, 255),
         )
     )
-
     val animatedGlow by rememberInfiniteTransition(label = "").animateFloat(
         initialValue = 1f, targetValue = 1.38f, animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 1500, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ), label = ""
     )
+    val dimens = LocalDimens.current
 
     Box(contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(175.dp)
-            .padding(16.dp)
+            .size(dimens.avatarSize / 2)
+            .padding(dimens.paddingMedium)
             .pointerInput(Unit) {
                 detectDragGestures { change, _ ->
                     change.consume()
@@ -368,30 +390,32 @@ fun CircularMoodSelector(
                     onMoodScoreChanged(mood.coerceIn(0f, 100f))
                 }
             }) {
-        Canvas(modifier = Modifier.size(200.dp)) {
+        Canvas(modifier = Modifier.size((dimens.avatarSize / 3) * 2)) {
             drawCircle(
                 brush = gradientBrush,
                 radius = size.minDimension / 2,
-                style = Stroke(width = 16.dp.toPx())
+                style = Stroke(width = dimens.paddingMedium.toPx())
             )
         }
 
-        Canvas(modifier = Modifier.size(200.dp * animatedGlow)) {
+        Canvas(modifier = Modifier.size((dimens.avatarSize / 3) * 2 * animatedGlow)) {
             drawCircle(
                 color = Color.White, radius = size.minDimension / 2
             )
         }
 
-        Canvas(modifier = Modifier.size(200.dp)) {
+        Canvas(modifier = Modifier.size((dimens.avatarSize / 3) * 2)) {
             val center = Offset(x = size.width / 2, y = size.height / 2)
             val angle = (moodScore / 100) * 360
-            val radius = size.minDimension / 2 - 12.dp.toPx()
+            val radius = size.minDimension / 2 - dimens.paddingSmall.toPx()
 
             val x = center.x + radius * kotlin.math.cos(Math.toRadians(angle - 90.0).toFloat())
             val y = center.y + radius * kotlin.math.sin(Math.toRadians(angle - 90.0).toFloat())
 
             drawCircle(
-                color = Color(0, 0, 0, 255), center = Offset(x, y), radius = 7.dp.toPx()
+                color = Color(0, 0, 0, 255),
+                center = Offset(x, y),
+                radius = dimens.paddingSmall.toPx()
             )
         }
     }
@@ -399,6 +423,8 @@ fun CircularMoodSelector(
 
 @Composable
 fun EmptyMoodTrend() {
+    val dimens = LocalDimens.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -412,7 +438,7 @@ fun EmptyMoodTrend() {
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.paddingSmall))
         Text(
             text = "Log your mood regularly to see insightful trends here.",
             style = MaterialTheme.typography.bodyMedium,

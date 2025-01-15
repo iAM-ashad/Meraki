@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -20,141 +21,130 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.utils.LoadImageWithGlide
+import com.iamashad.meraki.utils.LocalDimens
+import com.iamashad.meraki.utils.ProvideDimens
 import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
 fun ViewJournalScreen(
-    journal: Journal, onBack: () -> Unit
+    journal: Journal
 ) {
-    var showFullSizeImage by remember { mutableStateOf(false) } // State to toggle full-size image viewer
+    var showFullSizeImage by remember { mutableStateOf(false) }
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.secondaryContainer,
-                        MaterialTheme.colorScheme.surface
-                    )
-                )
-            )
-    ) {
-        // Top Bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-        }
-
-        val scrollState = rememberScrollState()
-        Column(
+    ProvideDimens(screenWidth, screenHeight) {
+        val dimens = LocalDimens.current
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Card for Journal Content
-            Card(
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.primary)
-                    ) {
-                        Text(
-                            text = "You felt ${journal.title}",
-                            style = MaterialTheme.typography.headlineLarge.copy(
-                                fontWeight = FontWeight.Bold, fontSize = 28.sp
-                            ),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(16.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondaryContainer,
+                            MaterialTheme.colorScheme.surface
                         )
-                    }
-
-                    // Show image if available
-                    journal.imageUrl?.let { imageUrl ->
-                        LoadImageWithGlide(
-                            imageUrl = imageUrl,
+                    )
+                )
+        ) {
+            val scrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = dimens.paddingMedium),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Card for Journal Content
+                Card(
+                    shape = RoundedCornerShape(dimens.cornerRadius),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(dimens.paddingMedium)
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall + (dimens.paddingSmall / 2))
+                    ) {
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .aspectRatio(16f / 9f) // Maintain aspect ratio
-                                .padding(12.dp)
-                                .clickable {
-                                    showFullSizeImage = true
-                                } // Open full-size viewer on click
-                        )
-                    }
+                                .background(MaterialTheme.colorScheme.primary)
+                        ) {
+                            Text(
+                                text = "You felt ${journal.title}",
+                                style = MaterialTheme.typography.headlineLarge.copy(
+                                    fontWeight = FontWeight.Bold, fontSize = dimens.fontLarge
+                                ),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(dimens.paddingMedium)
+                            )
+                        }
 
-                    if (journal.reasons.isNotEmpty()) {
+                        // Show image if available
+                        journal.imageUrl?.let { imageUrl ->
+                            LoadImageWithGlide(
+                                imageUrl = imageUrl,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(16f / 9f)
+                                    .padding(dimens.paddingSmall + (dimens.paddingSmall / 2))
+                                    .clickable {
+                                        showFullSizeImage = true
+                                    }
+                            )
+                        }
+
+                        if (journal.reasons.isNotEmpty()) {
+                            Text(
+                                text = "Tags: ${journal.reasons.joinToString(", ")}",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium, fontSize = 16.sp
+                                ),
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.padding(
+                                    start = dimens.paddingSmall + (dimens.paddingSmall / 2),
+                                    top = dimens.paddingSmall
+                                )
+                            )
+                        }
+
                         Text(
-                            text = "Tags: ${journal.reasons.joinToString(", ")}",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontWeight = FontWeight.Medium, fontSize = 16.sp
-                            ),
-                            color = MaterialTheme.colorScheme.secondary,
+                            text = "Date: ${formatDate(journal.date)}",
+                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(
-                                start = 12.dp, top = 6.dp
+                                start = dimens.paddingSmall + (dimens.paddingSmall / 2)
                             )
                         )
-                    }
 
-                    // Journal Date
-                    Text(
-                        text = "Date: ${formatDate(journal.date)}",
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(
-                            start = 12.dp
+                        Text(
+                            text = journal.content,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                lineHeight = 24.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier
+                                .padding(dimens.paddingSmall + (dimens.paddingSmall / 2))
+                                .verticalScroll(scrollState)
                         )
-                    )
-
-                    // Journal Content
-                    Text(
-                        text = journal.content,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            lineHeight = 24.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .verticalScroll(scrollState)
-                    )
+                    }
                 }
             }
         }
-    }
 
-    // Full-Size Image Viewer Dialog
-    if (showFullSizeImage) {
-        FullSizeImageDialog(
-            imageUrl = journal.imageUrl!!,
-            onDismiss = { showFullSizeImage = false }
-        )
+        if (showFullSizeImage) {
+            FullSizeImageDialog(
+                imageUrl = journal.imageUrl!!,
+                onDismiss = { showFullSizeImage = false }
+            )
+        }
     }
 }
 
@@ -163,26 +153,26 @@ fun FullSizeImageDialog(
     imageUrl: String,
     onDismiss: () -> Unit
 ) {
+    val dimens = LocalDimens.current
+
     Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface)
         ) {
-            // Display Full-Size Image
             LoadImageWithGlide(
                 imageUrl = imageUrl,
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight()
-                    .padding(16.dp)
+                    .padding(dimens.paddingMedium)
             )
-            // Close Button
             IconButton(
                 onClick = onDismiss,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(16.dp)
+                    .padding(dimens.paddingMedium)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,

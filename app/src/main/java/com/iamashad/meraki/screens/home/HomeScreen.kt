@@ -46,12 +46,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -65,6 +65,8 @@ import com.iamashad.meraki.R
 import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
 import com.iamashad.meraki.utils.LoadImageWithGlide
+import com.iamashad.meraki.utils.LocalDimens
+import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.getMoodColor
 import com.iamashad.meraki.utils.getMoodEmoji
 
@@ -78,8 +80,12 @@ fun HomeScreen(
     val advice by homeViewModel.advice.observeAsState("Loading advice...")
     val photoUrl by homeViewModel.photoUrl.collectAsState()
     val lastMoods by moodTrackerViewModel.moodTrend.collectAsState()
-    val isLoading by moodTrackerViewModel.loading.collectAsState() // Observe loading state
+    val isLoading by moodTrackerViewModel.loading.collectAsState()
     val streakCount = remember { mutableIntStateOf(0) }
+
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp
+    val screenHeightDp = configuration.screenHeightDp
 
     LaunchedEffect(user) {
         user?.uid?.let { userId ->
@@ -88,85 +94,92 @@ fun HomeScreen(
         }
     }
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White,
-                        MaterialTheme.colorScheme.onPrimaryContainer,
-                        MaterialTheme.colorScheme.primaryContainer,
+    ProvideDimens(screenWidthDp, screenHeightDp) {
+        val dimens = LocalDimens.current
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White,
+                            MaterialTheme.colorScheme.onPrimaryContainer,
+                            MaterialTheme.colorScheme.primaryContainer,
+                        )
                     )
                 )
-            )
-            .padding(16.dp)
-    ) {
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(dimens.paddingMedium)
+                .verticalScroll(rememberScrollState())
         ) {
-            ProfileCard(
-                photoUrl = photoUrl.toString(), userName = user?.displayName ?: "User"
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                navController.navigate(Screens.SETTINGS.name)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = dimens.paddingMedium),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ProfileCard(
+                        photoUrl = photoUrl.toString(),
+                        userName = user?.displayName ?: "User"
+                    ) {
+                        navController.navigate(Screens.SETTINGS.name)
+                    }
+                    StreakMeterCard(streakCount = streakCount.intValue)
+                }
+
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+                WeeklyCalendar(navController)
+
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+                MoodPromptCard(navController)
+
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+                when {
+                    isLoading -> {
+                        LoadingIndicator()
+                    }
+
+                    lastMoods.isNotEmpty() -> {
+                        MoodLogsCard(moodLogs = lastMoods.takeLast(5))
+                    }
+
+                    else -> {
+                        EmptyMoodLogs()
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+                AdviceCard(advice)
+
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+                MeditateButton(navController)
             }
-            StreakMeterCard(streakCount = streakCount.intValue)
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        WeeklyCalendar(navController)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        MoodPromptCard(navController)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        when {
-            isLoading -> {
-                LoadingIndicator()
-            }
-
-            lastMoods.isNotEmpty() -> {
-                MoodLogsCard(moodLogs = lastMoods.takeLast(5))
-            }
-
-            else -> {
-                EmptyMoodLogs()
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        AdviceCard(advice)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        MeditateButton(navController)
     }
 }
-
 
 @Composable
 fun CelebrationDialog(
     onDismiss: () -> Unit, streakCount: Int
 ) {
+
+    val dimens = LocalDimens.current
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(dimens.cornerRadius),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             modifier = Modifier
                 .fillMaxWidth(.9f)
                 .fillMaxHeight(.35f)
-                .padding(16.dp)
+                .padding(dimens.paddingMedium)
         ) {
             Box(
                 modifier = Modifier
@@ -193,11 +206,10 @@ fun CelebrationDialog(
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(24.dp)
+                    modifier = Modifier.padding(dimens.paddingMedium)
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
-                    // Streak Info Text
                     Text(
                         text = "🔥 $streakCount Day Streak! 🔥",
                         style = MaterialTheme.typography.headlineMedium.copy(
@@ -209,13 +221,14 @@ fun CelebrationDialog(
                     Text(
                         text = "You're doing great on your emotional journey. Keep moving forward!",
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold
+                            color = MaterialTheme.colorScheme.surface,
+                            fontWeight = FontWeight.Bold
                         ),
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = dimens.paddingSmall)
                     )
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(dimens.paddingLarge))
 
                     IconButton(
                         onClick = onDismiss,
@@ -230,6 +243,7 @@ fun CelebrationDialog(
                         )
                     }
                 }
+
             }
         }
     }
@@ -241,18 +255,18 @@ fun WeeklyCalendar(navController: NavController) {
     val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     val calendar = java.util.Calendar.getInstance()
     val currentDayIndex =
-        (calendar.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7 // Adjusting index for Monday start
+        (calendar.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7
     val dates = (0..6).map { offset ->
         calendar.apply {
             set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.MONDAY + offset)
         }.get(java.util.Calendar.DAY_OF_MONTH)
     }
-
+    val dimens = LocalDimens.current
     Row(
         modifier = Modifier
             .horizontalScroll(rememberScrollState())
             .fillMaxWidth()
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = dimens.paddingSmall),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -287,31 +301,35 @@ fun WeeklyCalendar(navController: NavController) {
             }
         }
     }
+
 }
 
 @Composable
 fun MoodPromptCard(navController: NavController) {
     val userName = FirebaseAuth.getInstance().currentUser?.displayName
     val firstName = userName?.split(" ")?.firstOrNull()
-    Card(shape = RoundedCornerShape(24.dp),
+
+    val dimens = LocalDimens.current
+    Card(shape = RoundedCornerShape(dimens.cornerRadius),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(8.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp)
+            .padding(vertical = dimens.paddingMedium)
             .clickable {
                 navController.navigate(Screens.MOODTRACKER.name)
             }) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(dimens.paddingMedium)
         ) {
             Column {
                 Text(
                     text = "Hey $firstName, how are you feeling today?",
                     style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 )
                 Text(
@@ -331,9 +349,10 @@ fun MoodPromptCard(navController: NavController) {
             ) {
                 Text(
                     text = "🌟", style = MaterialTheme.typography.titleMedium.copy(
-                        textAlign = TextAlign.Center, fontSize = 18.sp
+                        textAlign = TextAlign.Center, fontSize = dimens.fontMedium
                     ), color = Color.White, modifier = Modifier.padding(bottom = 4.dp)
                 )
+
             }
         }
     }
@@ -344,13 +363,15 @@ fun MoodPromptCard(navController: NavController) {
 fun ProfileCard(
     photoUrl: String, userName: String, onProfileClick: () -> Unit
 ) {
+    val dimens = LocalDimens.current
     Card(
         shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.background
         ), elevation = CardDefaults.cardElevation(10.dp), modifier = Modifier
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(10.dp)
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(dimens.paddingSmall)
         ) {
             LoadImageWithGlide(
                 imageUrl = photoUrl,
@@ -363,11 +384,12 @@ fun ProfileCard(
             Spacer(modifier = Modifier.width(5.dp))
             Text(
                 text = userName, style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp
+                    fontSize = dimens.fontMedium
                 )
             )
         }
     }
+
 }
 
 @Composable
@@ -379,35 +401,41 @@ fun StreakMeterCard(streakCount: Int) {
             onDismiss = { showCelebrationDialog = false }, streakCount = streakCount
         )
     }
-
+    val dimens = LocalDimens.current
     Card(shape = RoundedCornerShape(50),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(10.dp),
         modifier = Modifier
-            .padding(start = 8.dp)
+            .padding(start = dimens.paddingSmall)
             .clickable {
                 showCelebrationDialog = true
             }) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            modifier = Modifier.padding(
+                horizontal = dimens.paddingMedium,
+                vertical = dimens.paddingSmall
+            )
         ) {
-            Text(text = "🔥", fontSize = 24.sp)
-            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = "🔥", fontSize = dimens.fontLarge)
+            Spacer(modifier = Modifier.width(dimens.paddingSmall))
             Text(
                 text = "$streakCount", style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 20.sp
+                    fontSize = dimens.fontMedium
                 ), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground
             )
         }
     }
+
 }
 
 
 @Composable
 fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
+
+    val dimens = LocalDimens.current
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(dimens.cornerRadius),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant),
         elevation = CardDefaults.cardElevation(12.dp),
         modifier = Modifier
@@ -417,7 +445,7 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
         val density = LocalDensity.current
 
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(dimens.paddingMedium)
         ) {
             Text(
                 text = "Mood Chart",
@@ -433,7 +461,8 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
             Spacer(modifier = Modifier.height(80.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 moodLogs.forEach { (_, moodScore) ->
                     Column(
@@ -444,36 +473,34 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
                             modifier = Modifier.width(30.dp),
                             contentAlignment = Alignment.BottomCenter
                         ) {
-                            // Bar container
                             Box(
                                 modifier = Modifier
                                     .width(30.dp)
                                     .height(170.dp)
                                     .background(
                                         color = MaterialTheme.colorScheme.surfaceVariant,
-                                        shape = RoundedCornerShape(16.dp)
+                                        shape = RoundedCornerShape(dimens.cornerRadius)
                                     ), contentAlignment = Alignment.BottomCenter
                             ) {
-                                // Filled part of the bar
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .fillMaxHeight(fraction = moodScore / 100f)
                                         .background(
                                             color = getMoodColor(moodScore),
-                                            shape = RoundedCornerShape(16.dp)
+                                            shape = RoundedCornerShape(dimens.cornerRadius)
                                         )
                                 )
                             }
-
-                            // Larger emoji above the bar
                             with(density) {
                                 Text(
                                     text = getMoodEmoji(moodScore),
-                                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 25.sp),
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontSize = dimens.fontLarge
+                                    ),
                                     modifier = Modifier
                                         .align(Alignment.BottomCenter)
-                                        .offset(y = -(moodScore / 100f * 150.dp.toPx()).toDp() - 1.dp) // Increased offset for larger emoji
+                                        .offset(y = -(moodScore / 100f * 150.dp.toPx()).toDp() - 1.dp)
                                 )
                             }
                         }
@@ -482,28 +509,35 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
             }
         }
     }
+
 }
 
 @Composable
 fun AdviceCard(advice: String) {
+
+    val dimens = LocalDimens.current
     Card(
-        shape = RoundedCornerShape(topStart = 25.dp, bottomEnd = 25.dp),
+        shape = RoundedCornerShape(
+            topStart = dimens.paddingLarge,
+            bottomEnd = dimens.paddingLarge
+        ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(10.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(10.dp)
+            .padding(dimens.paddingSmall)
     ) {
         Text(
             text = advice, style = MaterialTheme.typography.bodyLarge.copy(
                 textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface
             ), modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(dimens.paddingSmall)
         )
     }
+
 }
 
 @Composable
@@ -543,10 +577,11 @@ fun MeditateButton(navController: NavController) {
 
 @Composable
 fun EmptyMoodLogs() {
+    val dimens = LocalDimens.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(dimens.paddingMedium),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -554,14 +589,14 @@ fun EmptyMoodLogs() {
             painter = painterResource(id = R.drawable.img_moodtrack),
             contentDescription = "Make Journals"
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.paddingSmall))
         Text(
             text = "Your Emotional Journey Awaits!",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.background,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
         Column {
             Text(

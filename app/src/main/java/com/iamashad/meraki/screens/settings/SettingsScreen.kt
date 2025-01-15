@@ -212,12 +212,12 @@ fun SettingsScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }) {
+                    TextButton(onClick = { showChatDeleteDialog = false }) {
                         Text("Cancel")
                     }
                 },
-                title = { Text("Delete Account") },
-                text = { Text("Are you sure you want to permanently delete your account? This action cannot be undone.") })
+                title = { Text("Clear Chat History") },
+                text = { Text("Are you sure you want to permanently clear your chats? This action cannot be undone.") })
         }
     }
 }

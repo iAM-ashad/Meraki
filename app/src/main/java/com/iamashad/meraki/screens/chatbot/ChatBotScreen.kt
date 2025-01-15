@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,13 +36,15 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iamashad.meraki.R
 import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.navigation.Screens
+import com.iamashad.meraki.utils.LocalDimens
+import com.iamashad.meraki.utils.ProvideDimens
 
 @Composable
 fun ChatbotScreen(viewModel: ChatViewModel, navController: NavController) {
     val chatMessages = remember { viewModel.messageList }
     val isTyping by viewModel.isTyping
-
     val gradientColors = viewModel.determineGradientColors()
+
     val animatedColors = gradientColors.map { targetColor ->
         animateColorAsState(
             targetValue = targetColor,
@@ -49,95 +52,106 @@ fun ChatbotScreen(viewModel: ChatViewModel, navController: NavController) {
             label = ""
         ).value
     }
-    val animatedGradient = Brush.verticalGradient(animatedColors)
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(animatedGradient)
-    ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxSize()
+    val animatedGradient = Brush.verticalGradient(colors = animatedColors)
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
+    ProvideDimens(screenWidth, screenHeight) {
+        val dimens = LocalDimens.current
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(animatedGradient)
         ) {
-            if (chatMessages.isEmpty()) {
-                NewConversationScreen(viewModel)
-            } else {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (chatMessages.isEmpty()) {
+                    NewConversationScreen(viewModel)
+                } else {
+                    ChatHeader()
 
-                ChatHeader()
+                    Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
-                Spacer(modifier = Modifier.height(16.dp))
+                    MessageList(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = dimens.paddingSmall),
+                        messageList = chatMessages
+                    )
 
-                MessageList(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 8.dp),
-                    messageList = chatMessages
-                )
+                    if (isTyping) {
+                        TypingIndicator()
+                    }
 
-                // Typing indicator
-                if (isTyping) {
-                    TypingIndicator() // Replace with PulsatingDots() if preferred
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FinishConversationButton(onFinish = { context ->
-                        viewModel.finishConversation(context)
-                        navController.navigate(Screens.HOME.name)
-                    })
-                    MessageInput(onMessageSend = { viewModel.sendMessage(it) })
+                    ChatInputSection(
+                        onMessageSend = { viewModel.sendMessage(it) },
+                        onFinishConversation = {
+                            viewModel.finishConversation(it)
+                            navController.navigate(Screens.HOME.name)
+                        }
+                    )
                 }
             }
         }
     }
 }
 
+
+@Composable
+fun ChatInputSection(onMessageSend: (String) -> Unit, onFinishConversation: (String) -> Unit) {
+    val dimens = LocalDimens.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(dimens.paddingSmall),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        FinishConversationButton(onFinish = onFinishConversation)
+        MessageInput(onMessageSend = onMessageSend)
+    }
+}
+
+
 @Composable
 fun ChatHeader() {
-
     val lottieComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_chatheader))
     val lottieProgress by animateLottieCompositionAsState(
         composition = lottieComposition, iterations = LottieConstants.IterateForever
     )
-
-    Box(
+    val dimens = LocalDimens.current
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .background(Color.Transparent)
+            .padding(vertical = dimens.paddingMedium),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-        ) {
-            LottieAnimation(
-                composition = lottieComposition,
-                progress = { lottieProgress },
-                modifier = Modifier.size(100.dp)
+        LottieAnimation(
+            composition = lottieComposition,
+            progress = { lottieProgress },
+            modifier = Modifier.size(100.dp)
+        )
+        Spacer(modifier = Modifier.width(dimens.paddingSmall))
+        Column {
+            Text(
+                text = "MERAKI ASSISTANT",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    letterSpacing = 2.sp,
+                    fontSize = dimens.fontLarge,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.surface
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = "MERAKI ASSISTANT", style = MaterialTheme.typography.headlineMedium.copy(
-                        letterSpacing = 2.sp, fontWeight = FontWeight.Bold
-                    ), color = MaterialTheme.colorScheme.surface
-                )
-                Text(
-                    text = "Your AI mental health assistant",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.surface
-                )
-            }
+            Text(
+                text = "Your AI mental health assistant",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontSize = dimens.fontSmall
+                ),
+                color = MaterialTheme.colorScheme.surface
+            )
         }
     }
 }
@@ -145,6 +159,7 @@ fun ChatHeader() {
 @Composable
 fun NewConversationScreen(viewModel: ChatViewModel) {
 
+    val dimens = LocalDimens.current
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -156,14 +171,19 @@ fun NewConversationScreen(viewModel: ChatViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxSize()
         ) {
-            AnimatedAvatar(modifier = Modifier.size(300.dp))
+            AnimatedAvatar(modifier = Modifier.size(dimens.avatarSize))
 
-            Spacer(modifier = Modifier.padding(vertical = 8.dp))
+            Spacer(modifier = Modifier.padding(vertical = dimens.paddingSmall))
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(topStart = 48.dp, topEnd = 48.dp))
+                    .clip(
+                        RoundedCornerShape(
+                            topStart = dimens.cornerRadius * 2,
+                            topEnd = dimens.cornerRadius * 2
+                        )
+                    )
                     .background(
                         brush = Brush.verticalGradient(
                             listOf(
@@ -180,48 +200,31 @@ fun NewConversationScreen(viewModel: ChatViewModel) {
                     Text(
                         text = "Unable to escape your thoughts?",
                         style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            fontSize = dimens.fontLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
                         ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 4.dp)
+                        modifier = Modifier.padding(
+                            top = dimens.paddingLarge,
+                            bottom = dimens.paddingSmall / 2
+                        )
                     )
                     Text(
                         text = "This is your safe space to express.",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 16.sp
+                            fontSize = dimens.fontMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                         ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(bottom = 48.dp)
+                        modifier = Modifier.padding(bottom = dimens.paddingLarge * 2)
                     )
                     Text(
                         text = "Tap below to start a conversation :)",
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
-
-                    val lottieComposition by rememberLottieComposition(
-                        LottieCompositionSpec.RawRes(
-                            R.raw.lottie_beating_heart
-                        )
-                    )
-                    val lottieProgress by animateLottieCompositionAsState(
-                        composition = lottieComposition, iterations = LottieConstants.IterateForever
-                    )
-
-                    Box(
-                        modifier = Modifier.background(Color.Transparent),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        LottieAnimation(composition = lottieComposition,
-                            progress = { lottieProgress },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
-                                .clickable {
-                                    viewModel.startNewConversation()
-                                })
-                    }
-
+                    Spacer(modifier = Modifier.weight(1f))
+                    StartConversationButton(onClick = { viewModel.startNewConversation() })
                 }
             }
         }
@@ -231,8 +234,8 @@ fun NewConversationScreen(viewModel: ChatViewModel) {
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
                 .background(Color.Transparent)
-                .padding(16.dp)
-                .clip(RoundedCornerShape(12.dp)),
+                .padding(dimens.paddingMedium)
+                .clip(RoundedCornerShape(dimens.cornerRadius / 2)),
             contentAlignment = Alignment.Center
         ) {
             ConfidentialityFooter()
@@ -241,14 +244,42 @@ fun NewConversationScreen(viewModel: ChatViewModel) {
 }
 
 @Composable
-fun AnimatedAvatar(modifier: Modifier = Modifier) {
-    val lottieComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_chatscreen))
+fun StartConversationButton(onClick: () -> Unit) {
+    val lottieComposition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(
+            R.raw.lottie_beating_heart
+        )
+    )
     val lottieProgress by animateLottieCompositionAsState(
         composition = lottieComposition, iterations = LottieConstants.IterateForever
     )
 
     Box(
-        modifier = modifier.background(Color.Transparent), contentAlignment = Alignment.Center
+        modifier = Modifier.background(Color.Transparent),
+        contentAlignment = Alignment.Center
+    ) {
+        LottieAnimation(composition = lottieComposition,
+            progress = { lottieProgress },
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .clickable {
+                    onClick.invoke()
+                })
+    }
+}
+
+
+@Composable
+fun AnimatedAvatar(modifier: Modifier = Modifier) {
+
+    val lottieComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_chatscreen))
+    val lottieProgress by animateLottieCompositionAsState(
+        composition = lottieComposition, iterations = LottieConstants.IterateForever
+    )
+    Box(
+        modifier = modifier.background(Color.Transparent),
+        contentAlignment = Alignment.Center
     ) {
         LottieAnimation(
             composition = lottieComposition,
@@ -259,15 +290,18 @@ fun AnimatedAvatar(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ConfidentialityFooter() {
+fun ConfidentialityFooter(
+    modifier: Modifier = Modifier
+) {
 
     var showDialog by remember { mutableStateOf(false) }
+    val dimens = LocalDimens.current
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(75.dp)
-            .padding(12.dp)
+            .height(dimens.paddingLarge * 3)
+            .padding(dimens.paddingMedium)
             .background(Color.Transparent)
             .clickable { showDialog = true },
         verticalAlignment = Alignment.CenterVertically,
@@ -277,9 +311,9 @@ fun ConfidentialityFooter() {
             painter = painterResource(id = R.drawable.ic_lock),
             contentDescription = "Confidentiality Lock",
             tint = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(dimens.avatarSize / 10)
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(dimens.paddingMedium))
         Text(
             text = "Your conversations are private and secure.",
             style = MaterialTheme.typography.bodyMedium.copy(
@@ -305,7 +339,7 @@ fun ConfidentialityFooter() {
         }, confirmButton = {
             Button(
                 onClick = { showDialog = false },
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(dimens.cornerRadius),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -324,7 +358,7 @@ fun ConfidentialityFooter() {
 fun FinishConversationButton(onFinish: (String) -> Unit) {
     var showPopup by remember { mutableStateOf(false) }
     var conversationTag by remember { mutableStateOf("") }
-
+    val dimens = LocalDimens.current
     if (showPopup) {
         AlertDialog(
             onDismissRequest = { showPopup = false },
@@ -338,7 +372,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall)
                 ) {
                     Text(
                         "Enter a tag for this conversation (e.g., Sleep Issues, Anxiety):",
@@ -350,7 +384,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                         placeholder = { Text("What was this conversation about?") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(dimens.cornerRadius)
                     )
                 }
             },
@@ -361,7 +395,9 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                             onFinish(conversationTag)
                             showPopup = false
                         }
-                    }, shape = RoundedCornerShape(24.dp), colors = ButtonDefaults.buttonColors(
+                    },
+                    shape = RoundedCornerShape(dimens.cornerRadius),
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
@@ -372,7 +408,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
             dismissButton = {
                 Button(
                     onClick = { showPopup = false },
-                    shape = RoundedCornerShape(24.dp),
+                    shape = RoundedCornerShape(dimens.cornerRadius),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer
@@ -389,7 +425,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
 
     Button(
         onClick = { showPopup = true },
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(dimens.cornerRadius),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface
@@ -405,16 +441,16 @@ fun TypingIndicator() {
     val lottieProgress by animateLottieCompositionAsState(
         composition = lottieComposition, iterations = LottieConstants.IterateForever
     )
-
+    val dimens = LocalDimens.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp), contentAlignment = Alignment.Center
+            .padding(dimens.paddingSmall), contentAlignment = Alignment.Center
     ) {
         LottieAnimation(
             composition = lottieComposition,
             progress = { lottieProgress },
-            modifier = Modifier.size(100.dp)
+            modifier = Modifier.size(dimens.avatarSize / 3)
         )
     }
 }
@@ -422,10 +458,11 @@ fun TypingIndicator() {
 
 @Composable
 fun MessageList(modifier: Modifier = Modifier, messageList: List<Message>) {
+    val dimens = LocalDimens.current
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         reverseLayout = true,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall)
     ) {
         items(messageList.reversed()) { message ->
             MessageRow(message)
@@ -437,6 +474,7 @@ fun MessageList(modifier: Modifier = Modifier, messageList: List<Message>) {
 @Composable
 fun MessageRow(message: Message) {
     val isModel = message.role == "model"
+    val dimens = LocalDimens.current
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -444,51 +482,68 @@ fun MessageRow(message: Message) {
     ) {
         Box(
             modifier = Modifier
+                .widthIn(max = dimens.paddingLarge * 12)
                 .clip(
                     if (isModel) RoundedCornerShape(
-                        bottomStart = 24.dp, topEnd = 24.dp, topStart = 4.dp, bottomEnd = 4.dp
+                        bottomStart = dimens.cornerRadius,
+                        topEnd = dimens.cornerRadius,
+                        topStart = dimens.paddingSmall / 2,
+                        bottomEnd = dimens.paddingSmall / 2
                     )
                     else RoundedCornerShape(
-                        topStart = 24.dp, bottomEnd = 24.dp, topEnd = 4.dp, bottomStart = 4.dp
+                        bottomEnd = dimens.cornerRadius,
+                        topStart = dimens.cornerRadius,
+                        topEnd = dimens.paddingSmall / 2,
+                        bottomStart = dimens.paddingSmall / 2
                     )
                 )
-                .background(if (isModel) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.inversePrimary)
-                .padding(12.dp)
+                .background(
+                    if (isModel) MaterialTheme.colorScheme.background
+                    else MaterialTheme.colorScheme.inversePrimary
+                )
+                .padding(dimens.paddingMedium)
         ) {
             SelectionContainer {
                 Text(
                     text = message.message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Start,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
     }
 }
 
+
 @Composable
 fun MessageInput(onMessageSend: (String) -> Unit) {
     var message by remember { mutableStateOf("") }
+    val dimens = LocalDimens.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.Transparent)
-            .padding(8.dp),
+            .padding(dimens.paddingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         OutlinedTextField(
             value = message,
             onValueChange = { message = it },
             placeholder = { Text("Type a message...") },
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = dimens.paddingLarge * 2, max = dimens.paddingLarge * 5),
+            shape = RoundedCornerShape(dimens.cornerRadius),
             colors = TextFieldDefaults.colors(
                 focusedIndicatorColor = MaterialTheme.colorScheme.inversePrimary,
                 unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface
-            )
+            ),
+            maxLines = 4
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(dimens.paddingSmall))
         IconButton(onClick = {
             if (message.isNotEmpty()) {
                 onMessageSend(message)
@@ -503,5 +558,6 @@ fun MessageInput(onMessageSend: (String) -> Unit) {
         }
     }
 }
+
 
 

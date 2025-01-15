@@ -30,15 +30,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import com.iamashad.meraki.components.EmotionChip
 import com.iamashad.meraki.components.ReasonChip
 import com.iamashad.meraki.components.SheetLayout
 import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.utils.LoadImageWithGlide
+import com.iamashad.meraki.utils.LocalDimens
+import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.allEmotions
 import com.iamashad.meraki.utils.allReasons
 import com.iamashad.meraki.utils.calculateMoodScore
@@ -70,94 +72,104 @@ fun AddJournalScreen(
     var moodScore by remember { mutableIntStateOf(50) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    BottomSheetScaffold(
-        scaffoldState = bottomSheetState,
-        sheetSwipeEnabled = false,
-        sheetPeekHeight = 100.dp,
-        sheetContent = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.8f)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surface,
-                                MaterialTheme.colorScheme.surfaceVariant
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
+
+    ProvideDimens(screenWidth, screenHeight) {
+        val dimens = LocalDimens.current
+        BottomSheetScaffold(
+            scaffoldState = bottomSheetState,
+            sheetSwipeEnabled = false,
+            sheetPeekHeight = dimens.paddingLarge * 4,
+            sheetContent = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.8f)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                )
                             )
                         )
-                    )
-                    .padding(16.dp)
-            ) {
-                AnimatedContent(
-                    targetState = step,
-                    transitionSpec = {
-                        slideInHorizontally(
-                            animationSpec = tween(500)
-                        ) { it } togetherWith
-                                slideOutHorizontally(animationSpec = tween(500)) { -it }
-                    }
-                ) { currentStep ->
-                    when (currentStep) {
-                        1 -> EmotionSelectionSheet(
-                            selectedEmotions = selectedEmotions,
-                            onEmotionsSelected = {
-                                selectedEmotions = it
-                                moodScore = calculateMoodScore(it)
-                            },
-                            onNext = { step = 2 },
-                            onClose = onClose
-                        )
+                        .padding(dimens.paddingMedium)
+                ) {
+                    AnimatedContent(
+                        targetState = step,
+                        transitionSpec = {
+                            slideInHorizontally(
+                                animationSpec = tween(500)
+                            ) { it } togetherWith
+                                    slideOutHorizontally(animationSpec = tween(500)) { -it }
+                        }
+                    ) { currentStep ->
+                        when (currentStep) {
+                            1 -> EmotionSelectionSheet(
+                                selectedEmotions = selectedEmotions,
+                                onEmotionsSelected = {
+                                    selectedEmotions = it
+                                    moodScore = calculateMoodScore(it)
+                                },
+                                onNext = { step = 2 },
+                                onClose = onClose
+                            )
 
-                        2 -> ReasonSelectionSheet(
-                            selectedReasons = selectedReasons,
-                            onReasonsSelected = { selectedReasons = it },
-                            onNext = { step = 3 },
-                            onClose = onClose
-                        )
+                            2 -> ReasonSelectionSheet(
+                                selectedReasons = selectedReasons,
+                                onReasonsSelected = { selectedReasons = it },
+                                onNext = { step = 3 },
+                                onClose = onClose
+                            )
 
-                        3 -> JournalEntrySheet(
-                            journalEntry = journalEntry,
-                            onJournalEntryChanged = { journalEntry = it },
-                            selectedImageUri = selectedImageUri,
-                            onImageSelected = { selectedImageUri = it },
-                            onSave = {
-                                viewModel.addJournal(
-                                    Journal(
-                                        journalId = journalId,
-                                        userId = userId,
-                                        title = selectedEmotions.joinToString(),
-                                        content = journalEntry,
-                                        moodScore = moodScore,
-                                        reasons = selectedReasons,
-                                        date = System.currentTimeMillis(),
-                                        imageUrl = selectedImageUri?.toString()
+                            3 -> JournalEntrySheet(
+                                journalEntry = journalEntry,
+                                onJournalEntryChanged = { journalEntry = it },
+                                selectedImageUri = selectedImageUri,
+                                onImageSelected = { selectedImageUri = it },
+                                onSave = {
+                                    viewModel.addJournal(
+                                        Journal(
+                                            journalId = journalId,
+                                            userId = userId,
+                                            title = selectedEmotions.joinToString(),
+                                            content = journalEntry,
+                                            moodScore = moodScore,
+                                            reasons = selectedReasons,
+                                            date = System.currentTimeMillis(),
+                                            imageUrl = selectedImageUri?.toString()
+                                        )
                                     )
-                                )
-                                onSave()
-                                onClose()
-                            },
-                            onClose = onClose
-                        )
+                                    onSave()
+                                    onClose()
+                                },
+                                onClose = onClose
+                            )
+                        }
                     }
                 }
-            }
-        },
-        sheetShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.inversePrimary
+            },
+            sheetShape = RoundedCornerShape(
+                topStart = dimens.cornerRadius,
+                topEnd = dimens.cornerRadius
+            ),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.inversePrimary
+                            )
                         )
-                    )
-                ), contentAlignment = Alignment.Center
-        ) {}
+                    ), contentAlignment = Alignment.Center
+            ) {}
+        }
     }
 }
 
@@ -173,8 +185,8 @@ fun EmotionSelectionSheet(
     val filteredEmotions = allEmotions.filter {
         it.first.contains(searchQuery, ignoreCase = true)
     }
-
     var selected by remember { mutableStateOf(selectedEmotions) }
+    val dimens = LocalDimens.current
 
     SheetLayout(
         title = "Choose the emotions that match your mood",
@@ -186,7 +198,7 @@ fun EmotionSelectionSheet(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 72.dp)
+                    .padding(bottom = dimens.paddingLarge * 3)
             ) {
                 OutlinedTextField(
                     value = searchQuery,
@@ -197,15 +209,15 @@ fun EmotionSelectionSheet(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp)
+                        .padding(bottom = dimens.paddingMedium)
                 )
                 Text(
                     text = "Commonly Used",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = dimens.paddingSmall)
                 )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(dimens.paddingMedium)) {
                     items(commonlyUsedEmotions) { (emotionName, emoji) ->
                         EmotionChip(emotionName = emotionName,
                             emoji = emoji,
@@ -218,19 +230,19 @@ fun EmotionSelectionSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
                 Text(
                     text = "All Emotions",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = dimens.paddingSmall)
                 )
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
                     modifier = Modifier.fillMaxHeight()
                 ) {
                     items(filteredEmotions) { (emotionName, emoji) ->
@@ -252,7 +264,10 @@ fun EmotionSelectionSheet(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(
-                        top = 16.dp, bottom = 4.dp, end = 12.dp, start = 16.dp
+                        top = dimens.paddingMedium,
+                        bottom = dimens.paddingSmall / 2,
+                        end = dimens.paddingSmall + (dimens.paddingSmall / 2),
+                        start = dimens.paddingMedium
                     )
                     .clip(CircleShape)
             ) {
@@ -273,6 +288,7 @@ fun ReasonSelectionSheet(
     onClose: () -> Unit
 ) {
     var selected by remember { mutableStateOf(selectedReasons) }
+    val dimens = LocalDimens.current
 
     SheetLayout(
         title = "What's the reason making you feel this way?", onClose = onClose
@@ -281,16 +297,16 @@ fun ReasonSelectionSheet(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 72.dp)
+                    .padding(bottom = dimens.paddingLarge * 3)
             ) {
                 Text(
                     text = "Commonly Used Reasons",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = dimens.paddingSmall)
                 )
 
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall)) {
                     items(commonlyUsedReasons) { reason ->
                         ReasonChip(reason = reason,
                             isSelected = selected.contains(reason),
@@ -302,19 +318,19 @@ fun ReasonSelectionSheet(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
                 Text(
                     text = "All Reasons",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(vertical = dimens.paddingSmall)
                 )
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
                     modifier = Modifier.fillMaxHeight()
                 ) {
                     items(allReasons) { reason ->
@@ -334,7 +350,10 @@ fun ReasonSelectionSheet(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(
-                        top = 16.dp, bottom = 4.dp, end = 12.dp, start = 16.dp
+                        top = dimens.paddingMedium,
+                        bottom = dimens.paddingSmall / 2,
+                        end = dimens.paddingSmall + (dimens.paddingSmall / 2),
+                        start = dimens.paddingMedium
                     )
                     .clip(CircleShape)
             ) {
@@ -362,6 +381,7 @@ fun JournalEntrySheet(
             onImageSelected(uri)
         }
     }
+    val dimens = LocalDimens.current
 
     SheetLayout(
         title = "Add notes to your journal",
@@ -370,9 +390,9 @@ fun JournalEntrySheet(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(dimens.paddingMedium)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
         ) {
             Text(
                 modifier = Modifier.fillMaxWidth(),
@@ -399,7 +419,7 @@ fun JournalEntrySheet(
                     unfocusedContainerColor = MaterialTheme.colorScheme.inverseSurface,
                     focusedContainerColor = MaterialTheme.colorScheme.background
                 ),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(dimens.cornerRadius),
                 singleLine = false,
                 maxLines = 10
             )
@@ -409,8 +429,8 @@ fun JournalEntrySheet(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                shape = RoundedCornerShape(24.dp),
+                    .padding(top = dimens.paddingMedium),
+                shape = RoundedCornerShape(dimens.cornerRadius),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     contentColor = MaterialTheme.colorScheme.primary
@@ -427,8 +447,8 @@ fun JournalEntrySheet(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .height(dimens.paddingLarge * 8)
+                        .clip(RoundedCornerShape(dimens.cornerRadius))
                         .background(Color.Transparent),
                     contentAlignment = Alignment.Center
                 ) {
@@ -437,24 +457,23 @@ fun JournalEntrySheet(
                         modifier = Modifier.fillMaxSize()
                     )
                 }
-
-                Button(
-                    onClick = onSave,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 16.dp)
-                        .fillMaxWidth(.6f),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Text(
-                        text = "Save",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
+            }
+            Button(
+                onClick = onSave,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(top = dimens.paddingMedium)
+                    .fillMaxWidth(.6f),
+                shape = RoundedCornerShape(dimens.cornerRadius),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text(
+                    text = "Save",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
             }
         }
     }
