@@ -19,11 +19,10 @@ import com.iamashad.meraki.utils.provideGenerativeModel
 import kotlinx.coroutines.launch
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
-
     private val chatRepository: ChatRepository
     var activeContext: String? = null
     private val userId: String =
-        FirebaseAuth.getInstance().currentUser?.uid.orEmpty() // Add userId here
+        FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
     init {
         val chatDao = ChatDatabase.getInstance(application).chatDao()
@@ -38,6 +37,27 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     var isTyping = mutableStateOf(false)
         private set
+
+    suspend fun hasPreviousConversation(): Boolean {
+        return chatRepository.getLastContext(userId) != null // Check if a context exists
+    }
+
+    fun loadPreviousConversation() {
+        viewModelScope.launch {
+            // Fetch all messages from the repository
+            val chatHistory = chatRepository.getAllMessages(userId)
+            val newMessageList = chatHistory.map {
+                Message(it.message, it.role)
+            }
+
+            // Clear the existing list to avoid duplication
+            messageList.clear()
+
+            // Add only unique messages
+            messageList.addAll(newMessageList.distinct())
+            activeContext = chatRepository.getLastContext(userId)
+        }
+    }
 
     fun startNewConversation() {
         viewModelScope.launch {

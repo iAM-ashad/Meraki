@@ -44,7 +44,6 @@ fun ChatbotScreen(viewModel: ChatViewModel, navController: NavController) {
     val chatMessages = remember { viewModel.messageList }
     val isTyping by viewModel.isTyping
     val gradientColors = viewModel.determineGradientColors()
-
     val animatedColors = gradientColors.map { targetColor ->
         animateColorAsState(
             targetValue = targetColor,
@@ -56,8 +55,15 @@ fun ChatbotScreen(viewModel: ChatViewModel, navController: NavController) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
     val screenHeight = configuration.screenHeightDp
+
+    var hasPreviousConversation by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        hasPreviousConversation = viewModel.hasPreviousConversation()
+    }
+
     ProvideDimens(screenWidth, screenHeight) {
         val dimens = LocalDimens.current
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -68,7 +74,7 @@ fun ChatbotScreen(viewModel: ChatViewModel, navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (chatMessages.isEmpty()) {
-                    NewConversationScreen(viewModel)
+                        NewConversationScreen(viewModel, hasPreviousConversation)
                 } else {
                     ChatHeader()
 
@@ -95,6 +101,25 @@ fun ChatbotScreen(viewModel: ChatViewModel, navController: NavController) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ContinueConversationButton(onClick: () -> Unit) {
+    val dimens = LocalDimens.current
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(dimens.cornerRadius),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary
+        ),
+        modifier = Modifier.padding(dimens.paddingMedium)
+    ) {
+        Text(
+            text = "Continue Last Conversation",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+        )
     }
 }
 
@@ -157,9 +182,12 @@ fun ChatHeader() {
 }
 
 @Composable
-fun NewConversationScreen(viewModel: ChatViewModel) {
-
+fun NewConversationScreen(
+    viewModel: ChatViewModel,
+    hasPreviousConversation: Boolean
+) {
     val dimens = LocalDimens.current
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -223,7 +251,16 @@ fun NewConversationScreen(viewModel: ChatViewModel) {
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
+
                     Spacer(modifier = Modifier.weight(1f))
+
+                    if (hasPreviousConversation) {
+                        ContinueConversationButton(
+                            onClick = { viewModel.loadPreviousConversation() }
+                        )
+                        Spacer(modifier = Modifier.height(dimens.paddingMedium))
+                    }
+
                     StartConversationButton(onClick = { viewModel.startNewConversation() })
                 }
             }
@@ -242,6 +279,7 @@ fun NewConversationScreen(viewModel: ChatViewModel) {
         }
     }
 }
+
 
 @Composable
 fun StartConversationButton(onClick: () -> Unit) {
