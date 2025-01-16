@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.iamashad.meraki.R
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.MoodInsightsAnalyzer
+import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.getReasonIcon
 import kotlin.math.roundToInt
 
@@ -33,47 +36,49 @@ fun MoodInsightsScreen(
     viewModel: InsightsViewModel = hiltViewModel()
 ) {
     val insights by viewModel.moodInsights.observeAsState()
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
 
     LaunchedEffect(Unit) {
         viewModel.fetchMoodInsights()
     }
+    ProvideDimens(screenWidth, screenHeight) {
+        val dimens = LocalDimens.current
 
-    insights?.let { data ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Highlights Section
-            HighlightsSection(
-                overallMood = data.overallAverageMood.roundToInt(),
-                bestReason = data.reasonsAnalysis.maxByOrNull { it.value.deviation }?.key,
-                worstReason = data.reasonsAnalysis.minByOrNull { it.value.deviation }?.key
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Reason Details Cards
-            Text(
-                text = "Reason-wise Insights",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+        insights?.let { data ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(dimens.paddingMedium),
+                verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
             ) {
-                items(data.reasonsAnalysis.entries.toList()) { (reason, deviation) ->
-                    ReasonDetailsCard(reason, deviation)
+                HighlightsSection(
+                    overallMood = data.overallAverageMood.roundToInt()
+                )
+
+                Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
+                Text(
+                    text = "Key Insights",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = dimens.paddingSmall)
+                )
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
+                ) {
+                    items(data.reasonsAnalysis.entries.toList()) { (reason, deviation) ->
+                        ReasonDetailsCard(reason, deviation)
+                    }
                 }
             }
+        } ?: Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
         }
-    } ?: Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator()
     }
 }
 
@@ -119,7 +124,7 @@ fun ReasonDetailsCard(
                         text = "'$reason' has a ${if (isPositive) "good" else "bad"} effect on your mood",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontSize = dimens.fontMedium,
-                            color = MaterialTheme.colorScheme.background,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Bold
                         )
                     )
@@ -169,54 +174,76 @@ fun ReasonDetailsCard(
 }
 
 @Composable
-fun BadgeContent(text: String, backgroundColor: Color, textColor: Color) {
+fun HighlightsSection(overallMood: Int) {
     val dimens = LocalDimens.current
-
-    Box(
-        modifier = Modifier
-            .background(backgroundColor, shape = RoundedCornerShape(dimens.cornerRadius / 3))
-            .padding(horizontal = dimens.paddingSmall, vertical = dimens.paddingSmall / 2),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            color = textColor
-        )
+    val progressColor = when {
+        overallMood > 69 -> Color.Green
+        overallMood > 50 -> Color.Yellow
+        else -> Color.Red
     }
-}
 
-
-@Composable
-fun HighlightsSection(overallMood: Int, bestReason: String?, worstReason: String?) {
-    val dimens = LocalDimens.current
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        shape = RoundedCornerShape(dimens.cornerRadius * 2),
+        color = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "Mood Insights",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = "Overall Mood Score: $overallMood",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+        Column(
+            modifier = Modifier.padding(dimens.paddingMedium),
+            verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            bestReason?.let {
-                BadgeContent("Best Reason: $it", Color.Green, textColor = Color.Yellow)
+            Image(
+                painter = painterResource(R.drawable.img_moodtrack),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(dimens.avatarSize / 5)
+            )
+
+            Spacer(Modifier.width(dimens.paddingSmall / 4))
+
+            Text(
+                text = "Mood Statistics",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            )
+
+            Spacer(modifier = Modifier.height(dimens.paddingSmall / 2))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text(
+                        text = "Overall Mood Score: $overallMood",
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    )
+                    // Animated Progress Bar
+                    LinearProgressIndicator(
+                        progress = { overallMood / 100f },
+                        color = progressColor,
+                        strokeCap = StrokeCap.Butt,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(dimens.paddingSmall)
+                            .clip(RoundedCornerShape(dimens.cornerRadius / 6))
+                    )
+                }
             }
-            worstReason?.let {
-                BadgeContent("Worst Reason: $it", Color.Red, textColor = Color.Yellow)
-            }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
+                thickness = 1.dp
+            )
         }
     }
 }
+
 
 @Composable
 fun ImpactItem(

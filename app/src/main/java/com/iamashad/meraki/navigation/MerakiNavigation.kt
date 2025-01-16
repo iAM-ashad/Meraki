@@ -1,6 +1,5 @@
 package com.iamashad.meraki.navigation
 
-import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -76,21 +75,15 @@ fun MerakiNavigation() {
     }) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screens.INSIGHTS.name,
+            startDestination = Screens.SPLASH.name,
             enterTransition = {
                 fadeIn(
                     animationSpec = tween(600, easing = EaseIn)
-                ) + slideIntoContainer(
-                    animationSpec = tween(500, easing = EaseIn),
-                    towards = AnimatedContentTransitionScope.SlideDirection.Left
                 )
             },
             exitTransition = {
                 fadeOut(
                     animationSpec = tween(600, easing = LinearEasing)
-                ) + slideOutOfContainer(
-                    animationSpec = tween(500, easing = LinearEasing),
-                    towards = AnimatedContentTransitionScope.SlideDirection.Right
                 )
             },
             modifier = Modifier.padding(paddingValues)
