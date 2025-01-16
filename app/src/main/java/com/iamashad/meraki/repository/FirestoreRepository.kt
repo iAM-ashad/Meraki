@@ -12,7 +12,8 @@ class FirestoreRepository {
     private val journalsCollection = db.collection("journals")
 
     suspend fun addJournal(journal: Journal) {
-        val docId = if (journal.journalId.isNotEmpty()) journal.journalId else journalsCollection.document().id
+        val docId =
+            if (journal.journalId.isNotEmpty()) journal.journalId else journalsCollection.document().id
         val dataToSave = hashMapOf(
             "journalId" to docId,
             "userId" to journal.userId,
@@ -20,7 +21,10 @@ class FirestoreRepository {
             "content" to journal.content,
             "moodScore" to journal.moodScore,
             "reasons" to journal.reasons,
-            "date" to com.google.firebase.Timestamp(journal.date / 1000, ((journal.date % 1000) * 1000000).toInt()),
+            "date" to com.google.firebase.Timestamp(
+                journal.date / 1000,
+                ((journal.date % 1000) * 1000000).toInt()
+            ),
             "imageUrl" to journal.imageUrl
         )
 
@@ -30,6 +34,17 @@ class FirestoreRepository {
     suspend fun deleteJournal(journalId: String) {
         journalsCollection.document(journalId).delete().await()
     }
+
+    suspend fun getAllJournals(userId: String): List<Journal> {
+        return journalsCollection
+            .whereEqualTo("userId", userId)
+            .orderBy("date", Query.Direction.DESCENDING)
+            .get()
+            .await()
+            .documents
+            .mapNotNull { mapToJournal(it) }
+    }
+
 
     fun listenToJournals(userId: String) = callbackFlow {
         val listenerRegistration = journalsCollection

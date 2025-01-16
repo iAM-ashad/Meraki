@@ -38,6 +38,8 @@ import com.iamashad.meraki.screens.breathing.BreathingScreen
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
 import com.iamashad.meraki.screens.home.HomeScreen
+import com.iamashad.meraki.screens.insights.InsightsViewModel
+import com.iamashad.meraki.screens.insights.MoodInsightsScreen
 import com.iamashad.meraki.screens.journal.AddJournalScreen
 import com.iamashad.meraki.screens.journal.JournalScreen
 import com.iamashad.meraki.screens.journal.JournalViewModel
@@ -74,7 +76,7 @@ fun MerakiNavigation() {
     }) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screens.SPLASH.name,
+            startDestination = Screens.INSIGHTS.name,
             enterTransition = {
                 fadeIn(
                     animationSpec = tween(600, easing = EaseIn)
@@ -107,6 +109,10 @@ fun MerakiNavigation() {
             }
             composable(Screens.ABOUT.name) {
                 AboutScreen(navController)
+            }
+            composable(Screens.INSIGHTS.name) {
+                val viewModel = hiltViewModel<InsightsViewModel>()
+                MoodInsightsScreen(viewModel)
             }
             composable(Screens.ONBOARDING.name) {
                 val viewModel = hiltViewModel<RegisterViewModel>()
@@ -209,7 +215,11 @@ fun getResponsiveNavBarHeight(): Dp {
 @Composable
 fun shouldShowBottomBar(currentDestination: String?): Boolean {
     return currentDestination in listOf(
-        Screens.HOME.name, Screens.CHATBOT.name, Screens.MOODTRACKER.name, Screens.JOURNAL.name
+        Screens.HOME.name,
+        Screens.CHATBOT.name,
+        Screens.MOODTRACKER.name,
+        Screens.JOURNAL.name,
+        Screens.INSIGHTS.name
     )
 }
 
@@ -219,7 +229,8 @@ fun BottomNavigationBar(navController: NavController) {
         NavigationItem("Home", Screens.HOME.name, R.drawable.home_123),
         NavigationItem("Chatbot", "${Screens.CHATBOT.name}/Hi", R.drawable.ic_chat),
         NavigationItem("Health", Screens.MOODTRACKER.name, R.drawable.ic_moodtracker),
-        NavigationItem("Journal", Screens.JOURNAL.name, R.drawable.ic_journal)
+        NavigationItem("Journal", Screens.JOURNAL.name, R.drawable.ic_journal),
+        NavigationItem("Insights", Screens.INSIGHTS.name, R.drawable.ic_insights)
     )
 
     NavigationBar(

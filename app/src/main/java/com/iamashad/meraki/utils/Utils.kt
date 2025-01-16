@@ -8,6 +8,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.bumptech.glide.Glide
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
+import com.iamashad.meraki.R
+import com.iamashad.meraki.model.Journal
 import kotlin.math.roundToInt
 
 @Composable
@@ -157,6 +159,104 @@ fun calculateMoodChange(moodTrend: List<Pair<String, Int>>, entryCount: Int): In
         null
     } else {
         ((lastMood - firstMood).toDouble() / firstMood * 100).roundToInt()
+    }
+}
+
+object MoodInsightsAnalyzer {
+
+    fun calculateMoodTrends(journals: List<Journal>): MoodInsights {
+        val overallAverageMood = journals.map { it.moodScore }.average()
+
+        val reasonsInsights = journals
+            .flatMap { journal -> journal.reasons.map { reason -> reason to journal.moodScore } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, scores) ->
+                val avgMood = scores.average()
+                MoodDeviation(
+                    averageMood = avgMood,
+                    deviation = avgMood - overallAverageMood,
+                    entriesCount = scores.size // Count of entries for this reason
+                )
+            }
+
+        val temporalTrends = journals.groupBy { it.date.toDay() }
+            .mapValues { (_, entries) -> entries.map { it.moodScore }.average() }
+
+        val dailyDeviations = calculateDailyDeviations(journals, temporalTrends)
+
+        return MoodInsights(
+            overallAverageMood = overallAverageMood,
+            reasonsAnalysis = reasonsInsights,
+            temporalTrends = temporalTrends,
+            dailyDeviations = dailyDeviations
+        )
+    }
+
+    private fun calculateDailyDeviations(
+        journals: List<Journal>,
+        temporalTrends: Map<String, Double>
+    ): Map<String, DailyDeviation> {
+        val sortedDates = temporalTrends.keys.sorted() // Ensure chronological order
+        val dateToIndex = sortedDates.withIndex().associate { it.value to it.index }
+
+        return temporalTrends.map { (date, avgMood) ->
+            val index = dateToIndex[date] ?: return@map date to DailyDeviation()
+            val dayBeforeMood = sortedDates.getOrNull(index - 1)?.let { temporalTrends[it] }
+            val dayAfterMood = sortedDates.getOrNull(index + 1)?.let { temporalTrends[it] }
+
+            date to DailyDeviation(
+                dayBefore = dayBeforeMood?.let { (it - avgMood).toInt() },
+                sameDay = avgMood.toInt(),
+                dayAfter = dayAfterMood?.let { (it - avgMood).toInt() }
+            )
+        }.toMap()
+    }
+
+    data class MoodInsights(
+        val overallAverageMood: Double,
+        val reasonsAnalysis: Map<String, MoodDeviation>,
+        val temporalTrends: Map<String, Double>,
+        val dailyDeviations: Map<String, DailyDeviation> // Added field
+    )
+
+    data class MoodDeviation(
+        val averageMood: Double,
+        val deviation: Double,
+        val entriesCount: Int // Added field
+    )
+
+    data class DailyDeviation(
+        val dayBefore: Int? = null,
+        val sameDay: Int? = null,
+        val dayAfter: Int? = null
+    )
+
+    private fun Long.toDay(): String {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        return sdf.format(java.util.Date(this))
+    }
+}
+
+fun getReasonIcon(reason: String): Int {
+    return when (reason) {
+        "Family" -> R.drawable.img_family
+        "Work" -> R.drawable.img_work
+        "Hobbies" -> R.drawable.img_hobbies
+        "Weather" -> R.drawable.img_weather
+        "Relationships" -> R.drawable.img_relationships
+        "Sleep" -> R.drawable.img_sleep
+        "Social Life" -> R.drawable.img_social
+        "Food" -> R.drawable.img_food
+        "Self-esteem" -> R.drawable.img_selfesteem
+        "Friends" -> R.drawable.img_friends
+        "Health" -> R.drawable.img_health
+        "Career" -> R.drawable.img_career
+        "Exercise" -> R.drawable.img_exercise
+        "Finances" -> R.drawable.img_finances
+        "Travel" -> R.drawable.img_travel
+        "Academics" -> R.drawable.img_academics
+        "Pets" -> R.drawable.img_pets
+        else -> R.drawable.img_decrease
     }
 }
 

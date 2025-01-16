@@ -119,19 +119,21 @@ val allReasons = listOf(
     "Work",
     "Hobbies",
     "Weather",
-    "Love",
+    "Relationships",
     "Sleep",
-    "Breakup",
-    "Social",
+    "Social Life",
     "Food",
-    "Party",
     "Self-esteem",
-    "Wife",
     "Friends",
     "Health",
     "Career",
-    "Exercise"
+    "Exercise",
+    "Finances",
+    "Travel",
+    "Academics",
+    "Pets"
 )
+
 
 val commonlyUsedReasons = listOf(
     "Family", "Self-esteem", "Sleep", "Social"
@@ -144,18 +146,18 @@ fun calculateMoodScore(selectedEmotions: List<String>): Int {
         "Happy" to 90,
         "Sad" to 25,
         "Excited" to 80,
-        "Calm" to 70,
+        "Calm" to 85,
         "Confused" to 40,
-        "Surprised" to 50,
+        "Surprised" to 60,
         "Amazed" to 85,
-        "Peaceful" to 75,
-        "Cool" to 60,
-        "Stressed" to 30,
-        "Angry" to 20,
-        "Lonely" to 35,
+        "Peaceful" to 90,
+        "Cool" to 75,
+        "Stressed" to 20,
+        "Angry" to 25,
+        "Lonely" to 15,
         "Grateful" to 95,
         "Hopeful" to 80,
-        "Tired" to 40,
+        "Tired" to 35,
         "Awkward" to 45
     )
 

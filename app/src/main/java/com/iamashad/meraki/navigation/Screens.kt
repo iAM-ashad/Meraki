@@ -12,5 +12,6 @@ enum class Screens {
     VIEWJOURNAL,
     SETTINGS,
     ABOUT,
-    ONBOARDING
+    ONBOARDING,
+    INSIGHTS
 }
