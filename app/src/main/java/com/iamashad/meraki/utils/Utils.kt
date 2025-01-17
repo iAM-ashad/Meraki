@@ -165,24 +165,33 @@ fun calculateMoodChange(moodTrend: List<Pair<String, Int>>, entryCount: Int): In
 object MoodInsightsAnalyzer {
 
     fun calculateMoodTrends(journals: List<Journal>): MoodInsights {
-        val overallAverageMood = journals.map { it.moodScore }.average()
+        // Ensure only current journal entries are considered
+        val validJournals =
+            journals.filter { it.moodScore != 0 } // Filter out irrelevant entries if needed
 
-        val reasonsInsights = journals
+        // Calculate the overall average mood from valid journals
+        val overallAverageMood = validJournals.map { it.moodScore }.average()
+
+        // Analyze reasons and their impact on mood
+        val reasonsInsights = validJournals
             .flatMap { journal -> journal.reasons.map { reason -> reason to journal.moodScore } }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, scores) ->
                 val avgMood = scores.average()
                 MoodDeviation(
                     averageMood = avgMood,
-                    deviation = avgMood - overallAverageMood,
-                    entriesCount = scores.size // Count of entries for this reason
+                    deviation = avgMood - overallAverageMood, // Calculate deviation from current average
+                    entriesCount = scores.size
                 )
             }
 
-        val temporalTrends = journals.groupBy { it.date.toDay() }
+        // Analyze temporal trends (group by day)
+        val temporalTrends = validJournals
+            .groupBy { it.date.toDay() }
             .mapValues { (_, entries) -> entries.map { it.moodScore }.average() }
 
-        val dailyDeviations = calculateDailyDeviations(journals, temporalTrends)
+        // Calculate daily deviations based on temporal trends
+        val dailyDeviations = calculateDailyDeviations(validJournals, temporalTrends)
 
         return MoodInsights(
             overallAverageMood = overallAverageMood,
@@ -237,13 +246,14 @@ object MoodInsightsAnalyzer {
     }
 }
 
+
 fun getReasonIcon(reason: String): Int {
     return when (reason) {
         "Family" -> R.drawable.img_family
         "Work" -> R.drawable.img_work
         "Hobbies" -> R.drawable.img_hobbies
         "Weather" -> R.drawable.img_weather
-        "Relationships" -> R.drawable.img_relationships
+        "Relationship" -> R.drawable.img_relationships
         "Sleep" -> R.drawable.img_sleep
         "Social Life" -> R.drawable.img_social
         "Food" -> R.drawable.img_food

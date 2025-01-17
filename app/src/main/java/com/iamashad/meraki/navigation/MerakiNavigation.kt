@@ -105,7 +105,7 @@ fun MerakiNavigation() {
             }
             composable(Screens.INSIGHTS.name) {
                 val viewModel = hiltViewModel<InsightsViewModel>()
-                MoodInsightsScreen(viewModel)
+                MoodInsightsScreen(viewModel, navController)
             }
             composable(Screens.ONBOARDING.name) {
                 val viewModel = hiltViewModel<RegisterViewModel>()

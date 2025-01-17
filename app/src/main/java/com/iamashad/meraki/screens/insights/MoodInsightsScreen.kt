@@ -7,7 +7,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,15 +19,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.iamashad.meraki.R
+import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.MoodInsightsAnalyzer
 import com.iamashad.meraki.utils.ProvideDimens
@@ -33,54 +44,184 @@ import kotlin.math.roundToInt
 
 @Composable
 fun MoodInsightsScreen(
-    viewModel: InsightsViewModel = hiltViewModel()
+    viewModel: InsightsViewModel = hiltViewModel(),
+    navController: NavController
 ) {
     val insights by viewModel.moodInsights.observeAsState()
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
     val screenHeight = configuration.screenHeightDp
 
+    var searchQuery by remember { mutableStateOf("") } // Holds the search query entered by the user
+    val filteredReasons = remember(searchQuery, insights) {
+        insights?.reasonsAnalysis
+            ?.filterKeys { it.contains(searchQuery, ignoreCase = true) }
+            ?.toList() ?: emptyList()
+    }
+
+    // Focus and Keyboard Handling
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
     LaunchedEffect(Unit) {
         viewModel.fetchMoodInsights()
     }
+
     ProvideDimens(screenWidth, screenHeight) {
         val dimens = LocalDimens.current
 
-        insights?.let { data ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(dimens.paddingMedium),
-                verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
-            ) {
-                HighlightsSection(
-                    overallMood = data.overallAverageMood.roundToInt()
-                )
-
-                Spacer(modifier = Modifier.height(dimens.paddingSmall))
-
-                Text(
-                    text = "Key Insights",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = dimens.paddingSmall)
-                )
-                LazyColumn(
+        if (insights == null || insights?.reasonsAnalysis.isNullOrEmpty()) {
+            EmptyInsightsScreen { navController.navigate(Screens.JOURNAL.name) }
+        } else {
+            insights?.let { data ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(dimens.paddingMedium),
                     verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
                 ) {
-                    items(data.reasonsAnalysis.entries.toList()) { (reason, deviation) ->
-                        ReasonDetailsCard(reason, deviation)
+
+                    HighlightsSection(
+                        overallMood = data.overallAverageMood.roundToInt()
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = RoundedCornerShape(dimens.cornerRadius / 2)
+                            )
+                            .padding(
+                                horizontal = dimens.paddingSmall
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search Icon",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(dimens.paddingSmall / 2))
+                        TextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Search...") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(focusRequester)
+                                .clip(RoundedCornerShape(dimens.cornerRadius)),
+                            colors = TextFieldDefaults.colors(
+                                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedContainerColor = Color.Transparent
+                            ),
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodySmall,
+                            keyboardOptions = KeyboardOptions.Default.copy(
+                                imeAction = ImeAction.Done,
+                                capitalization = KeyboardCapitalization.Words
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    focusManager.clearFocus() // Clear focus from TextField
+                                }
+                            )
+                        )
+                    }
+
+                    Text(
+                        text = "Key Insights",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = dimens.paddingSmall)
+                    )
+
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
+                    ) {
+                        // Use filteredReasons for the displayed data
+                        items(filteredReasons) { (reason, deviation) ->
+                            ReasonDetailsCard(reason, deviation)
+                        }
                     }
                 }
+            } ?: Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
-        } ?: Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
         }
     }
 }
+
+@Composable
+fun EmptyInsightsScreen(
+    onActionClick: () -> Unit
+) {
+    val dimens = LocalDimens.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimens.paddingMedium),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Illustration or Icon
+        Image(
+            painter = painterResource(id = R.drawable.img_insights), // Replace with your drawable
+            contentDescription = "No Insights",
+            modifier = Modifier
+                .size(200.dp)
+                .padding(bottom = dimens.paddingMedium)
+        )
+
+        // Motivational Text
+        Text(
+            text = "No Insights Yet!",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        )
+
+        Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
+        Text(
+            text = "Start journaling to track your mood and discover insights about what affects it.",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            ),
+            modifier = Modifier.padding(horizontal = dimens.paddingMedium)
+        )
+
+        Spacer(modifier = Modifier.height(dimens.paddingLarge))
+
+        // Action Button
+        Button(
+            onClick = onActionClick,
+            shape = RoundedCornerShape(dimens.cornerRadius),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            modifier = Modifier
+                .padding(horizontal = dimens.paddingMedium)
+                .height(50.dp)
+                .fillMaxWidth()
+        ) {
+            Text(
+                text = "Start Journaling",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    }
+}
+
 
 @Composable
 fun ReasonDetailsCard(
@@ -189,7 +330,7 @@ fun HighlightsSection(overallMood: Int) {
     ) {
         Column(
             modifier = Modifier.padding(dimens.paddingMedium),
-            verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+            verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall / 2),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -223,7 +364,6 @@ fun HighlightsSection(overallMood: Int) {
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     )
-                    // Animated Progress Bar
                     LinearProgressIndicator(
                         progress = { overallMood / 100f },
                         color = progressColor,
@@ -235,7 +375,6 @@ fun HighlightsSection(overallMood: Int) {
                     )
                 }
             }
-
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
                 thickness = 1.dp
