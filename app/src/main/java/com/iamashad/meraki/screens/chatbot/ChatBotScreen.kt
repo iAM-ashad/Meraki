@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,70 +35,79 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iamashad.meraki.R
+import com.iamashad.meraki.components.ConnectivityObserver
 import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.navigation.Screens
+import com.iamashad.meraki.utils.ConnectivityStatus
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
 
 @Composable
-fun ChatbotScreen(viewModel: ChatViewModel, navController: NavController) {
+fun ChatbotScreen(
+    viewModel: ChatViewModel,
+    navController: NavController,
+) {
+    val context = LocalContext.current
+    val isConnected = ConnectivityStatus(context)
     val chatMessages = remember { viewModel.messageList }
     val isTyping by viewModel.isTyping
     val gradientColors = viewModel.determineGradientColors()
+
+    // Remember animated gradient to avoid recomputing during recompositions
     val animatedColors = gradientColors.map { targetColor ->
         animateColorAsState(
             targetValue = targetColor,
-            animationSpec = tween(durationMillis = 3000, easing = LinearOutSlowInEasing),
-            label = ""
+            animationSpec = tween(durationMillis = 3000, easing = LinearOutSlowInEasing)
         ).value
     }
     val animatedGradient = Brush.verticalGradient(colors = animatedColors)
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
+
+    val dimens = LocalDimens.current
+    val screenWidth = LocalConfiguration.current.screenWidthDp
+    val screenHeight = LocalConfiguration.current.screenHeightDp
 
     var hasPreviousConversation by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         hasPreviousConversation = viewModel.hasPreviousConversation()
     }
 
-    ProvideDimens(screenWidth, screenHeight) {
-        val dimens = LocalDimens.current
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(animatedGradient)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
+    ConnectivityObserver(connectivityStatus = isConnected) {
+        ProvideDimens(screenWidth, screenHeight) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(animatedGradient)
             ) {
-                if (chatMessages.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    if (chatMessages.isEmpty()) {
                         NewConversationScreen(viewModel, hasPreviousConversation)
-                } else {
-                    ChatHeader()
+                    } else {
+                        ChatHeader()
 
-                    Spacer(modifier = Modifier.height(dimens.paddingMedium))
+                        Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
-                    MessageList(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = dimens.paddingSmall),
-                        messageList = chatMessages
-                    )
+                        MessageList(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = dimens.paddingSmall),
+                            messageList = chatMessages
+                        )
 
-                    if (isTyping) {
-                        TypingIndicator()
-                    }
-
-                    ChatInputSection(
-                        onMessageSend = { viewModel.sendMessage(it) },
-                        onFinishConversation = {
-                            viewModel.finishConversation(it)
-                            navController.navigate(Screens.HOME.name)
+                        if (isTyping) {
+                            TypingIndicator()
                         }
-                    )
+
+                        ChatInputSection(
+                            onMessageSend = { viewModel.sendMessage(it) },
+                            onFinishConversation = {
+                                viewModel.finishConversation(it)
+                                navController.navigate(Screens.HOME.name)
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -139,14 +149,16 @@ fun ChatInputSection(onMessageSend: (String) -> Unit, onFinishConversation: (Str
     }
 }
 
-
 @Composable
 fun ChatHeader() {
-    val lottieComposition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_chatheader))
-    val lottieProgress by animateLottieCompositionAsState(
-        composition = lottieComposition, iterations = LottieConstants.IterateForever
-    )
+    val lottieComposition =
+        rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.lottie_chatheader))
+    val lottieProgress = animateLottieCompositionAsState(
+        composition = lottieComposition.value,
+        iterations = LottieConstants.IterateForever
+    ).progress
     val dimens = LocalDimens.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,7 +167,7 @@ fun ChatHeader() {
         verticalAlignment = Alignment.CenterVertically
     ) {
         LottieAnimation(
-            composition = lottieComposition,
+            composition = lottieComposition.value,
             progress = { lottieProgress },
             modifier = Modifier.size(100.dp)
         )
@@ -172,9 +184,7 @@ fun ChatHeader() {
             )
             Text(
                 text = "Your AI mental health assistant",
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = dimens.fontSmall
-                ),
+                style = MaterialTheme.typography.bodyLarge.copy(fontSize = dimens.fontSmall),
                 color = MaterialTheme.colorScheme.surface
             )
         }
@@ -182,11 +192,14 @@ fun ChatHeader() {
 }
 
 @Composable
-fun NewConversationScreen(
-    viewModel: ChatViewModel,
-    hasPreviousConversation: Boolean
-) {
+fun NewConversationScreen(viewModel: ChatViewModel, hasPreviousConversation: Boolean) {
     val dimens = LocalDimens.current
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.primary
+        )
+    )
 
     Box(
         modifier = Modifier
@@ -212,14 +225,7 @@ fun NewConversationScreen(
                             topEnd = dimens.cornerRadius * 2
                         )
                     )
-                    .background(
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                MaterialTheme.colorScheme.primaryContainer,
-                                MaterialTheme.colorScheme.primary
-                            )
-                        )
-                    )
+                    .background(gradientBackground)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -258,24 +264,24 @@ fun NewConversationScreen(
                         ContinueConversationButton(
                             onClick = { viewModel.loadPreviousConversation() }
                         )
-                        Spacer(modifier = Modifier.height(dimens.paddingMedium))
+                        Spacer(modifier = Modifier.height(dimens.paddingSmall))
                     }
 
                     StartConversationButton(onClick = { viewModel.startNewConversation() })
                 }
+                Spacer(Modifier.padding(bottom = dimens.paddingLarge))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .background(Color.Transparent)
+                        .padding(dimens.paddingMedium)
+                        .clip(RoundedCornerShape(dimens.cornerRadius / 2)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ConfidentialityFooter()
+                }
             }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .background(Color.Transparent)
-                .padding(dimens.paddingMedium)
-                .clip(RoundedCornerShape(dimens.cornerRadius / 2)),
-            contentAlignment = Alignment.Center
-        ) {
-            ConfidentialityFooter()
         }
     }
 }
@@ -520,7 +526,8 @@ fun MessageRow(message: Message) {
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = dimens.paddingLarge * 12)
+                .wrapContentWidth(unbounded = true) // Allow the box to shrink to fit the text
+                .widthIn(max = dimens.paddingLarge * 12) // Constrain max width
                 .clip(
                     if (isModel) RoundedCornerShape(
                         bottomStart = dimens.cornerRadius,
@@ -546,8 +553,7 @@ fun MessageRow(message: Message) {
                     text = message.message,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Start,
-                    modifier = Modifier.fillMaxWidth()
+                    textAlign = TextAlign.Start
                 )
             }
         }

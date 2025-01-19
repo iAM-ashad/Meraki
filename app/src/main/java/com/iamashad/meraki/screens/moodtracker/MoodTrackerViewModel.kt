@@ -6,21 +6,21 @@ import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.model.Mood
 import com.iamashad.meraki.repository.MoodRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MoodTrackerViewModel @Inject constructor(
-    private val moodRepository: MoodRepository
+    private val moodRepository: MoodRepository,
+    private val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
 
     private val _moodTrend = MutableStateFlow<List<Pair<String, Int>>>(emptyList())
-    val moodTrend: StateFlow<List<Pair<String, Int>>> get() = _moodTrend
+    val moodTrend: StateFlow<List<Pair<String, Int>>> = _moodTrend.asStateFlow()
 
-    private val _loading = MutableStateFlow(true) // New loading state
-    val loading: StateFlow<Boolean> = _loading
+    private val _loading = MutableStateFlow(false)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
 
     init {
         fetchMoodTrend()
@@ -28,32 +28,44 @@ class MoodTrackerViewModel @Inject constructor(
 
     fun fetchMoodTrend() {
         viewModelScope.launch {
-            _loading.value = true // Set loading to true before fetching data
-            moodRepository.getAllMoods().collect { moods ->
-                _moodTrend.value = moods.map {
-                    val formattedDate = android.text.format.DateFormat.format("MM-dd", it.timestamp).toString()
-                    formattedDate to it.score
-                }.sortedBy { it.first }
-                _loading.value = false // Set loading to false after data is fetched
-            }
+            _loading.emit(true)
+            moodRepository.getAllMoods()
+                .map { moods ->
+                    moods.map { mood ->
+                        android.text.format.DateFormat.format("MM-dd", mood.timestamp)
+                            .toString() to mood.score
+                    }.sortedBy { it.first }
+                }
+                .catch { throwable ->
+                    // Handle errors gracefully
+                    _moodTrend.emit(emptyList())
+                    _loading.emit(false)
+                }
+                .collect { trend ->
+                    _moodTrend.emit(trend)
+                    _loading.emit(false)
+                }
         }
     }
 
     fun logMood(score: Int) {
+        val currentUser = firebaseAuth.currentUser
+        if (currentUser == null) {
+            error("User not authenticated")
+            return
+        }
+
         viewModelScope.launch {
-            val currentUser = FirebaseAuth.getInstance().currentUser
-            if (currentUser != null) {
-                val currentTime = System.currentTimeMillis()
-                val mood = Mood(
-                    score = score,
-                    timestamp = currentTime,
-                    userId = currentUser.uid // Bind the entry to the current user's UID
-                )
+            val mood = Mood(
+                score = score,
+                timestamp = System.currentTimeMillis(),
+                userId = currentUser.uid
+            )
+            try {
                 moodRepository.addMood(mood)
-            } else {
-                error("User not authenticated").stackTrace
+            } catch (e: Exception) {
+                error("Failed to log mood: ${e.message}")
             }
         }
     }
-
 }

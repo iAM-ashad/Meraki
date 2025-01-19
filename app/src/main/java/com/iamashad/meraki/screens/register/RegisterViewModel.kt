@@ -61,10 +61,4 @@ class RegisterViewModel @Inject constructor(
             }
         }
     }
-
-    fun logout() {
-        firebaseAuth.signOut()
-        googleSignInClient.signOut()
-        _user.value = null
-    }
 }

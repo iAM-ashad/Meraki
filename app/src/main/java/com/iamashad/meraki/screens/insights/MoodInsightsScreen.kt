@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +46,8 @@ fun MoodInsightsScreen(
     viewModel: InsightsViewModel = hiltViewModel(),
     navController: NavController
 ) {
-    val insights by viewModel.moodInsights.observeAsState()
+    // Collect StateFlow as state
+    val insights by viewModel.moodInsights.collectAsState()
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
     val screenHeight = configuration.screenHeightDp
@@ -64,7 +64,7 @@ fun MoodInsightsScreen(
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
-        viewModel.fetchMoodInsights()
+        viewModel.fetchMoodInsights() // Fetch insights when the composable is first composed
     }
 
     ProvideDimens(screenWidth, screenHeight) {
@@ -73,14 +73,14 @@ fun MoodInsightsScreen(
         if (insights == null || insights?.reasonsAnalysis.isNullOrEmpty()) {
             EmptyInsightsScreen { navController.navigate(Screens.JOURNAL.name) }
         } else {
-            insights?.let { data ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(dimens.paddingMedium),
-                    verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
-                ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(dimens.paddingMedium),
+                verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
+            ) {
 
+                insights?.let { data ->
                     HighlightsSection(
                         overallMood = data.overallAverageMood.roundToInt()
                     )
@@ -92,9 +92,7 @@ fun MoodInsightsScreen(
                                 color = MaterialTheme.colorScheme.surface,
                                 shape = RoundedCornerShape(dimens.cornerRadius / 2)
                             )
-                            .padding(
-                                horizontal = dimens.paddingSmall
-                            ),
+                            .padding(horizontal = dimens.paddingSmall),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -142,21 +140,21 @@ fun MoodInsightsScreen(
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
                     ) {
-                        // Use filteredReasons for the displayed data
                         items(filteredReasons) { (reason, deviation) ->
                             ReasonDetailsCard(reason, deviation)
                         }
                     }
+                } ?: Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
-            } ?: Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
             }
         }
     }
 }
+
 
 @Composable
 fun EmptyInsightsScreen(

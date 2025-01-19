@@ -78,18 +78,19 @@ dependencies {
     // Lottie
     implementation("com.airbnb.android:lottie-compose:6.6.2")
     // Firebase
-    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation (platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation ("com.google.firebase:firebase-analytics")
+    implementation ("com.google.firebase:firebase-auth")
+    implementation ("com.google.firebase:firebase-firestore")
+    implementation ("com.google.android.gms:play-services-auth:21.3.0")
+    implementation ("com.google.firebase:firebase-messaging")
     // Exoplayer
-    implementation("androidx.media3:media3-exoplayer:1.5.0")
-    implementation("androidx.media3:media3-ui:1.5.0")
+    implementation ("androidx.media3:media3-exoplayer:1.5.0")
+    implementation ("androidx.media3:media3-ui:1.5.0")
     // LiveData
     implementation ("androidx.compose.runtime:runtime-livedata:1.7.6")
    // Gemini SDK
-    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+    implementation ("com.google.ai.client.generativeai:generativeai:0.9.0")
     // Animated Navigation
     implementation ("androidx.navigation:navigation-compose:2.8.5")
     // Pagination
@@ -101,6 +102,8 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-pager:0.28.0")
     implementation ("com.google.accompanist:accompanist-pager-indicators:0.28.0")
     implementation ("com.google.accompanist:accompanist-navigation-animation:0.30.1")
+    // WorkManager
+    implementation ("androidx.work:work-runtime-ktx:2.10.0")
 
 
 

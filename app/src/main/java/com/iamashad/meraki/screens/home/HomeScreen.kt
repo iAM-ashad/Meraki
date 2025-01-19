@@ -76,16 +76,17 @@ fun HomeScreen(
     homeViewModel: HomeScreenViewModel = hiltViewModel(),
     moodTrackerViewModel: MoodTrackerViewModel = hiltViewModel()
 ) {
+    val configuration = LocalConfiguration.current
+    val dimens = LocalDimens.current
+    val screenWidthDp = remember { configuration.screenWidthDp }
+    val screenHeightDp = remember { configuration.screenHeightDp }
+
     val user by homeViewModel.user.collectAsState()
     val advice by homeViewModel.advice.observeAsState("Loading advice...")
     val photoUrl by homeViewModel.photoUrl.collectAsState()
     val lastMoods by moodTrackerViewModel.moodTrend.collectAsState()
     val isLoading by moodTrackerViewModel.loading.collectAsState()
     val streakCount = remember { mutableIntStateOf(0) }
-
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp
-    val screenHeightDp = configuration.screenHeightDp
 
     LaunchedEffect(user) {
         user?.uid?.let { userId ->
@@ -95,7 +96,6 @@ fun HomeScreen(
     }
 
     ProvideDimens(screenWidthDp, screenHeightDp) {
-        val dimens = LocalDimens.current
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -111,9 +111,8 @@ fun HomeScreen(
                 .padding(dimens.paddingMedium)
                 .verticalScroll(rememberScrollState())
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // Profile and Streak Meter
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -123,44 +122,96 @@ fun HomeScreen(
                 ) {
                     ProfileCard(
                         photoUrl = photoUrl.toString(),
-                        userName = user?.displayName ?: "User"
-                    ) {
-                        navController.navigate(Screens.SETTINGS.name)
-                    }
+                        userName = user?.displayName ?: "User",
+                        onProfileClick = { navController.navigate(Screens.SETTINGS.name) }
+                    )
                     StreakMeterCard(streakCount = streakCount.intValue)
                 }
 
                 Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
+                // Weekly Calendar
                 WeeklyCalendar(navController)
 
                 Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
+                // Mood Prompt Card
                 MoodPromptCard(navController)
 
                 Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
+                // Mood Logs or Loading Indicator
                 when {
-                    isLoading -> {
-                        LoadingIndicator()
-                    }
-
-                    lastMoods.isNotEmpty() -> {
-                        MoodLogsCard(moodLogs = lastMoods.takeLast(5))
-                    }
-
-                    else -> {
-                        EmptyMoodLogs()
-                    }
+                    isLoading -> LoadingIndicator()
+                    lastMoods.isNotEmpty() -> MoodLogsCard(moodLogs = lastMoods.takeLast(7))
+                    else -> EmptyMoodLogs()
                 }
 
                 Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
+                // Advice Card
                 AdviceCard(advice)
 
                 Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
+                // Meditate Button
                 MeditateButton(navController)
+            }
+        }
+    }
+}
+
+@Composable
+fun WeeklyCalendar(navController: NavController) {
+    val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val dimens = LocalDimens.current
+    val calendar = remember { java.util.Calendar.getInstance() }
+    val currentDayIndex = remember {
+        (calendar.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7
+    }
+    val dates = remember {
+        (0..6).map { offset ->
+            calendar.apply {
+                set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.MONDAY + offset)
+            }.get(java.util.Calendar.DAY_OF_MONTH)
+        }
+    }
+
+    Row(
+        modifier = Modifier
+            .horizontalScroll(rememberScrollState())
+            .fillMaxWidth()
+            .padding(horizontal = dimens.paddingSmall),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        daysOfWeek.forEachIndexed { index, day ->
+            val isSelected = index == currentDayIndex
+            val backgroundColor =
+                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+            val textColor = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(backgroundColor)
+                    .clickable { navController.navigate(Screens.MOODTRACKER.name) },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = day,
+                        style = MaterialTheme.typography.bodySmall.copy(color = textColor)
+                    )
+                    Text(
+                        text = dates[index].toString(),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = textColor
+                        )
+                    )
+                }
             }
         }
     }
@@ -249,61 +300,6 @@ fun CelebrationDialog(
     }
 }
 
-
-@Composable
-fun WeeklyCalendar(navController: NavController) {
-    val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val calendar = java.util.Calendar.getInstance()
-    val currentDayIndex =
-        (calendar.get(java.util.Calendar.DAY_OF_WEEK) + 5) % 7
-    val dates = (0..6).map { offset ->
-        calendar.apply {
-            set(java.util.Calendar.DAY_OF_WEEK, java.util.Calendar.MONDAY + offset)
-        }.get(java.util.Calendar.DAY_OF_MONTH)
-    }
-    val dimens = LocalDimens.current
-    Row(
-        modifier = Modifier
-            .horizontalScroll(rememberScrollState())
-            .fillMaxWidth()
-            .padding(horizontal = dimens.paddingSmall),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        daysOfWeek.forEachIndexed { index, day ->
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (index == currentDayIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    .clickable {
-                        navController.navigate(Screens.MOODTRACKER.name)
-                    }, contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = day, style = MaterialTheme.typography.bodySmall.copy(
-                            color = if (index == currentDayIndex) Color.White else MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                    Text(
-                        text = dates[index].toString(),
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = if (index == currentDayIndex) Color.White else MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                }
-            }
-        }
-    }
-
-}
-
 @Composable
 fun MoodPromptCard(navController: NavController) {
     val userName = FirebaseAuth.getInstance().currentUser?.displayName
@@ -311,7 +307,7 @@ fun MoodPromptCard(navController: NavController) {
 
     val dimens = LocalDimens.current
     Card(shape = RoundedCornerShape(dimens.cornerRadius),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(8.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -358,16 +354,14 @@ fun MoodPromptCard(navController: NavController) {
     }
 }
 
-
 @Composable
-fun ProfileCard(
-    photoUrl: String, userName: String, onProfileClick: () -> Unit
-) {
+fun ProfileCard(photoUrl: String, userName: String, onProfileClick: () -> Unit) {
     val dimens = LocalDimens.current
     Card(
-        shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.background
-        ), elevation = CardDefaults.cardElevation(10.dp), modifier = Modifier
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
+        elevation = CardDefaults.cardElevation(10.dp),
+        modifier = Modifier
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -378,18 +372,15 @@ fun ProfileCard(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .clickable {
-                        onProfileClick.invoke()
-                    })
+                    .clickable { onProfileClick() }
+            )
             Spacer(modifier = Modifier.width(5.dp))
             Text(
-                text = userName, style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = dimens.fontMedium
-                )
+                text = userName,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = dimens.fontMedium)
             )
         }
     }
-
 }
 
 @Composable
@@ -437,10 +428,10 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
     Card(
         shape = RoundedCornerShape(dimens.cornerRadius),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant),
-        elevation = CardDefaults.cardElevation(12.dp),
+        elevation = CardDefaults.cardElevation(dimens.elevation),
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(dimens.paddingLarge * 12)
     ) {
         val density = LocalDensity.current
 
@@ -458,7 +449,7 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
                 color = MaterialTheme.colorScheme.onBackground.copy(.6f)
             )
 
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(dimens.paddingMedium * 3))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -467,16 +458,16 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
                 moodLogs.forEach { (_, moodScore) ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.width(50.dp)
+                        modifier = Modifier.width((dimens.paddingMedium * 2) - (dimens.paddingSmall / 2))
                     ) {
                         Box(
-                            modifier = Modifier.width(30.dp),
+                            modifier = Modifier.width((dimens.paddingMedium * 2) - (dimens.paddingSmall / 2)),
                             contentAlignment = Alignment.BottomCenter
                         ) {
                             Box(
                                 modifier = Modifier
                                     .width(30.dp)
-                                    .height(170.dp)
+                                    .height(dimens.paddingMedium * 12)
                                     .background(
                                         color = MaterialTheme.colorScheme.surfaceVariant,
                                         shape = RoundedCornerShape(dimens.cornerRadius)
@@ -499,6 +490,7 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
                                         fontSize = dimens.fontLarge
                                     ),
                                     modifier = Modifier
+                                        .padding(bottom = dimens.paddingSmall)
                                         .align(Alignment.BottomCenter)
                                         .offset(y = -(moodScore / 100f * 150.dp.toPx()).toDp() - 1.dp)
                                 )
@@ -542,13 +534,15 @@ fun AdviceCard(advice: String) {
 
 @Composable
 fun MeditateButton(navController: NavController) {
+    val dimens = LocalDimens.current
+
     Card(shape = CircleShape,
-        elevation = CardDefaults.cardElevation(10.dp),
+        elevation = CardDefaults.cardElevation(dimens.elevation),
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent
         ),
         modifier = Modifier
-            .size(100.dp)
+            .size(dimens.avatarSize / 3)
             .clickable {
                 navController.navigate(Screens.BREATHING.name)
             }) {
@@ -558,10 +552,10 @@ fun MeditateButton(navController: NavController) {
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color.White,
-                            MaterialTheme.colorScheme.primaryContainer,
-                            MaterialTheme.colorScheme.inversePrimary
-                        ), center = Offset.Zero, radius = 150f
+                            MaterialTheme.colorScheme.background.copy(.8f),
+                            MaterialTheme.colorScheme.inversePrimary,
+                            MaterialTheme.colorScheme.primary
+                        ), center = Offset.Unspecified, radius = 150f
                     )
                 ), contentAlignment = Alignment.Center
         ) {

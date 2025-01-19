@@ -16,7 +16,8 @@ data class Dimens(
     val fontMedium: TextUnit,
     val fontLarge: TextUnit,
     val cornerRadius: Dp,
-    val avatarSize: Dp
+    val avatarSize: Dp,
+    val elevation: Dp
 )
 
 val SmallScreenDimens = Dimens(
@@ -27,7 +28,8 @@ val SmallScreenDimens = Dimens(
     fontMedium = 12.sp,
     fontLarge = 16.sp,
     cornerRadius = 18.dp,
-    avatarSize = 250.dp
+    avatarSize = 250.dp,
+    elevation = 6.dp
 )
 
 val MediumScreenDimens = Dimens(
@@ -38,7 +40,8 @@ val MediumScreenDimens = Dimens(
     fontMedium = 18.sp,
     fontLarge = 24.sp,
     cornerRadius = 24.dp,
-    avatarSize = 300.dp
+    avatarSize = 300.dp,
+    elevation = 8.dp
 )
 
 val LargeScreenDimens = Dimens(
@@ -49,7 +52,8 @@ val LargeScreenDimens = Dimens(
     fontMedium = 20.sp,
     fontLarge = 28.sp,
     cornerRadius = 32.dp,
-    avatarSize = 350.dp
+    avatarSize = 350.dp,
+    elevation = 12.dp
 )
 
 val LocalDimens = staticCompositionLocalOf { MediumScreenDimens }

@@ -7,16 +7,26 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.iamashad.meraki.R
@@ -25,25 +35,60 @@ import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalScreen(
     viewModel: JournalViewModel,
     onAddJournalClick: () -> Unit,
     onViewJournalClick: (Journal) -> Unit
 ) {
-    val journals by viewModel.journals.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isSearching by viewModel.isSearching.collectAsState()
+    val journals by if (isSearching) {
+        viewModel.searchResults.collectAsState()
+    } else {
+        viewModel.journals.collectAsState()
+    }
+    val errorState by viewModel.errorState.collectAsState()
+    val snackBarHostState = remember { SnackbarHostState() }
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
     val screenHeight = configuration.screenHeightDp
 
+    LaunchedEffect(errorState) {
+        errorState?.let {
+            snackBarHostState.showSnackbar(it)
+        }
+    }
+
     ProvideDimens(screenWidth, screenHeight) {
         val dimens = LocalDimens.current
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.fillMaxSize()) {
+
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackBarHostState) },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = onAddJournalClick,
+                    shape = CircleShape,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.padding(dimens.paddingMedium)
+                ) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Journal")
+                }
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.surface)
+            ) {
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChanged = { viewModel.updateSearchQuery(it) },
+                    onClearQuery = { viewModel.clearSearchResults() }
+                )
 
                 HeaderCard()
 
@@ -66,24 +111,73 @@ fun JournalScreen(
                     }
                 }
             }
-
-            FloatingActionButton(
-                onClick = onAddJournalClick,
-                containerColor = MaterialTheme.colorScheme.primary,
-                elevation = FloatingActionButtonDefaults.elevation(8.dp),
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(dimens.paddingMedium)
-                    .clip(CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add, contentDescription = "Add Journal"
-                )
-            }
         }
     }
 }
+
+@Composable
+fun SearchBar(
+    query: String,
+    onQueryChanged: (String) -> Unit,
+    onClearQuery: () -> Unit
+) {
+    val dimens = LocalDimens.current
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(dimens.cornerRadius / 2)
+            )
+            .padding(horizontal = dimens.paddingLarge),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = "Search Icon",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        TextField(
+            value = query,
+            onValueChange = onQueryChanged,
+            placeholder = { Text("Search...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .clip(RoundedCornerShape(dimens.cornerRadius)),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent
+            ),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Done,
+                capitalization = KeyboardCapitalization.Words
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { focusManager.clearFocus() }
+            ),
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = onClearQuery) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        )
+    }
+}
+
 
 @Composable
 fun HeaderCard() {
@@ -135,7 +229,7 @@ fun EmptyJournalList() {
     ) {
         Image(
             painter = painterResource(id = R.drawable.img_journal),
-            contentDescription = "Make Journals",
+            contentDescription = "No Journals",
             modifier = Modifier.size((dimens.avatarSize / 3) * 2)
         )
         Spacer(modifier = Modifier.height(dimens.paddingSmall))
@@ -148,28 +242,6 @@ fun EmptyJournalList() {
         )
         Spacer(modifier = Modifier.height(dimens.paddingLarge))
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "• Reflect on your thoughts and emotions.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "• Gain insights into your mental well-being.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "• Create a safe space to express yourself.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
-            )
-        }
-        Spacer(modifier = Modifier.height(dimens.paddingLarge))
-
         Text(
             text = "Tap the plus icon below to write your first entry now!",
             style = MaterialTheme.typography.titleMedium,
@@ -178,4 +250,3 @@ fun EmptyJournalList() {
         )
     }
 }
-

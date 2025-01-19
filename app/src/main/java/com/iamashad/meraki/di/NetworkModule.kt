@@ -1,9 +1,11 @@
 package com.iamashad.meraki.di
 
+import android.content.Context
 import com.iamashad.meraki.network.AdviceApi
 import com.iamashad.meraki.repository.FirestoreRepository
 import com.iamashad.meraki.repository.MoodRepository
 import com.google.firebase.firestore.FirebaseFirestore
+import com.iamashad.meraki.utils.ConnectivityStatus
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -33,6 +35,12 @@ object NetworkModule {
     @Singleton
     fun provideAdviceApi(@AdviceRetrofit retrofit: Retrofit): AdviceApi =
         retrofit.create(AdviceApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideConnectivityStatus(context: Context): ConnectivityStatus {
+        return ConnectivityStatus(context)
+    }
 
     @Provides
     @Singleton

@@ -4,6 +4,7 @@ import android.content.Context
 import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,12 +53,67 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.iamashad.meraki.R
 import com.iamashad.meraki.model.Journal
+import com.iamashad.meraki.utils.ConnectivityStatus
+import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.getMoodEmoji
 import com.iamashad.meraki.utils.getMoodLabelFromTitle
 import com.iamashad.meraki.utils.getTipForMood
 
 fun showToast(context: Context, msg: String) {
     Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+}
+
+@Composable
+fun NoInternetScreen() {
+    val dimens = LocalDimens.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(dimens.paddingMedium),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.img_nointernet),
+            contentDescription = "No Internet",
+            modifier = Modifier
+                .size(dimens.avatarSize)
+                .padding(bottom = dimens.paddingMedium)
+        )
+
+        Text(
+            text = "No Internet Connection",
+            style = MaterialTheme.typography.titleLarge.copy(
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            ),
+            modifier = Modifier.padding(bottom = dimens.paddingSmall)
+        )
+
+        Text(
+            text = "It seems you are offline. Check your connection and try again to continue enjoying the app.",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                textAlign = TextAlign.Center
+            ),
+            modifier = Modifier.padding(horizontal = dimens.paddingLarge)
+        )
+    }
+}
+
+@Composable
+fun ConnectivityObserver(
+    connectivityStatus: ConnectivityStatus,
+    content: @Composable () -> Unit
+) {
+    val isConnected by connectivityStatus.observeAsState(initial = true)
+
+    if (!isConnected) {
+        NoInternetScreen()
+    } else {
+        content()
+    }
 }
 
 @Composable
