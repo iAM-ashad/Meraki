@@ -34,6 +34,7 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.ConnectivityObserver
 import com.iamashad.meraki.model.Message
@@ -53,7 +54,6 @@ fun ChatbotScreen(
     val isTyping by viewModel.isTyping
     val gradientColors = viewModel.determineGradientColors()
 
-    // Remember animated gradient to avoid recomputing during recompositions
     val animatedColors = gradientColors.map { targetColor ->
         animateColorAsState(
             targetValue = targetColor,
@@ -61,7 +61,7 @@ fun ChatbotScreen(
         ).value
     }
     val animatedGradient = Brush.verticalGradient(colors = animatedColors)
-
+    val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
     val dimens = LocalDimens.current
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val screenHeight = LocalConfiguration.current.screenHeightDp
@@ -69,6 +69,7 @@ fun ChatbotScreen(
     var hasPreviousConversation by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         hasPreviousConversation = viewModel.hasPreviousConversation()
+        viewModel.initializeContext(userId)
     }
 
     ConnectivityObserver(connectivityStatus = isConnected) {

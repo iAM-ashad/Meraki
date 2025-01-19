@@ -19,7 +19,7 @@ class ChatRepository(private val chatDao: ChatDao) {
     suspend fun getLastContext(userId: String): String? {
         return chatDao.getAllMessages(userId)
             .lastOrNull { !it.context.isNullOrBlank() }
-            ?.context
+            ?.context ?: "neutral"
     }
 
     suspend fun getAllMessages(userId: String): List<ChatMessage> {

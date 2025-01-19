@@ -75,7 +75,7 @@ fun MerakiNavigation() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Screens.SETTINGS.name,
+            startDestination = Screens.SPLASH.name,
             enterTransition = { fadeInAnimation() },
             exitTransition = { fadeOutAnimation() },
             modifier = Modifier.padding(paddingValues)

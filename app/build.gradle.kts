@@ -104,6 +104,8 @@ dependencies {
     implementation ("com.google.accompanist:accompanist-navigation-animation:0.30.1")
     // WorkManager
     implementation ("androidx.work:work-runtime-ktx:2.10.0")
+    // DataStore
+    implementation ("androidx.datastore:datastore-preferences:1.1.2")
 
 
 

@@ -1,8 +1,9 @@
 package com.iamashad.meraki.screens.chatbot
 
 import android.app.Application
+import android.util.Log
+import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,7 +21,8 @@ import kotlinx.coroutines.launch
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val chatRepository: ChatRepository
-    var activeContext: String? = null
+    var activeContext by mutableStateOf("neutral") // Default value
+        private set
     private val userId: String =
         FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
@@ -42,6 +44,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         return chatRepository.getLastContext(userId) != null // Check if a context exists
     }
 
+    fun initializeContext(userId: String) {
+        viewModelScope.launch {
+            val lastContext = chatRepository.getLastContext(userId)
+            activeContext = lastContext ?: "neutral" // Use default if null
+            Log.d("ChatViewModel", "Active context initialized: $activeContext")
+        }
+    }
+
     fun loadPreviousConversation() {
         viewModelScope.launch {
             // Fetch all messages from the repository
@@ -55,7 +65,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             // Add only unique messages
             messageList.addAll(newMessageList.distinct())
-            activeContext = chatRepository.getLastContext(userId)
+            activeContext = chatRepository.getLastContext(userId)!!
         }
     }
 
@@ -63,7 +73,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             messageList.clear()
             activeContext =
-                chatRepository.getLastContext(userId) // Pass userId to fetch user-specific context
+                chatRepository.getLastContext(userId)!! // Pass userId to fetch user-specific context
 
             val userName = FirebaseAuth.getInstance().currentUser?.displayName
             val firstName = userName?.split(" ")?.firstOrNull()
@@ -131,14 +141,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearChatHistory() {
         viewModelScope.launch {
-            chatRepository.clearChatHistory(userId) // Clear only for the current user
+            chatRepository.clearChatHistory(userId)
             messageList.clear()
-            activeContext = null
+            activeContext = ""
         }
     }
 
     fun determineGradientColors(): List<Color> {
-        return gradientMap[activeContext] ?: gradientMap["neutral"]!!
+        Log.d("GradientSystem", "Active context: $activeContext")
+        return gradientMap[activeContext] ?: run {
+            Log.w(
+                "GradientSystem",
+                "Active context '$activeContext' not found, defaulting to 'neutral'"
+            )
+            gradientMap["neutral"]!!
+        }
     }
 }
 

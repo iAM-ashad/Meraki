@@ -5,6 +5,7 @@ import android.widget.TimePicker
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,12 +28,16 @@ import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.R
+import com.iamashad.meraki.components.showToast
 import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
+import com.iamashad.meraki.ui.theme.ThemePreference
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.PromptEnableNotifications
 import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.scheduleDailyReminderAt
+import kotlinx.coroutines.launch
+import java.util.Locale
 
 
 @Composable
@@ -49,11 +54,19 @@ fun SettingsScreen(
     val screenHeight = configuration.screenHeightDp
     var selectedTime by remember { mutableStateOf("9:00 AM") }
     val context = LocalContext.current
+    val isDynamicColorEnabled by ThemePreference.isDynamicColorEnabled(context)
+        .collectAsState(initial = false)
+    val coroutineScope = rememberCoroutineScope()
 
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showChatDeleteDialog by remember { mutableStateOf(false) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
+    var isCheckedLocal by remember { mutableStateOf(isDynamicColorEnabled) }
+    LaunchedEffect(isDynamicColorEnabled) {
+        isCheckedLocal = isDynamicColorEnabled
+    }
+
 
     PromptEnableNotifications(context)
 
@@ -81,8 +94,15 @@ fun SettingsScreen(
             }
 
             SettingsSection(title = "General Settings") {
-                SettingToggle(icon = R.drawable.ic_dark_mode, title = "Dark Mode") {
-                    //TODO
+                SettingToggle(
+                    icon = R.drawable.ic_dark_mode,
+                    title = "Dynamic Color Mode",
+                    isChecked = isCheckedLocal
+                ) { isDynamic ->
+                    isCheckedLocal = isDynamic
+                    coroutineScope.launch {
+                        ThemePreference.setDynamicColor(context, isDynamic)
+                    }
                 }
                 SettingItem(icon = R.drawable.ic_notifications, title = "Set Reminder") {
                     showTimePickerDialog = true
@@ -184,14 +204,13 @@ fun SettingsScreen(
             text = { Text("Are you sure you want to permanently clear your chats? This action cannot be undone.") })
     }
     if (showTimePickerDialog) {
-        TimePickerDialog(
+        CustomTimePickerDialog(
             initialTime = selectedTime,
             onTimeSelected = { time ->
-                Log.d("SettingsScreen", "Time selected: $time") // Log before calling the function
+                Log.d("SettingsScreen", "Time selected: $time")
                 selectedTime = time
                 showTimePickerDialog = false
 
-                // Schedule notification at the selected time
                 scheduleDailyReminderAt(
                     context = context,
                     time = time
@@ -206,19 +225,16 @@ fun SettingsScreen(
 }
 
 @Composable
-fun TimePickerDialog(
+fun CustomTimePickerDialog(
     initialTime: String,
     onTimeSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val is24HourFormat = android.text.format.DateFormat.is24HourFormat(context)
-
-    // State to track the selected hour and minute
-    var selectedHour by remember { mutableStateOf(9) }
-    var selectedMinute by remember { mutableStateOf(0) }
-
-    // Parse the initialTime string
+    var selectedHour by remember { mutableIntStateOf(9) }
+    var selectedMinute by remember { mutableIntStateOf(0) }
+    val dimens = LocalDimens.current
+    // Parse the initial time
     LaunchedEffect(initialTime) {
         val parts = initialTime.split(":").mapNotNull { it.toIntOrNull() }
         if (parts.size == 2) {
@@ -227,53 +243,84 @@ fun TimePickerDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = { onDismiss() },
-        title = { Text("Select Reminder Time") },
-        text = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                contentAlignment = Alignment.Center
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(
+                onClick = onDismiss,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() })
+    ) {
+        // Main dialog content
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(dimens.cornerRadius))
+                .background(MaterialTheme.colorScheme.background)
+                .align(Alignment.Center)
+                .padding(dimens.paddingMedium)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
             ) {
+                Text(
+                    text = "Set Reminder Time",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
                 AndroidView(
                     factory = { context ->
                         TimePicker(context).apply {
-                            setIs24HourView(is24HourFormat)
+                            setIs24HourView(true)
                             hour = selectedHour
                             minute = selectedMinute
+                            setOnTimeChangedListener { _, hour, minute ->
+                                selectedHour = hour
+                                selectedMinute = minute
+                            }
                         }
                     },
-                    modifier = Modifier.wrapContentSize(),
-                    update = { timePicker ->
-                        timePicker.hour = selectedHour
-                        timePicker.minute = selectedMinute
-                        timePicker.setOnTimeChangedListener { _, hour, minute ->
-                            selectedHour = hour
-                            selectedMinute = minute
-                        }
-                    }
+                    modifier = Modifier.wrapContentSize()
                 )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    val formattedTime = String.format("%02d:%02d", selectedHour, selectedMinute)
-                    Log.d("TimePickerDialog", "Time selected: $formattedTime")
-                    onTimeSelected(formattedTime)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(
+                            "Cancel",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        )
+                    }
+                    TextButton(
+                        onClick = {
+                            val formattedTime = String.format(
+                                Locale("in", "IN"),
+                                "%02d:%02d",
+                                selectedHour,
+                                selectedMinute
+                            )
+                            onTimeSelected(formattedTime)
+                            showToast(context, "Reminder set at $formattedTime")
+                        }
+                    ) {
+                        Text(
+                            "Set",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
                 }
-            ) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = { onDismiss() }) {
-                Text("Cancel")
             }
         }
-    )
+    }
 }
 
 
@@ -363,9 +410,9 @@ fun SettingItem(
 fun SettingToggle(
     @DrawableRes icon: Int,
     title: String,
+    isChecked: Boolean,
     onToggle: (Boolean) -> Unit
 ) {
-    var toggled by remember { mutableStateOf(false) }
     val dimens = LocalDimens.current
 
     Row(
@@ -393,11 +440,8 @@ fun SettingToggle(
         )
 
         Switch(
-            checked = toggled,
-            onCheckedChange = {
-                toggled = it
-                onToggle(it)
-            },
+            checked = isChecked,
+            onCheckedChange = onToggle,
             modifier = Modifier.scale(.75f),
             colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.background)
         )
