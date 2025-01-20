@@ -1,5 +1,7 @@
 package com.iamashad.meraki.screens.settings
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import android.widget.TimePicker
 import androidx.annotation.DrawableRes
@@ -21,7 +23,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -48,7 +49,6 @@ fun SettingsScreen(
     val scrollState = rememberScrollState()
     val auth = FirebaseAuth.getInstance()
     val user = auth.currentUser
-    val firstName = user?.displayName?.split(" ")?.firstOrNull()
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
     val screenHeight = configuration.screenHeightDp
@@ -71,6 +71,8 @@ fun SettingsScreen(
     PromptEnableNotifications(context)
 
     ProvideDimens(screenWidth, screenHeight) {
+        val dimens = LocalDimens.current
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -81,7 +83,7 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.inversePrimary)
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = dimens.paddingMedium),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -95,7 +97,7 @@ fun SettingsScreen(
 
             SettingsSection(title = "General Settings") {
                 SettingToggle(
-                    icon = R.drawable.ic_dark_mode,
+                    icon = R.drawable.ic_dynamic_colors,
                     title = "Dynamic Color Mode",
                     isChecked = isCheckedLocal
                 ) { isDynamic ->
@@ -116,8 +118,12 @@ fun SettingsScreen(
             }
 
             SettingsSection(title = "Security & Privacy") {
-                SettingItem(icon = R.drawable.ic_support, title = "Help Center") {
-                    //TODO
+                SettingItem(icon = R.drawable.ic_connect, title = "Connect With Us") {
+                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("mailto:wevolveapps.inc@gmail.com")
+                        putExtra(Intent.EXTRA_SUBJECT, "Feedback or Query")
+                    }
+                    context.startActivity(Intent.createChooser(emailIntent, "Send Email"))
                 }
                 SettingItem(icon = R.drawable.ic_delete_history, title = "Clear Chat History") {
                     showChatDeleteDialog = true
@@ -234,7 +240,7 @@ fun CustomTimePickerDialog(
     var selectedHour by remember { mutableIntStateOf(9) }
     var selectedMinute by remember { mutableIntStateOf(0) }
     val dimens = LocalDimens.current
-    // Parse the initial time
+
     LaunchedEffect(initialTime) {
         val parts = initialTime.split(":").mapNotNull { it.toIntOrNull() }
         if (parts.size == 2) {
@@ -246,13 +252,13 @@ fun CustomTimePickerDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f))
+            .padding(dimens.paddingLarge)
+            .background(Color.Transparent)
             .clickable(
                 onClick = onDismiss,
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() })
     ) {
-        // Main dialog content
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -285,7 +291,6 @@ fun CustomTimePickerDialog(
                     },
                     modifier = Modifier.wrapContentSize()
                 )
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End

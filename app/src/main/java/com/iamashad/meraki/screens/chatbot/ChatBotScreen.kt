@@ -28,13 +28,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.ConnectivityObserver
 import com.iamashad.meraki.model.Message
@@ -45,12 +45,12 @@ import com.iamashad.meraki.utils.ProvideDimens
 
 @Composable
 fun ChatbotScreen(
-    viewModel: ChatViewModel,
     navController: NavController,
+    viewModel: ChatViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val isConnected = ConnectivityStatus(context)
-    val chatMessages = remember { viewModel.messageList }
+    val chatMessages = viewModel.messageList
     val isTyping by viewModel.isTyping
     val gradientColors = viewModel.determineGradientColors()
 
@@ -61,7 +61,7 @@ fun ChatbotScreen(
         ).value
     }
     val animatedGradient = Brush.verticalGradient(colors = animatedColors)
-    val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+
     val dimens = LocalDimens.current
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val screenHeight = LocalConfiguration.current.screenHeightDp
@@ -69,7 +69,7 @@ fun ChatbotScreen(
     var hasPreviousConversation by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         hasPreviousConversation = viewModel.hasPreviousConversation()
-        viewModel.initializeContext(userId)
+        viewModel.initializeContext()
     }
 
     ConnectivityObserver(connectivityStatus = isConnected) {
@@ -114,6 +114,7 @@ fun ChatbotScreen(
         }
     }
 }
+
 
 @Composable
 fun ContinueConversationButton(onClick: () -> Unit) {

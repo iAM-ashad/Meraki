@@ -1,91 +1,99 @@
 package com.iamashad.meraki.screens.chatbot
 
-import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.*
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
 import com.google.firebase.auth.FirebaseAuth
-import com.iamashad.meraki.data.ChatDatabase
 import com.iamashad.meraki.data.ChatMessage
 import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.repository.ChatRepository
 import com.iamashad.meraki.utils.analyzeEmotion
 import com.iamashad.meraki.utils.gradientMap
-import com.iamashad.meraki.utils.provideGenerativeModel
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-class ChatViewModel(application: Application) : AndroidViewModel(application) {
-    private val chatRepository: ChatRepository
-    var activeContext by mutableStateOf("neutral") // Default value
+@HiltViewModel
+class ChatViewModel @Inject constructor(
+    private val chatRepository: ChatRepository,
+    private val generativeModel: GenerativeModel,
+    private val auth: FirebaseAuth
+) : ViewModel() {
+
+    var activeContext by mutableStateOf("neutral")
         private set
-    private val userId: String =
-        FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
-    init {
-        val chatDao = ChatDatabase.getInstance(application).chatDao()
-        chatRepository = ChatRepository(chatDao)
-    }
+    private val userId: String = auth.currentUser?.uid.orEmpty()
+    private var cachedContext: String? = null
+    private var cachedChatHistory: List<Message>? = null
 
-    val messageList = mutableStateListOf<Message>()
-
-    val generativeModel: GenerativeModel = provideGenerativeModel(
-        apiKey = "AIzaSyDJm4lS9PSG83ximY7bX0JFk1epNQQtyZA"
-    )
+    private val _messageList = mutableStateListOf<Message>()
+    val messageList: List<Message> get() = _messageList
 
     var isTyping = mutableStateOf(false)
         private set
 
-    suspend fun hasPreviousConversation(): Boolean {
-        return chatRepository.getLastContext(userId) != null // Check if a context exists
+    private val preloadedGradients = gradientMap.mapValues { it.value }
+
+    init {
+        viewModelScope.launch {
+            cachedContext = chatRepository.getLastContext(userId)
+            cachedChatHistory = chatRepository.getAllMessages(userId).map {
+                Message(it.message, it.role)
+            }
+            activeContext = cachedContext ?: "neutral"
+            Log.d("ChatViewModel", "Preloaded data for user $userId")
+        }
     }
 
-    fun initializeContext(userId: String) {
+    suspend fun hasPreviousConversation(): Boolean = withContext(Dispatchers.IO) {
+        chatRepository.getLastContext(userId) != null
+    }
+
+    fun initializeContext() {
         viewModelScope.launch {
-            val lastContext = chatRepository.getLastContext(userId)
-            activeContext = lastContext ?: "neutral" // Use default if null
+            if (cachedContext == null) {
+                cachedContext = chatRepository.getLastContext(userId)
+            }
+            activeContext = cachedContext ?: "neutral"
             Log.d("ChatViewModel", "Active context initialized: $activeContext")
         }
     }
 
     fun loadPreviousConversation() {
         viewModelScope.launch {
-            // Fetch all messages from the repository
-            val chatHistory = chatRepository.getAllMessages(userId)
-            val newMessageList = chatHistory.map {
-                Message(it.message, it.role)
+            if (cachedChatHistory == null) {
+                val chatHistory = chatRepository.getAllMessages(userId)
+                cachedChatHistory = chatHistory.map { Message(it.message, it.role) }
             }
 
-            // Clear the existing list to avoid duplication
-            messageList.clear()
-
-            // Add only unique messages
-            messageList.addAll(newMessageList.distinct())
-            activeContext = chatRepository.getLastContext(userId)!!
+            _messageList.clear()
+            cachedChatHistory?.let { _messageList.addAll(it) }
+            activeContext = cachedContext ?: "neutral"
         }
     }
 
     fun startNewConversation() {
         viewModelScope.launch {
-            messageList.clear()
-            activeContext =
-                chatRepository.getLastContext(userId)!! // Pass userId to fetch user-specific context
+            _messageList.clear()
+            initializeContext()
 
-            val userName = FirebaseAuth.getInstance().currentUser?.displayName
+            val userName = auth.currentUser?.displayName
             val firstName = userName?.split(" ")?.firstOrNull()
 
-            val greetingMessage = if (activeContext != null) {
+            val greetingMessage = if (activeContext.isNotEmpty()) {
                 "Hi $firstName! Last time we talked about $activeContext. How are you doing now?"
             } else {
                 "Hello $firstName! How can I help you today?"
             }
 
             val botMessage = Message(greetingMessage, "model")
-            messageList.add(botMessage)
+            _messageList.add(botMessage)
             storeMessageInDatabase(botMessage)
         }
     }
@@ -93,12 +101,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun finishConversation(tag: String) {
         viewModelScope.launch {
             activeContext = tag
-            val lastMessage = messageList.lastOrNull() ?: return@launch
+            cachedContext = tag
+
+            val lastMessage = _messageList.lastOrNull() ?: return@launch
             val chatMessage = ChatMessage(
                 message = lastMessage.message,
                 role = lastMessage.role,
                 context = tag,
-                userId = userId // Associate with the current user
+                userId = userId
             )
             chatRepository.insertMessage(chatMessage)
         }
@@ -110,7 +120,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 ChatMessage(
                     message = message.message,
                     role = message.role,
-                    userId = userId // Associate with the current user
+                    userId = userId
                 )
             )
         }
@@ -119,22 +129,37 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun sendMessage(messageText: String, role: String = "user") {
         viewModelScope.launch {
             val message = Message(messageText, role)
-            messageList.add(message)
+            _messageList.add(message)
             storeMessageInDatabase(message)
 
             if (role == "user") {
                 activeContext = analyzeEmotion(messageText)
                 isTyping.value = true
 
-                val response = generativeModel.startChat(history = messageList.map {
-                    content(it.role) { text(it.message) }
-                }).sendMessage(messageText)
+                try {
+                    val recentMessages = _messageList.takeLast(10)
+                    val response = generativeModel.startChat(
+                        history = recentMessages.map {
+                            com.google.ai.client.generativeai.type.content(it.role) {
+                                text(it.message)
+                            }
+                        }
+                    ).sendMessage(messageText)
 
-                isTyping.value = false
+                    isTyping.value = false
 
-                val botMessage = Message(response.text.toString(), "model")
-                messageList.add(botMessage)
-                storeMessageInDatabase(botMessage)
+                    val botMessage = Message(response.text.toString(), "model")
+                    _messageList.add(botMessage)
+                    storeMessageInDatabase(botMessage)
+                } catch (e: Exception) {
+                    Log.e("ChatViewModel", "Error generating response", e)
+                    val errorMessage = Message(
+                        "Sorry, I couldn't process that. Please try again.",
+                        "model"
+                    )
+                    _messageList.add(errorMessage)
+                    storeMessageInDatabase(errorMessage)
+                }
             }
         }
     }
@@ -142,20 +167,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun clearChatHistory() {
         viewModelScope.launch {
             chatRepository.clearChatHistory(userId)
-            messageList.clear()
-            activeContext = ""
+            _messageList.clear()
+            activeContext = "neutral"
+            cachedContext = null
+            cachedChatHistory = null
         }
     }
 
     fun determineGradientColors(): List<Color> {
-        Log.d("GradientSystem", "Active context: $activeContext")
-        return gradientMap[activeContext] ?: run {
-            Log.w(
-                "GradientSystem",
-                "Active context '$activeContext' not found, defaulting to 'neutral'"
-            )
-            gradientMap["neutral"]!!
-        }
+        return preloadedGradients[activeContext] ?: preloadedGradients["neutral"]!!
     }
 }
-

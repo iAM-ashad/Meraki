@@ -3,6 +3,10 @@ package com.iamashad.meraki.navigation
 import androidx.compose.animation.*
 import androidx.compose.animation.core.EaseIn
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -11,7 +15,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -19,11 +26,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -66,7 +76,8 @@ fun MerakiNavigation() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(getResponsiveNavBarHeight())
-                        .background(MaterialTheme.colorScheme.background)
+                        .background(MaterialTheme.colorScheme.background),
+                    contentAlignment = Alignment.BottomCenter
                 ) {
                     BottomNavigationBar(navController)
                 }
@@ -97,7 +108,7 @@ fun MerakiNavigation() {
                 arguments = listOf(navArgument("prompt") { defaultValue = "" })
             ) {
                 val viewModel = hiltViewModel<ChatViewModel>()
-                ChatbotScreen(viewModel, navController)
+                ChatbotScreen(navController, viewModel)
             }
             composable(Screens.MOODTRACKER.name) {
                 val viewModel = hiltViewModel<MoodTrackerViewModel>()
@@ -186,9 +197,9 @@ fun getResponsiveNavBarHeight(): Dp {
 
     return remember(configuration.screenHeightDp) {
         when {
-            configuration.screenHeightDp < 600 -> dimens.paddingSmall * 7
-            configuration.screenHeightDp < 800 -> dimens.paddingSmall * 8
-            else -> dimens.paddingSmall * 9
+            configuration.screenHeightDp < 600 -> dimens.paddingSmall * 8
+            configuration.screenHeightDp < 800 -> dimens.paddingSmall * 10
+            else -> dimens.paddingSmall * 12
         }
     }
 }
@@ -214,27 +225,70 @@ fun BottomNavigationBar(navController: NavController) {
         NavigationItem("Journal", Screens.JOURNAL.name, R.drawable.ic_journal),
         NavigationItem("Insights", Screens.INSIGHTS.name, R.drawable.ic_insights)
     )
+
     val dimens = LocalDimens.current
 
     NavigationBar(
         containerColor = Color.Transparent,
         tonalElevation = dimens.elevation,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
     ) {
         items.forEach { item ->
             val currentDestination = navController.currentBackStackEntry?.destination?.route
             val isSelected = currentDestination == item.route
+            val scale by animateFloatAsState(
+                targetValue = if (isSelected) 1.2f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioHighBouncy,
+                    stiffness = 50f
+                )
+            )
+            val offset by animateDpAsState(
+                targetValue = if (isSelected) (-(dimens.paddingSmall)) else 0.dp,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioHighBouncy,
+                    stiffness = 50f
+                )
+            )
 
             NavigationBarItem(
                 icon = {
-                    Icon(
-                        painter = painterResource(id = item.icon),
-                        contentDescription = item.label,
-                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(
-                            0.8f
-                        ),
-                        modifier = Modifier.scale(0.37f)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(dimens.paddingSmall * 7)
+                            .offset(y = offset)
+                            .clip(CircleShape)
+                            .background(
+                                brush = if (isSelected) {
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.onBackground,
+                                            MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                } else {
+                                    Brush.radialGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color.Transparent
+                                        )
+                                    )
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = item.icon),
+                            contentDescription = item.label,
+                            tint = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground.copy(
+                                0.8f
+                            ),
+                            modifier = Modifier
+                                .scale(scale) // Scale icon only
+                                .padding(dimens.paddingMedium)
+                        )
+                    }
                 },
                 selected = isSelected,
                 onClick = {
@@ -251,11 +305,13 @@ fun BottomNavigationBar(navController: NavController) {
                 },
                 colors = NavigationBarItemDefaults.colors(
                     indicatorColor = Color.Transparent
-                )
+                ),
+                modifier = Modifier.align(Alignment.Bottom)
             )
         }
     }
 }
+
 
 data class NavigationItem(
     val label: String, val route: String, val icon: Int

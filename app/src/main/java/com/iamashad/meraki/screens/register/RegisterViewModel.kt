@@ -28,15 +28,13 @@ class RegisterViewModel @Inject constructor(
 
     fun getGoogleSignInIntent(): Intent {
         val options = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken("920939571800-r94v67gt2pjbjedhrpflhbn8nmi2njsq.apps.googleusercontent.com") // Replace with your actual Web Client ID
+            .requestIdToken("920939571800-r94v67gt2pjbjedhrpflhbn8nmi2njsq.apps.googleusercontent.com")
             .requestEmail()
             .build()
 
-        // Create a new instance of GoogleSignInClient to avoid using cached accounts
         val newGoogleSignInClient =
             GoogleSignIn.getClient(googleSignInClient.applicationContext, options)
 
-        // Sign out first to ensure the account chooser always appears
         newGoogleSignInClient.signOut()
 
         return newGoogleSignInClient.signInIntent
@@ -56,7 +54,8 @@ class RegisterViewModel @Inject constructor(
                 _user.value = firebaseAuth.currentUser
                 onComplete(true)
             } else {
-                _errorMessage.value = task.exception?.localizedMessage ?: "Authentication failed."
+                _errorMessage.value =
+                    task.exception?.localizedMessage ?: "Authentication failed: $errorMessage"
                 onComplete(false)
             }
         }

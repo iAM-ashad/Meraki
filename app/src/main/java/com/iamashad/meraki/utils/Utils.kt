@@ -123,7 +123,7 @@ fun getMoodColor(score: Int): Color {
     }
 }
 
-fun provideGenerativeModel(apiKey: String): GenerativeModel {
+fun provGenerativeModel(apiKey: String): GenerativeModel {
     return GenerativeModel(
         modelName = "gemini-1.5-flash",
         apiKey = apiKey,

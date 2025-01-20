@@ -37,8 +37,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,16 +80,21 @@ fun HomeScreen(
     val screenHeightDp = remember { configuration.screenHeightDp }
 
     val user by homeViewModel.user.collectAsState()
-    val advice by homeViewModel.advice.observeAsState("Loading advice...")
+    val advice by homeViewModel.advice.collectAsState()
     val photoUrl by homeViewModel.photoUrl.collectAsState()
     val lastMoods by moodTrackerViewModel.moodTrend.collectAsState()
     val isLoading by moodTrackerViewModel.loading.collectAsState()
-    val streakCount = remember { mutableIntStateOf(0) }
+    var streakCount by remember { mutableIntStateOf(0) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(user) {
         user?.uid?.let { userId ->
-            homeViewModel.logDailyUsage(userId)
-            streakCount.intValue = homeViewModel.calculateStreak(userId)
+            try {
+                homeViewModel.logDailyUsage(userId)
+                streakCount = homeViewModel.calculateStreak(userId)
+            } catch (e: Exception) {
+                errorMessage = "Failed to calculate streak: ${e.message}"
+            }
         }
     }
 
@@ -125,7 +128,7 @@ fun HomeScreen(
                         userName = user?.displayName ?: "User",
                         onProfileClick = { navController.navigate(Screens.SETTINGS.name) }
                     )
-                    StreakMeterCard(streakCount = streakCount.intValue)
+                    StreakMeterCard(streakCount = streakCount)
                 }
 
                 Spacer(modifier = Modifier.height(dimens.paddingMedium))
@@ -140,8 +143,9 @@ fun HomeScreen(
 
                 Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
-                // Mood Logs or Loading Indicator
+                // Mood Logs or Loading/Error Indicator
                 when {
+                    errorMessage != null -> ErrorMessage(errorMessage!!)
                     isLoading -> LoadingIndicator()
                     lastMoods.isNotEmpty() -> MoodLogsCard(moodLogs = lastMoods.takeLast(7))
                     else -> EmptyMoodLogs()
@@ -158,6 +162,24 @@ fun HomeScreen(
                 MeditateButton(navController)
             }
         }
+    }
+}
+
+@Composable
+fun ErrorMessage(errorMessage: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = errorMessage,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+            )
+        )
     }
 }
 
