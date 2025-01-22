@@ -46,25 +46,22 @@ fun MoodInsightsScreen(
     viewModel: InsightsViewModel = hiltViewModel(),
     navController: NavController
 ) {
-    // Collect StateFlow as state
     val insights by viewModel.moodInsights.collectAsState()
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
     val screenHeight = configuration.screenHeightDp
 
-    var searchQuery by remember { mutableStateOf("") } // Holds the search query entered by the user
+    var searchQuery by remember { mutableStateOf("") }
     val filteredReasons = remember(searchQuery, insights) {
         insights?.reasonsAnalysis
             ?.filterKeys { it.contains(searchQuery, ignoreCase = true) }
             ?.toList() ?: emptyList()
     }
-
-    // Focus and Keyboard Handling
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
-        viewModel.fetchMoodInsights() // Fetch insights when the composable is first composed
+        viewModel.fetchMoodInsights()
     }
 
     ProvideDimens(screenWidth, screenHeight) {
@@ -132,8 +129,10 @@ fun MoodInsightsScreen(
 
                     Text(
                         text = "Key Insights",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = dimens.fontMedium
+                        ),
                         modifier = Modifier.padding(bottom = dimens.paddingSmall)
                     )
 
@@ -164,56 +163,55 @@ fun EmptyInsightsScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(dimens.paddingMedium),
+            .fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Illustration or Icon
         Image(
-            painter = painterResource(id = R.drawable.img_insights), // Replace with your drawable
+            painter = painterResource(id = R.drawable.img_insights),
             contentDescription = "No Insights",
             modifier = Modifier
-                .size(200.dp)
+                .size(dimens.avatarSize)
                 .padding(bottom = dimens.paddingMedium)
         )
 
-        // Motivational Text
         Text(
             text = "No Insights Yet!",
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = dimens.fontLarge
             )
         )
 
-        Spacer(modifier = Modifier.height(dimens.paddingSmall))
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
         Text(
-            text = "Start journaling to track your mood and discover insights about what affects it.",
+            text = "Begin journaling to consistently track your mood and uncover valuable insights into the patterns, triggers, and experiences that influence your emotional well-being",
             style = MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                fontSize = dimens.fontSmall
             ),
             modifier = Modifier.padding(horizontal = dimens.paddingMedium)
         )
 
-        Spacer(modifier = Modifier.height(dimens.paddingLarge))
+        Spacer(modifier = Modifier.height(dimens.paddingLarge * 2))
 
-        // Action Button
         Button(
             onClick = onActionClick,
             shape = RoundedCornerShape(dimens.cornerRadius),
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
             modifier = Modifier
                 .padding(horizontal = dimens.paddingMedium)
-                .height(50.dp)
                 .fillMaxWidth()
         ) {
             Text(
                 text = "Start Journaling",
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontSize = dimens.fontSmall * 1.2,
+                    fontWeight = FontWeight.Bold
                 )
             )
         }
@@ -262,7 +260,7 @@ fun ReasonDetailsCard(
                     Text(
                         text = "'$reason' has a ${if (isPositive) "good" else "bad"} effect on your mood",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = dimens.fontMedium,
+                            fontSize = dimens.fontMedium * .8,
                             color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Bold
                         )
@@ -287,7 +285,8 @@ fun ReasonDetailsCard(
                             else -> "High confidence based on ${deviation.entriesCount} entries."
                         },
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            fontSize = dimens.fontSmall
                         ),
                     )
                 }
@@ -298,12 +297,15 @@ fun ReasonDetailsCard(
                     Text(
                         text = "Suggestions",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = dimens.fontMedium * .7
                         )
                     )
                     Text(
                         text = "Consider journaling about positive experiences after encountering '$reason'.",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = dimens.fontSmall * .8
+                        ),
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                     )
                 }
@@ -335,7 +337,7 @@ fun HighlightsSection(overallMood: Int) {
                 painter = painterResource(R.drawable.img_moodtrack),
                 contentDescription = null,
                 modifier = Modifier
-                    .size(dimens.avatarSize / 5)
+                    .size(dimens.avatarSize / 3)
             )
 
             Spacer(Modifier.width(dimens.paddingSmall / 4))
@@ -344,7 +346,8 @@ fun HighlightsSection(overallMood: Int) {
                 text = "Mood Statistics",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = dimens.fontLarge
                 )
             )
 
@@ -359,7 +362,8 @@ fun HighlightsSection(overallMood: Int) {
                     Text(
                         text = "Overall Mood Score: $overallMood",
                         style = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = dimens.fontMedium * 0.8
                         )
                     )
                     LinearProgressIndicator(
@@ -427,13 +431,15 @@ fun ImpactItem(
                     text = "${moodImpact}%",
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primaryContainer
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        fontSize = dimens.fontSmall * 1.3
                     )
                 )
                 Text(
                     text = "Impact on mood",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .8f)
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .8f),
+                        fontSize = dimens.fontSmall
                     ),
                 )
             }

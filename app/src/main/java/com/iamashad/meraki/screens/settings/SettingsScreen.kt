@@ -26,8 +26,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.GoogleAuthProvider
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.showToast
 import com.iamashad.meraki.navigation.Screens
@@ -167,21 +169,69 @@ fun SettingsScreen(
     }
 
     if (showDeleteDialog) {
-        AlertDialog(onDismissRequest = { showDeleteDialog = false },
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
             confirmButton = {
                 Button(onClick = {
-                    user?.delete()?.addOnCompleteListener { task ->
+                    val googleSignInClient = GoogleSignIn.getClient(
+                        context,
+                        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                            .requestIdToken(context.getString(R.string.default_web_client_id))
+                            .requestEmail()
+                            .build()
+                    )
+
+                    googleSignInClient.silentSignIn().addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            val userId = user.uid
-                            FirebaseFirestore.getInstance().collection("users")
-                                .document(userId)
-                                .delete()
-                            navController.navigate(Screens.REGISTER.name)
+                            val googleAccount = task.result
+                            val idToken = googleAccount?.idToken
+                            if (idToken != null) {
+                                val credential = GoogleAuthProvider.getCredential(idToken, null)
+                                auth.currentUser?.let { user ->
+                                    user.reauthenticate(credential)
+                                        .addOnCompleteListener { reauthTask ->
+                                            if (reauthTask.isSuccessful) {
+                                                user.delete().addOnCompleteListener { deleteTask ->
+                                                    if (deleteTask.isSuccessful) {
+                                                        showToast(
+                                                            context,
+                                                            "Account successfully deleted."
+                                                        )
+                                                        googleSignInClient.signOut()
+                                                        navController.navigate(Screens.REGISTER.name) {
+                                                            popUpTo(Screens.SETTINGS.name) {
+                                                                inclusive = true
+                                                            }
+                                                        }
+                                                    } else {
+                                                        showToast(
+                                                            context,
+                                                            "Failed to delete account: ${deleteTask.exception?.localizedMessage}"
+                                                        )
+                                                    }
+                                                }
+                                            } else {
+                                                showToast(
+                                                    context,
+                                                    "Re-authentication failed: ${reauthTask.exception?.localizedMessage}"
+                                                )
+                                            }
+                                        }
+                                }
+                            } else {
+                                showToast(context, "Failed to retrieve ID token.")
+                            }
+                        } else {
+                            showToast(
+                                context,
+                                "Silent sign-in failed: ${task.exception?.localizedMessage}"
+                            )
                         }
                     }
                 }) {
                     Text("Delete")
                 }
+
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
@@ -189,8 +239,10 @@ fun SettingsScreen(
                 }
             },
             title = { Text("Delete Account") },
-            text = { Text("Are you sure you want to permanently delete your account? This action cannot be undone.") })
+            text = { Text("Are you sure you want to permanently delete your account? This action cannot be undone.") }
+        )
     }
+
     if (showChatDeleteDialog) {
         AlertDialog(onDismissRequest = { showChatDeleteDialog = false },
             confirmButton = {

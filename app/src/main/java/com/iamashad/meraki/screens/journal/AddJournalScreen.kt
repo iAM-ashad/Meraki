@@ -202,6 +202,8 @@ fun EmotionSelectionSheet(
             ) {
                 OutlinedTextField(
                     value = searchQuery,
+                    shape = RoundedCornerShape(dimens.cornerRadius),
+                    colors = OutlinedTextFieldDefaults.colors(),
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search emotions") },
                     leadingIcon = {

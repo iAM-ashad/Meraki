@@ -24,11 +24,11 @@ val SmallScreenDimens = Dimens(
     paddingSmall = 6.dp,
     paddingMedium = 12.dp,
     paddingLarge = 18.dp,
-    fontSmall = 8.sp,
-    fontMedium = 12.sp,
-    fontLarge = 16.sp,
+    fontSmall = 12.sp,
+    fontMedium = 18.sp,
+    fontLarge = 24.sp,
     cornerRadius = 18.dp,
-    avatarSize = 250.dp,
+    avatarSize = 175.dp,
     elevation = 6.dp
 )
 
@@ -36,23 +36,23 @@ val MediumScreenDimens = Dimens(
     paddingSmall = 8.dp,
     paddingMedium = 16.dp,
     paddingLarge = 24.dp,
-    fontSmall = 12.sp,
-    fontMedium = 18.sp,
-    fontLarge = 24.sp,
+    fontSmall = 16.sp,
+    fontMedium = 24.sp,
+    fontLarge = 32.sp,
     cornerRadius = 24.dp,
-    avatarSize = 300.dp,
+    avatarSize = 225.dp,
     elevation = 8.dp
 )
 
 val LargeScreenDimens = Dimens(
     paddingSmall = 12.dp,
     paddingMedium = 20.dp,
-    paddingLarge = 32.dp,
-    fontSmall = 16.sp,
-    fontMedium = 20.sp,
-    fontLarge = 28.sp,
+    paddingLarge = 28.dp,
+    fontSmall = 20.sp,
+    fontMedium = 28.sp,
+    fontLarge = 36.sp,
     cornerRadius = 32.dp,
-    avatarSize = 350.dp,
+    avatarSize = 300.dp,
     elevation = 12.dp
 )
 
@@ -61,8 +61,8 @@ val LocalDimens = staticCompositionLocalOf { MediumScreenDimens }
 @Composable
 fun ProvideDimens(screenWidthDp: Int, screenHeightDp: Int, content: @Composable () -> Unit) {
     val dimens = when {
-        screenWidthDp < 360 || screenHeightDp < 600 -> SmallScreenDimens
-        screenWidthDp < 720 || screenHeightDp < 800 -> MediumScreenDimens
+        screenWidthDp < 300 || screenHeightDp < 720 -> SmallScreenDimens
+        screenWidthDp < 720 || screenHeightDp < 850 -> MediumScreenDimens
         else -> LargeScreenDimens
     }
 

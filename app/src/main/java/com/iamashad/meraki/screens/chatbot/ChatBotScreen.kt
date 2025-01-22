@@ -28,13 +28,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.ConnectivityObserver
 import com.iamashad.meraki.model.Message
@@ -45,12 +45,12 @@ import com.iamashad.meraki.utils.ProvideDimens
 
 @Composable
 fun ChatbotScreen(
+    viewModel: ChatViewModel,
     navController: NavController,
-    viewModel: ChatViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val isConnected = ConnectivityStatus(context)
-    val chatMessages = viewModel.messageList
+    val chatMessages = remember { viewModel.messageList }
     val isTyping by viewModel.isTyping
     val gradientColors = viewModel.determineGradientColors()
 
@@ -61,7 +61,7 @@ fun ChatbotScreen(
         ).value
     }
     val animatedGradient = Brush.verticalGradient(colors = animatedColors)
-
+    val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
     val dimens = LocalDimens.current
     val screenWidth = LocalConfiguration.current.screenWidthDp
     val screenHeight = LocalConfiguration.current.screenHeightDp
@@ -69,7 +69,7 @@ fun ChatbotScreen(
     var hasPreviousConversation by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         hasPreviousConversation = viewModel.hasPreviousConversation()
-        viewModel.initializeContext()
+        viewModel.initializeContext(userId)
     }
 
     ConnectivityObserver(connectivityStatus = isConnected) {
@@ -115,7 +115,6 @@ fun ChatbotScreen(
     }
 }
 
-
 @Composable
 fun ContinueConversationButton(onClick: () -> Unit) {
     val dimens = LocalDimens.current
@@ -125,12 +124,14 @@ fun ContinueConversationButton(onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary
-        ),
-        modifier = Modifier.padding(dimens.paddingMedium)
+        )
     ) {
         Text(
             text = "Continue Last Conversation",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+            style = MaterialTheme.typography.bodyLarge.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = dimens.fontSmall
+            )
         )
     }
 }
@@ -171,7 +172,7 @@ fun ChatHeader() {
         LottieAnimation(
             composition = lottieComposition.value,
             progress = { lottieProgress },
-            modifier = Modifier.size(100.dp)
+            modifier = Modifier.size((dimens.avatarSize/2) * 1)
         )
         Spacer(modifier = Modifier.width(dimens.paddingSmall))
         Column {
@@ -179,8 +180,8 @@ fun ChatHeader() {
                 text = "MERAKI ASSISTANT",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     letterSpacing = 2.sp,
-                    fontSize = dimens.fontLarge,
-                    fontWeight = FontWeight.Bold
+                    fontSize = dimens.fontMedium,
+                    fontWeight = FontWeight.Bold,
                 ),
                 color = MaterialTheme.colorScheme.surface
             )
@@ -194,7 +195,10 @@ fun ChatHeader() {
 }
 
 @Composable
-fun NewConversationScreen(viewModel: ChatViewModel, hasPreviousConversation: Boolean) {
+fun NewConversationScreen(
+    viewModel: ChatViewModel,
+    hasPreviousConversation: Boolean
+) {
     val dimens = LocalDimens.current
     val gradientBackground = Brush.verticalGradient(
         colors = listOf(
@@ -216,7 +220,7 @@ fun NewConversationScreen(viewModel: ChatViewModel, hasPreviousConversation: Boo
         ) {
             AnimatedAvatar(modifier = Modifier.size(dimens.avatarSize))
 
-            Spacer(modifier = Modifier.padding(vertical = dimens.paddingSmall))
+            Spacer(modifier = Modifier.padding(vertical = dimens.paddingLarge))
 
             Box(
                 modifier = Modifier
@@ -242,22 +246,26 @@ fun NewConversationScreen(viewModel: ChatViewModel, hasPreviousConversation: Boo
                             color = MaterialTheme.colorScheme.onSurface,
                         ),
                         modifier = Modifier.padding(
-                            top = dimens.paddingLarge,
-                            bottom = dimens.paddingSmall / 2
+                            top = dimens.paddingLarge * 2,
+                            bottom = dimens.paddingMedium
                         )
                     )
                     Text(
                         text = "This is your safe space to express.",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = dimens.fontMedium,
+                            fontSize = dimens.fontSmall * 1.2,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                         ),
-                        modifier = Modifier.padding(bottom = dimens.paddingLarge * 2)
+                        modifier = Modifier.padding(bottom = dimens.paddingLarge)
                     )
                     Text(
                         text = "Tap below to start a conversation :)",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontSize = dimens.fontSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        ),
+                        modifier = Modifier
+                            .padding(bottom = dimens.paddingMedium)
                     )
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -266,12 +274,11 @@ fun NewConversationScreen(viewModel: ChatViewModel, hasPreviousConversation: Boo
                         ContinueConversationButton(
                             onClick = { viewModel.loadPreviousConversation() }
                         )
-                        Spacer(modifier = Modifier.height(dimens.paddingSmall))
                     }
 
                     StartConversationButton(onClick = { viewModel.startNewConversation() })
                 }
-                Spacer(Modifier.padding(bottom = dimens.paddingLarge))
+                Spacer(Modifier.padding(bottom = dimens.paddingLarge * 2))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -279,7 +286,7 @@ fun NewConversationScreen(viewModel: ChatViewModel, hasPreviousConversation: Boo
                         .background(Color.Transparent)
                         .padding(dimens.paddingMedium)
                         .clip(RoundedCornerShape(dimens.cornerRadius / 2)),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.BottomCenter
                 ) {
                     ConfidentialityFooter()
                 }
@@ -299,19 +306,23 @@ fun StartConversationButton(onClick: () -> Unit) {
     val lottieProgress by animateLottieCompositionAsState(
         composition = lottieComposition, iterations = LottieConstants.IterateForever
     )
+    val dimens = LocalDimens.current
 
     Box(
-        modifier = Modifier.background(Color.Transparent),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent),
         contentAlignment = Alignment.Center
     ) {
         LottieAnimation(composition = lottieComposition,
             progress = { lottieProgress },
             modifier = Modifier
-                .fillMaxSize()
+                .size((dimens.avatarSize))
                 .clip(CircleShape)
                 .clickable {
                     onClick.invoke()
-                })
+                }
+        )
     }
 }
 
@@ -359,11 +370,12 @@ fun ConfidentialityFooter(
             tint = MaterialTheme.colorScheme.surface,
             modifier = Modifier.size(dimens.avatarSize / 10)
         )
-        Spacer(modifier = Modifier.width(dimens.paddingMedium))
+        Spacer(modifier = Modifier.width(dimens.paddingSmall))
         Text(
             text = "Your conversations are private and secure.",
             style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = dimens.fontSmall
             ),
             color = MaterialTheme.colorScheme.surface.copy(.7f),
         )
@@ -373,13 +385,17 @@ fun ConfidentialityFooter(
         AlertDialog(onDismissRequest = { showDialog = false }, title = {
             Text(
                 text = "Privacy Assurance",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = dimens.fontMedium
+                ),
                 color = MaterialTheme.colorScheme.onSurface
             )
         }, text = {
             Text(
                 text = "All your conversations are stored securely on your device and are not uploaded to the cloud. You have complete control over your data.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = dimens.fontSmall
+                ),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
             )
         }, confirmButton = {
@@ -392,7 +408,8 @@ fun ConfidentialityFooter(
                 )
             ) {
                 Text(
-                    "Got it!"
+                    "Got it!",
+                    fontSize = dimens.fontMedium * 0.7
                 )
             }
         })
@@ -427,7 +444,12 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                     OutlinedTextField(
                         value = conversationTag,
                         onValueChange = { conversationTag = it },
-                        placeholder = { Text("What was this conversation about?") },
+                        placeholder = {
+                            Text(
+                                "What was this conversation about?",
+                                fontSize = dimens.fontSmall
+                            )
+                        },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(dimens.cornerRadius)
@@ -442,13 +464,17 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                             showPopup = false
                         }
                     },
+                    elevation = ButtonDefaults.buttonElevation(dimens.elevation),
                     shape = RoundedCornerShape(dimens.cornerRadius),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 ) {
-                    Text("Save")
+                    Text(
+                        "Save",
+                        fontSize = dimens.fontSmall
+                    )
                 }
             },
             dismissButton = {
@@ -459,9 +485,12 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer
                     ),
-                    elevation = ButtonDefaults.buttonElevation(8.dp)
+                    elevation = ButtonDefaults.buttonElevation(dimens.elevation)
                 ) {
-                    Text("Cancel")
+                    Text(
+                        "Cancel",
+                        fontSize = dimens.fontSmall
+                    )
                 }
             },
             containerColor = MaterialTheme.colorScheme.background,
@@ -475,9 +504,13 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface
-        )
+        ),
+        elevation = ButtonDefaults.buttonElevation(dimens.elevation)
     ) {
-        Text("Finish")
+        Text(
+            "Finish",
+            fontSize = dimens.fontSmall
+        )
     }
 }
 
@@ -496,7 +529,7 @@ fun TypingIndicator() {
         LottieAnimation(
             composition = lottieComposition,
             progress = { lottieProgress },
-            modifier = Modifier.size(dimens.avatarSize / 3)
+            modifier = Modifier.size((dimens.avatarSize / 3) * 2)
         )
     }
 }
@@ -528,8 +561,8 @@ fun MessageRow(message: Message) {
     ) {
         Box(
             modifier = Modifier
-                .wrapContentWidth(unbounded = true) // Allow the box to shrink to fit the text
-                .widthIn(max = dimens.paddingLarge * 12) // Constrain max width
+                .wrapContentWidth(unbounded = true)
+                .widthIn(max = dimens.paddingLarge * 12)
                 .clip(
                     if (isModel) RoundedCornerShape(
                         bottomStart = dimens.cornerRadius,
@@ -553,9 +586,11 @@ fun MessageRow(message: Message) {
             SelectionContainer {
                 Text(
                     text = message.message,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Start
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Start,
+                        fontSize = dimens.fontSmall
+                    ),
                 )
             }
         }
@@ -578,7 +613,12 @@ fun MessageInput(onMessageSend: (String) -> Unit) {
         OutlinedTextField(
             value = message,
             onValueChange = { message = it },
-            placeholder = { Text("Type a message...") },
+            placeholder = {
+                Text(
+                    "Type a message...",
+                    fontSize = dimens.fontSmall
+                )
+            },
             modifier = Modifier
                 .weight(1f)
                 .heightIn(min = dimens.paddingLarge * 2, max = dimens.paddingLarge * 5),

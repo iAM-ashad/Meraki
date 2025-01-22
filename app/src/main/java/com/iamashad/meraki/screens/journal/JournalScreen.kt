@@ -3,6 +3,7 @@ package com.iamashad.meraki.screens.journal
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -193,24 +194,31 @@ fun HeaderCard() {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.padding(dimens.paddingMedium)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(dimens.paddingMedium / 2)
         ) {
             Column {
                 Text(
                     text = "Capture Your Thoughts",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = dimens.fontMedium
+                    ),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = "Write down your reflections and insights.",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = dimens.fontSmall
+                    ),
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                 )
             }
             Image(
                 painter = painterResource(id = R.drawable.ic_journalscreen),
                 contentDescription = null,
-                modifier = Modifier.size(dimens.avatarSize / 5)
+                modifier = Modifier.size(dimens.avatarSize / 3)
             )
         }
     }
@@ -222,31 +230,36 @@ fun EmptyJournalList() {
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(dimens.paddingMedium),
-        verticalArrangement = Arrangement.Center,
+            .fillMaxSize(),
+        verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Image(
             painter = painterResource(id = R.drawable.img_journal),
             contentDescription = "No Journals",
-            modifier = Modifier.size((dimens.avatarSize / 3) * 2)
+            modifier = Modifier.size((dimens.avatarSize))
         )
+
         Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
         Text(
             text = "Start Your Journaling Journey!",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontSize = dimens.fontMedium,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
+            )
         )
-        Spacer(modifier = Modifier.height(dimens.paddingLarge))
+
+        Spacer(modifier = Modifier.height(dimens.paddingSmall / 2))
 
         Text(
             text = "Tap the plus icon below to write your first entry now!",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center
+            style = MaterialTheme.typography.titleMedium.copy(
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                fontSize = dimens.fontSmall
+            )
         )
     }
 }

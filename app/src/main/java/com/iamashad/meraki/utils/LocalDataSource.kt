@@ -189,6 +189,15 @@ fun getTipForMood(mood: String): String {
     return moodTips[mood] ?: "Take some time to care for yourself."
 }
 
+val daysOfWeek = listOf(
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+    "Sun"
+)
 
 
 

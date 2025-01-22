@@ -15,8 +15,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.LottieAnimation
@@ -81,26 +79,23 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = dimens.fontLarge
+                            fontSize = dimens.fontLarge * 1.5
                         ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = dimens.paddingMedium * 2)
                     )
-
-                    Spacer(modifier = Modifier.height(dimens.paddingSmall / 4))
-
                     Text(
                         text = """"Essence of Yourself"""",
                         style = MaterialTheme.typography.headlineSmall.copy(
                             color = MaterialTheme.colorScheme.onBackground.copy(.8f),
-                            fontSize = 16.sp
+                            fontSize = dimens.fontSmall * 1.5
                         ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
-                            .padding(top = 16.dp)
+                            .padding(top = dimens.paddingSmall / 2)
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(dimens.paddingMedium * 2))
 
                     Box(
                         modifier = Modifier, contentAlignment = Alignment.Center
@@ -108,27 +103,26 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         LottieAnimation(
                             composition = composition,
                             progress = { progress },
-                            modifier = Modifier.size(200.dp)
+                            modifier = Modifier.size((dimens.avatarSize / 3) * 2)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(64.dp))
+                    Spacer(modifier = Modifier.height(dimens.paddingLarge * 2))
 
                     Text(
                         text = "Your journey to emotional well-being starts here.",
                         style = MaterialTheme.typography.bodyLarge.copy(
                             color = MaterialTheme.colorScheme.onBackground
                         ),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 8.dp)
+                        textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(dimens.paddingMedium * 2))
 
                     Button(
                         onClick = { navController.navigate(Screens.ONBOARDING.name) },
                         modifier = Modifier
-                            .padding(8.dp),
+                            .padding(dimens.paddingSmall),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
@@ -139,9 +133,8 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
-                    // Existing User Login
                     TextButton(onClick = {
                         val signInIntent = viewModel.getGoogleSignInIntent()
                         launcher.launch(signInIntent)

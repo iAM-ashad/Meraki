@@ -17,13 +17,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,7 +30,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -62,119 +59,127 @@ import com.iamashad.meraki.screens.register.RegisterViewModel
 import com.iamashad.meraki.screens.settings.SettingsScreen
 import com.iamashad.meraki.screens.splash.SplashScreen
 import com.iamashad.meraki.utils.LocalDimens
+import com.iamashad.meraki.utils.ProvideDimens
 
 @Composable
 fun MerakiNavigation() {
     val navController = rememberNavController()
     val currentDestination by navController.currentBackStackEntryFlow.collectAsState(initial = null)
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val screenHeight = configuration.screenHeightDp
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            if (shouldShowBottomBar(currentDestination?.destination?.route)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(getResponsiveNavBarHeight())
-                        .background(MaterialTheme.colorScheme.background),
-                    contentAlignment = Alignment.BottomCenter
-                ) {
-                    BottomNavigationBar(navController)
+    ProvideDimens(screenWidth, screenHeight) {
+        val dimens = LocalDimens.current
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            bottomBar = {
+                if (shouldShowBottomBar(currentDestination?.destination?.route)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(dimens.paddingSmall * 10)
+                            .background(MaterialTheme.colorScheme.background),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        BottomNavigationBar(navController)
+                    }
                 }
             }
-        }
-    ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = Screens.SPLASH.name,
-            enterTransition = { fadeInAnimation() },
-            exitTransition = { fadeOutAnimation() },
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            composable(Screens.SPLASH.name) { SplashScreen(navController) }
-            composable(Screens.HOME.name) { HomeScreen(navController) }
-            composable(Screens.REGISTER.name) { RegisterScreen(navController) }
-            composable(Screens.ABOUT.name) { AboutScreen(navController) }
-            composable(Screens.INSIGHTS.name) {
-                val viewModel = hiltViewModel<InsightsViewModel>()
-                MoodInsightsScreen(viewModel, navController)
-            }
-            composable(Screens.ONBOARDING.name) {
-                val viewModel = hiltViewModel<RegisterViewModel>()
-                OnBoardingScreen(navController, viewModel)
-            }
-            composable(
-                route = "${Screens.CHATBOT.name}/{prompt}",
-                arguments = listOf(navArgument("prompt") { defaultValue = "" })
+        ) { paddingValues ->
+            NavHost(
+                navController = navController,
+                startDestination = Screens.INSIGHTS.name,
+                enterTransition = { fadeInAnimation() },
+                exitTransition = { fadeOutAnimation() },
+                modifier = Modifier.padding(paddingValues)
             ) {
-                val viewModel = hiltViewModel<ChatViewModel>()
-                ChatbotScreen(navController, viewModel)
-            }
-            composable(Screens.MOODTRACKER.name) {
-                val viewModel = hiltViewModel<MoodTrackerViewModel>()
-                MoodTrackerScreen(onMoodLogged = { viewModel.fetchMoodTrend() })
-            }
-            composable(Screens.SETTINGS.name) {
-                val viewModel = hiltViewModel<ChatViewModel>()
-                SettingsScreen(navController, viewModel)
-            }
-            composable(Screens.BREATHING.name) {
-                BreathingScreen(navController)
-            }
-            composable(
-                route = "${Screens.ADDJOURNAL.name}/{journalId}",
-                arguments = listOf(navArgument("journalId") { defaultValue = "" })
-            ) { backStackEntry ->
-                val journalId = backStackEntry.arguments?.getString("journalId").orEmpty()
-                val viewModel = hiltViewModel<JournalViewModel>()
-                AddJournalScreen(
-                    viewModel = viewModel,
-                    userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty(),
-                    journalId = journalId,
-                    onClose = { navController.popBackStack() },
-                    onSave = { navController.popBackStack() }
-                )
-            }
-            composable(Screens.JOURNAL.name) {
-                val viewModel = hiltViewModel<JournalViewModel>()
-                JournalScreen(
-                    viewModel = viewModel,
-                    onAddJournalClick = {
-                        val newJournalId =
-                            FirebaseFirestore.getInstance().collection("journals").document().id
-                        navController.navigate("${Screens.ADDJOURNAL.name}/$newJournalId")
-                    },
-                    onViewJournalClick = { journal ->
-                        navController.navigate("${Screens.VIEWJOURNAL.name}/${journal.journalId}")
-                    }
-                )
-            }
-            composable(
-                route = "${Screens.VIEWJOURNAL.name}/{journalId}",
-                arguments = listOf(navArgument("journalId") { defaultValue = "" })
-            ) { backStackEntry ->
-                val journalId = backStackEntry.arguments?.getString("journalId").orEmpty()
-                val viewModel = hiltViewModel<JournalViewModel>()
+                composable(Screens.SPLASH.name) { SplashScreen(navController) }
+                composable(Screens.HOME.name) { HomeScreen(navController) }
+                composable(Screens.REGISTER.name) { RegisterScreen(navController) }
+                composable(Screens.ABOUT.name) { AboutScreen(navController) }
+                composable(Screens.INSIGHTS.name) {
+                    val viewModel = hiltViewModel<InsightsViewModel>()
+                    MoodInsightsScreen(viewModel, navController)
+                }
+                composable(Screens.ONBOARDING.name) {
+                    val viewModel = hiltViewModel<RegisterViewModel>()
+                    OnBoardingScreen(navController, viewModel)
+                }
+                composable(
+                    route = "${Screens.CHATBOT.name}/{prompt}",
+                    arguments = listOf(navArgument("prompt") { defaultValue = "" })
+                ) {
+                    val viewModel = hiltViewModel<ChatViewModel>()
+                    ChatbotScreen(viewModel, navController)
+                }
+                composable(Screens.MOODTRACKER.name) {
+                    val viewModel = hiltViewModel<MoodTrackerViewModel>()
+                    MoodTrackerScreen(onMoodLogged = { viewModel.fetchMoodTrend() })
+                }
+                composable(Screens.SETTINGS.name) {
+                    val viewModel = hiltViewModel<ChatViewModel>()
+                    SettingsScreen(navController, viewModel)
+                }
+                composable(Screens.BREATHING.name) {
+                    BreathingScreen(navController)
+                }
+                composable(
+                    route = "${Screens.ADDJOURNAL.name}/{journalId}",
+                    arguments = listOf(navArgument("journalId") { defaultValue = "" })
+                ) { backStackEntry ->
+                    val journalId = backStackEntry.arguments?.getString("journalId").orEmpty()
+                    val viewModel = hiltViewModel<JournalViewModel>()
+                    AddJournalScreen(
+                        viewModel = viewModel,
+                        userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty(),
+                        journalId = journalId,
+                        onClose = { navController.popBackStack() },
+                        onSave = { navController.popBackStack() }
+                    )
+                }
+                composable(Screens.JOURNAL.name) {
+                    val viewModel = hiltViewModel<JournalViewModel>()
+                    JournalScreen(
+                        viewModel = viewModel,
+                        onAddJournalClick = {
+                            val newJournalId =
+                                FirebaseFirestore.getInstance().collection("journals").document().id
+                            navController.navigate("${Screens.ADDJOURNAL.name}/$newJournalId")
+                        },
+                        onViewJournalClick = { journal ->
+                            navController.navigate("${Screens.VIEWJOURNAL.name}/${journal.journalId}")
+                        }
+                    )
+                }
+                composable(
+                    route = "${Screens.VIEWJOURNAL.name}/{journalId}",
+                    arguments = listOf(navArgument("journalId") { defaultValue = "" })
+                ) { backStackEntry ->
+                    val journalId = backStackEntry.arguments?.getString("journalId").orEmpty()
+                    val viewModel = hiltViewModel<JournalViewModel>()
 
-                val journals by viewModel.journals.collectAsState()
-                val searchResults by viewModel.searchResults.collectAsState()
-                val isSearching by viewModel.isSearching.collectAsState()
+                    val journals by viewModel.journals.collectAsState()
+                    val searchResults by viewModel.searchResults.collectAsState()
+                    val isSearching by viewModel.isSearching.collectAsState()
 
-                val displayedJournals = if (isSearching) searchResults else journals
-                val journal = displayedJournals.find { it.journalId == journalId }
+                    val displayedJournals = if (isSearching) searchResults else journals
+                    val journal = displayedJournals.find { it.journalId == journalId }
 
-                if (journal != null) {
-                    ViewJournalScreen(journal = journal)
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Loading or Journal not found.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
+                    if (journal != null) {
+                        ViewJournalScreen(journal = journal)
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "Loading or Journal not found.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
                     }
                 }
             }
@@ -190,20 +195,6 @@ fun fadeOutAnimation(): ExitTransition {
     return fadeOut(animationSpec = tween(600, easing = LinearEasing))
 }
 
-@Composable
-fun getResponsiveNavBarHeight(): Dp {
-    val configuration = LocalConfiguration.current
-    val dimens = LocalDimens.current
-
-    return remember(configuration.screenHeightDp) {
-        when {
-            configuration.screenHeightDp < 600 -> dimens.paddingSmall * 8
-            configuration.screenHeightDp < 800 -> dimens.paddingSmall * 10
-            else -> dimens.paddingSmall * 12
-        }
-    }
-}
-
 
 @Composable
 fun shouldShowBottomBar(currentDestination: String?): Boolean {
@@ -217,7 +208,9 @@ fun shouldShowBottomBar(currentDestination: String?): Boolean {
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavController) {
+fun BottomNavigationBar(
+    navController: NavController
+) {
     val items = listOf(
         NavigationItem("Health", Screens.MOODTRACKER.name, R.drawable.ic_moodtracker),
         NavigationItem("Chatbot", "${Screens.CHATBOT.name}/Hi", R.drawable.ic_chat),
@@ -238,14 +231,14 @@ fun BottomNavigationBar(navController: NavController) {
             val currentDestination = navController.currentBackStackEntry?.destination?.route
             val isSelected = currentDestination == item.route
             val scale by animateFloatAsState(
-                targetValue = if (isSelected) 1.2f else 1f,
+                targetValue = if (isSelected) 1f else 0.7f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioHighBouncy,
                     stiffness = 50f
                 )
             )
             val offset by animateDpAsState(
-                targetValue = if (isSelected) (-(dimens.paddingSmall)) else 0.dp,
+                targetValue = if (isSelected) (-(5.dp)) else 0.dp,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioHighBouncy,
                     stiffness = 50f
@@ -256,7 +249,7 @@ fun BottomNavigationBar(navController: NavController) {
                 icon = {
                     Box(
                         modifier = Modifier
-                            .size(dimens.paddingSmall * 7)
+                            .padding(top = dimens.paddingSmall)
                             .offset(y = offset)
                             .clip(CircleShape)
                             .background(
@@ -285,7 +278,7 @@ fun BottomNavigationBar(navController: NavController) {
                                 0.8f
                             ),
                             modifier = Modifier
-                                .scale(scale) // Scale icon only
+                                .scale(scale)
                                 .padding(dimens.paddingMedium)
                         )
                     }

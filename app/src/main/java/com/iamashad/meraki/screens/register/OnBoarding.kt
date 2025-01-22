@@ -2,6 +2,12 @@ package com.iamashad.meraki.screens.register
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
@@ -13,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -24,6 +31,7 @@ import com.google.accompanist.pager.*
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.showToast
+import com.iamashad.meraki.utils.LocalDimens
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPagerApi::class)
@@ -34,26 +42,26 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
     val context = LocalContext.current
     val pages = listOf(
         OnboardingPage(
-            title = "Welcome to Meraki",
-            subtitle = "Your journey to emotional well-being starts here.",
+            title = "Meraki - Your Safe Haven",
+            subtitle = "This is a place where your thoughts are safe, your feelings are valid, and your journey to self-healing begins. Let's walk this path together.",
             animation = R.raw.lottie_onb1,
             iterations = LottieConstants.IterateForever
         ),
         OnboardingPage(
-            title = "Track Your Mood",
-            subtitle = "Monitor your emotions and gain insights into your mental health.",
+            title = "Understand Your Emotions",
+            subtitle = "Every feeling matters. Discover patterns in your emotions, gain clarity, and learn how to navigate life's ups and downs with ease.",
             animation = R.raw.lottie_onb2,
             iterations = 1
         ),
         OnboardingPage(
-            title = "Make Journals",
-            subtitle = "Record your thoughts and reflect on your day.",
+            title = "Write Your Heart Out",
+            subtitle = "Your story is worth telling. Reflect on your days, untangle your thoughts, and find peace through the power of your own words.",
             animation = R.raw.lottie_onb3,
             iterations = LottieConstants.IterateForever
         ),
         OnboardingPage(
-            title = "Ready to Begin?",
-            subtitle = "Take the first step towards a healthier, happier you.",
+            title = "Your Journey Starts Today",
+            subtitle = "Step into a world of self-discovery and transformation. You deserve a life filled with joy, clarity, and strength.",
             animation = R.raw.lottie_onb4,
             iterations = LottieConstants.IterateForever
         )
@@ -84,7 +92,20 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
             state = pagerState,
             modifier = Modifier.weight(1f)
         ) { page ->
-            OnboardingContent(pages[page], pages[page].iterations)
+            val pageOffset = pagerState.currentPageOffset
+            val scale = 1f - 0.1f * kotlin.math.abs(pageOffset)
+            val alpha = 1f - 0.3f * kotlin.math.abs(pageOffset)
+
+            OnboardingContent(
+                page = pages[page],
+                iterations = pages[page].iterations,
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        this.alpha = alpha
+                    }
+            )
         }
 
         HorizontalPagerIndicator(
@@ -92,6 +113,15 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
             activeColor = MaterialTheme.colorScheme.primary,
             inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
             modifier = Modifier.padding(16.dp)
+        )
+
+        val pulseScale by rememberInfiniteTransition().animateFloat(
+            initialValue = 1f,
+            targetValue = 1.1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 500, easing = EaseInOut),
+                repeatMode = RepeatMode.Reverse
+            )
         )
 
         Button(
@@ -108,7 +138,11 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
                 }
             },
             modifier = Modifier
-                .padding(16.dp),
+                .padding(16.dp)
+                .graphicsLayer {
+                    scaleX = pulseScale
+                    scaleY = pulseScale
+                },
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             )
@@ -123,12 +157,16 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
 
 @Composable
 fun OnboardingContent(
-    page: OnboardingPage, iterations: Int
+    page: OnboardingPage,
+    iterations: Int,
+    modifier: Modifier = Modifier
 ) {
+    val dimens = LocalDimens.current
+
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(dimens.paddingMedium),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -137,18 +175,18 @@ fun OnboardingContent(
             composition, iterations = iterations
         )
 
-        Box(modifier = Modifier.size(250.dp)) {
+        Box(modifier = Modifier.size(dimens.avatarSize)) {
             LottieAnimation(composition = composition, progress = { progress })
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
         Text(
             text = page.title, style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
             )
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
         Text(
             text = page.subtitle,
             style = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
@@ -157,6 +195,7 @@ fun OnboardingContent(
         )
     }
 }
+
 
 data class OnboardingPage(
     val title: String, val subtitle: String, val animation: Int, val iterations: Int

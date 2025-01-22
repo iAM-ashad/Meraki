@@ -185,18 +185,18 @@ fun MoodTrackerScreen(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 200.dp, max = 400.dp)
+                    .heightIn(min = dimens.paddingMedium * 12, max = dimens.paddingMedium * 26)
                     .align(Alignment.BottomCenter),
                 shape = RoundedCornerShape(
-                    topStart = dimens.cornerRadius,
-                    topEnd = dimens.cornerRadius
+                    topStart = dimens.cornerRadius * 2,
+                    topEnd = dimens.cornerRadius * 2
                 ),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
+                        .padding(dimens.paddingMedium),
                     contentPadding = PaddingValues(vertical = dimens.paddingMedium)
                 ) {
                     item {
@@ -234,11 +234,12 @@ fun ToggleButtonBar(
     onOptionSelected: (String) -> Unit
 ) {
     val dimens = LocalDimens.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = dimens.paddingMedium),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.Center
     ) {
         options.forEach { option ->
             Button(
@@ -270,10 +271,18 @@ fun ToggleButtonBar(
                     if (isSelected) {
                         Text(
                             text = option,
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = dimens.fontSmall
+                            )
                         )
                     } else {
-                        Text(text = option, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            text = option,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = dimens.fontSmall
+                            )
+                        )
                     }
                 }
             }
@@ -302,7 +311,9 @@ fun MoodSelectionBar(
         ) {
             Text(
                 text = "Rate your mood by rotating the slider",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontSize = dimens.fontMedium
+                ),
                 color = MaterialTheme.colorScheme.onSurface
             )
 
@@ -314,7 +325,10 @@ fun MoodSelectionBar(
 
             Text(
                 text = "Mood: ${getMoodLabel(moodScore.toInt())}",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = dimens.fontSmall
+                ),
                 color = MaterialTheme.colorScheme.onBackground
             )
 
@@ -327,7 +341,7 @@ fun MoodSelectionBar(
                     showToast(context = context, "Mood Logged")
                 },
                 modifier = Modifier
-                    .padding(horizontal = dimens.paddingLarge),
+                    .padding(horizontal = dimens.paddingLarge / 2),
                 shape = RoundedCornerShape(dimens.cornerRadius),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -336,7 +350,10 @@ fun MoodSelectionBar(
             ) {
                 Text(
                     text = "Log Mood",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = dimens.fontSmall
+                    )
                 )
             }
         }
@@ -370,7 +387,7 @@ fun CircularMoodSelector(
 
     Box(contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(dimens.avatarSize / 2)
+            .size((dimens.avatarSize / 5) * 3)
             .padding(dimens.paddingMedium)
             .pointerInput(Unit) {
                 detectDragGestures { change, _ ->
@@ -434,16 +451,20 @@ fun EmptyMoodTrend() {
     ) {
         Text(
             text = "No mood trend available yet.",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
+            style = MaterialTheme.typography.headlineMedium.copy(
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                fontSize = dimens.fontLarge
+            )
         )
         Spacer(modifier = Modifier.height(dimens.paddingSmall))
         Text(
             text = "Log your mood regularly to see insightful trends here.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
+                fontSize = dimens.fontSmall
+            )
         )
     }
     Box(
