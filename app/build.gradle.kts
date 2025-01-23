@@ -106,6 +106,13 @@ dependencies {
     implementation ("androidx.work:work-runtime-ktx:2.10.0")
     // DataStore
     implementation ("androidx.datastore:datastore-preferences:1.1.2")
+    // WindowSizeClass API
+    implementation("androidx.compose.material3:material3-window-size-class:1.3.1")
+    // Adaptive Layout
+    implementation("androidx.compose.material3.adaptive:adaptive:1.1.0-alpha09")
+    implementation ("androidx.compose.material3.adaptive:adaptive-layout:1.1.0-alpha09")
+    implementation ("androidx.compose.material3.adaptive:adaptive-navigation:1.1.0-alpha09")
+
 
 
 

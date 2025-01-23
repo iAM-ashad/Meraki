@@ -18,34 +18,27 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.iamashad.meraki.components.EmotionChip
 import com.iamashad.meraki.components.ReasonChip
 import com.iamashad.meraki.components.SheetLayout
 import com.iamashad.meraki.model.Journal
-import com.iamashad.meraki.utils.LoadImageWithGlide
-import com.iamashad.meraki.utils.LocalDimens
-import com.iamashad.meraki.utils.ProvideDimens
-import com.iamashad.meraki.utils.allEmotions
-import com.iamashad.meraki.utils.allReasons
-import com.iamashad.meraki.utils.calculateMoodScore
-import com.iamashad.meraki.utils.commonlyUsedEmotions
-import com.iamashad.meraki.utils.commonlyUsedReasons
+import com.iamashad.meraki.utils.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
@@ -71,13 +64,12 @@ fun AddJournalScreen(
     var journalEntry by remember { mutableStateOf("") }
     var moodScore by remember { mutableIntStateOf(50) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val windowSize = rememberWindowSizeClass()
 
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
-
-    ProvideDimens(screenWidth, screenHeight) {
+    ProvideDimens(windowSize) {
         val dimens = LocalDimens.current
+        val isExpandedScreen = windowSize.widthSizeClass == WindowWidthSizeClass.Expanded
+
         BottomSheetScaffold(
             scaffoldState = bottomSheetState,
             sheetSwipeEnabled = false,
@@ -85,7 +77,7 @@ fun AddJournalScreen(
             sheetContent = {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxWidth(if (isExpandedScreen) 0.9f else 1f)
                         .fillMaxHeight(0.8f)
                         .background(
                             Brush.verticalGradient(
@@ -100,9 +92,7 @@ fun AddJournalScreen(
                     AnimatedContent(
                         targetState = step,
                         transitionSpec = {
-                            slideInHorizontally(
-                                animationSpec = tween(500)
-                            ) { it } togetherWith
+                            slideInHorizontally(animationSpec = tween(500)) { it } togetherWith
                                     slideOutHorizontally(animationSpec = tween(500)) { -it }
                         }
                     ) { currentStep ->
@@ -114,14 +104,16 @@ fun AddJournalScreen(
                                     moodScore = calculateMoodScore(it)
                                 },
                                 onNext = { step = 2 },
-                                onClose = onClose
+                                onClose = onClose,
+                                isExpandedScreen = isExpandedScreen
                             )
 
                             2 -> ReasonSelectionSheet(
                                 selectedReasons = selectedReasons,
                                 onReasonsSelected = { selectedReasons = it },
                                 onNext = { step = 3 },
-                                onClose = onClose
+                                onClose = onClose,
+                                isExpandedScreen = isExpandedScreen
                             )
 
                             3 -> JournalEntrySheet(
@@ -145,7 +137,8 @@ fun AddJournalScreen(
                                     onSave()
                                     onClose()
                                 },
-                                onClose = onClose
+                                onClose = onClose,
+                                isExpandedScreen = isExpandedScreen
                             )
                         }
                     }
@@ -179,12 +172,11 @@ fun EmotionSelectionSheet(
     selectedEmotions: List<String>,
     onEmotionsSelected: (List<String>) -> Unit,
     onNext: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    isExpandedScreen: Boolean
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val filteredEmotions = allEmotions.filter {
-        it.first.contains(searchQuery, ignoreCase = true)
-    }
+    val filteredEmotions = allEmotions.filter { it.first.contains(searchQuery, ignoreCase = true) }
     var selected by remember { mutableStateOf(selectedEmotions) }
     val dimens = LocalDimens.current
 
@@ -193,69 +185,71 @@ fun EmotionSelectionSheet(
         onClose = onClose,
     ) {
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = dimens.paddingLarge * 3)
+                    .padding(bottom = dimens.paddingLarge)
             ) {
                 OutlinedTextField(
                     value = searchQuery,
-                    shape = RoundedCornerShape(dimens.cornerRadius),
-                    colors = OutlinedTextFieldDefaults.colors(),
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search emotions") },
                     leadingIcon = {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search Icon")
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null
+                        )
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = dimens.paddingMedium)
+                        .padding(bottom = dimens.paddingSmall),
+                    colors = OutlinedTextFieldDefaults.colors()
                 )
-                Text(
-                    text = "Commonly Used",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = dimens.paddingSmall)
-                )
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(dimens.paddingMedium)) {
+
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+                    modifier = Modifier.padding(start = dimens.paddingSmall)
+                ) {
                     items(commonlyUsedEmotions) { (emotionName, emoji) ->
-                        EmotionChip(emotionName = emotionName,
+                        EmotionChip(
+                            emotionName = emotionName,
                             emoji = emoji,
                             isSelected = selected.contains(emotionName),
                             onClick = {
-                                selected =
-                                    if (selected.contains(emotionName)) selected - emotionName else selected + emotionName
+                                selected = if (selected.contains(emotionName)) {
+                                    selected - emotionName
+                                } else {
+                                    selected + emotionName
+                                }
                                 onEmotionsSelected(selected)
-                            })
+                            }
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(dimens.paddingMedium))
-
-                Text(
-                    text = "All Emotions",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(vertical = dimens.paddingSmall)
-                )
-
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
-                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
-                    modifier = Modifier.fillMaxHeight()
+                    columns = GridCells.Fixed(if (isExpandedScreen) 4 else 3),
+                    verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     items(filteredEmotions) { (emotionName, emoji) ->
-                        EmotionChip(emotionName = emotionName,
+                        EmotionChip(
+                            emotionName = emotionName,
                             emoji = emoji,
                             isSelected = selected.contains(emotionName),
                             onClick = {
-                                selected =
-                                    if (selected.contains(emotionName)) selected - emotionName else selected + emotionName
+                                selected = if (selected.contains(emotionName)) {
+                                    selected - emotionName
+                                } else {
+                                    selected + emotionName
+                                }
                                 onEmotionsSelected(selected)
-                            })
+                            }
+                        )
                     }
                 }
             }
@@ -265,21 +259,15 @@ fun EmotionSelectionSheet(
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(
-                        top = dimens.paddingMedium,
-                        bottom = dimens.paddingSmall / 2,
-                        end = dimens.paddingSmall + (dimens.paddingSmall / 2),
-                        start = dimens.paddingMedium
-                    )
-                    .clip(CircleShape)
+                    .padding(dimens.paddingLarge)
+                    .size(56.dp)
             ) {
-                Text(
-                    "→", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary
-                )
+                Text("→", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
 }
+
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -287,19 +275,24 @@ fun ReasonSelectionSheet(
     selectedReasons: List<String>,
     onReasonsSelected: (List<String>) -> Unit,
     onNext: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    isExpandedScreen: Boolean
 ) {
     var selected by remember { mutableStateOf(selectedReasons) }
     val dimens = LocalDimens.current
 
     SheetLayout(
-        title = "What's the reason making you feel this way?", onClose = onClose
+        title = "What's the reason making you feel this way?",
+        onClose = onClose
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = dimens.paddingLarge * 3)
+                    .padding(bottom = dimens.paddingLarge * 2) // Reserve space for FAB
             ) {
                 Text(
                     text = "Commonly Used Reasons",
@@ -308,19 +301,29 @@ fun ReasonSelectionSheet(
                     modifier = Modifier.padding(vertical = dimens.paddingSmall)
                 )
 
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall)) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(if (isExpandedScreen) 4 else 2),
+                    verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = dimens.paddingMedium)
+                ) {
                     items(commonlyUsedReasons) { reason ->
-                        ReasonChip(reason = reason,
+                        ReasonChip(
+                            reason = reason,
                             isSelected = selected.contains(reason),
                             onClick = {
-                                selected =
-                                    if (selected.contains(reason)) selected - reason else selected + reason
+                                selected = if (selected.contains(reason)) {
+                                    selected - reason
+                                } else {
+                                    selected + reason
+                                }
                                 onReasonsSelected(selected)
-                            })
+                            }
+                        )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
                 Text(
                     text = "All Reasons",
@@ -330,42 +333,43 @@ fun ReasonSelectionSheet(
                 )
 
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(3),
-                    verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
-                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
-                    modifier = Modifier.fillMaxHeight()
+                    columns = GridCells.Fixed(if (isExpandedScreen) 4 else 3),
+                    verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     items(allReasons) { reason ->
-                        ReasonChip(reason = reason,
+                        ReasonChip(
+                            reason = reason,
                             isSelected = selected.contains(reason),
                             onClick = {
-                                selected =
-                                    if (selected.contains(reason)) selected - reason else selected + reason
+                                selected = if (selected.contains(reason)) {
+                                    selected - reason
+                                } else {
+                                    selected + reason
+                                }
                                 onReasonsSelected(selected)
-                            })
+                            }
+                        )
                     }
                 }
             }
+
+            // Floating Action Button aligned to the bottom-right
             FloatingActionButton(
                 onClick = onNext,
                 containerColor = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(
-                        top = dimens.paddingMedium,
-                        bottom = dimens.paddingSmall / 2,
-                        end = dimens.paddingSmall + (dimens.paddingSmall / 2),
-                        start = dimens.paddingMedium
-                    )
-                    .clip(CircleShape)
+                    .padding(dimens.paddingLarge)
+                    .size(56.dp)
             ) {
-                Text(
-                    "→", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary
-                )
+                Text("→", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }
 }
+
 
 @Composable
 fun JournalEntrySheet(
@@ -374,7 +378,8 @@ fun JournalEntrySheet(
     selectedImageUri: Uri?,
     onImageSelected: (Uri) -> Unit,
     onSave: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    isExpandedScreen: Boolean
 ) {
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -406,9 +411,7 @@ fun JournalEntrySheet(
             OutlinedTextField(
                 value = journalEntry,
                 onValueChange = onJournalEntryChanged,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier = if(isExpandedScreen) Modifier.fillMaxWidth().height(dimens.paddingLarge*5) else Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(
                         text = "Start writing here...",
@@ -429,9 +432,7 @@ fun JournalEntrySheet(
                 onClick = {
                     imagePickerLauncher.launch("image/*")
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = dimens.paddingMedium),
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(dimens.cornerRadius),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surface,
@@ -447,7 +448,6 @@ fun JournalEntrySheet(
             selectedImageUri?.let { uri ->
                 Box(
                     modifier = Modifier
-                        .weight(1f)
                         .fillMaxWidth()
                         .height(dimens.paddingLarge * 8)
                         .clip(RoundedCornerShape(dimens.cornerRadius))
@@ -462,10 +462,7 @@ fun JournalEntrySheet(
             }
             Button(
                 onClick = onSave,
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(top = dimens.paddingMedium)
-                    .fillMaxWidth(.6f),
+                modifier = Modifier.align(Alignment.CenterHorizontally),
                 shape = RoundedCornerShape(dimens.cornerRadius),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -480,4 +477,3 @@ fun JournalEntrySheet(
         }
     }
 }
-

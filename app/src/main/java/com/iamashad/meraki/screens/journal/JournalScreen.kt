@@ -1,10 +1,15 @@
 package com.iamashad.meraki.screens.journal
 
+import android.content.res.Configuration
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,8 +41,9 @@ import com.iamashad.meraki.components.JournalCard
 import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
+import com.iamashad.meraki.utils.rememberWindowSizeClass
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun JournalScreen(
     viewModel: JournalViewModel,
@@ -52,18 +59,17 @@ fun JournalScreen(
     }
     val errorState by viewModel.errorState.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
 
     LaunchedEffect(errorState) {
         errorState?.let {
             snackBarHostState.showSnackbar(it)
         }
     }
-
-    ProvideDimens(screenWidth, screenHeight) {
+    val windowSize = rememberWindowSizeClass()
+    ProvideDimens(windowSize) {
         val dimens = LocalDimens.current
+        val isLargeScreen = windowSize.widthSizeClass == WindowWidthSizeClass.Expanded ||
+                LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
         Scaffold(
             snackbarHost = { SnackbarHost(snackBarHostState) },
@@ -96,18 +102,39 @@ fun JournalScreen(
                 if (journals.isEmpty()) {
                     EmptyJournalList()
                 } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = dimens.paddingMedium)
-                    ) {
-                        items(journals) { journal ->
-                            JournalCard(
-                                journal = journal,
-                                onEditClick = { onViewJournalClick(it) },
-                                onDeleteButtonClick = { viewModel.deleteJournal(journal.journalId) }
-                            )
+                    if (isLargeScreen) {
+                        // LazyVerticalGrid for larger screens
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
+                            horizontalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = dimens.paddingMedium)
+                        ) {
+                            items(journals) { journal ->
+                                JournalCard(
+                                    journal = journal,
+                                    onEditClick = { onViewJournalClick(it) },
+                                    onDeleteButtonClick = { viewModel.deleteJournal(journal.journalId) }
+                                )
+                            }
+                        }
+                    } else {
+                        // LazyColumn for compact screens
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = dimens.paddingMedium)
+                        ) {
+                            items(journals) { journal ->
+                                JournalCard(
+                                    journal = journal,
+                                    onEditClick = { onViewJournalClick(it) },
+                                    onDeleteButtonClick = { viewModel.deleteJournal(journal.journalId) }
+                                )
+                            }
                         }
                     }
                 }
@@ -201,18 +228,16 @@ fun HeaderCard() {
             Column {
                 Text(
                     text = "Capture Your Thoughts",
-                    style = MaterialTheme.typography.headlineMedium.copy(
+                    style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = dimens.fontMedium
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                 )
                 Text(
                     text = "Write down your reflections and insights.",
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = dimens.fontSmall
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                    )
                 )
             }
             Image(
@@ -244,8 +269,7 @@ fun EmptyJournalList() {
 
         Text(
             text = "Start Your Journaling Journey!",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontSize = dimens.fontMedium,
+            style = MaterialTheme.typography.titleLarge.copy(
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
@@ -255,10 +279,9 @@ fun EmptyJournalList() {
 
         Text(
             text = "Tap the plus icon below to write your first entry now!",
-            style = MaterialTheme.typography.titleMedium.copy(
+            style = MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.primary,
-                textAlign = TextAlign.Center,
-                fontSize = dimens.fontSmall
+                textAlign = TextAlign.Center
             )
         )
     }

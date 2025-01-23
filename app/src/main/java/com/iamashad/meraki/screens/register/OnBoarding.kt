@@ -37,12 +37,14 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalPagerApi::class)
 @Composable
 fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel = hiltViewModel()) {
+    val dimens = LocalDimens.current
     val pagerState = rememberPagerState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
     val pages = listOf(
         OnboardingPage(
-            title = "Meraki - Your Safe Haven",
+            title = "Your Safe Haven",
             subtitle = "This is a place where your thoughts are safe, your feelings are valid, and your journey to self-healing begins. Let's walk this path together.",
             animation = R.raw.lottie_onb1,
             iterations = LottieConstants.IterateForever
@@ -112,7 +114,7 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
             pagerState = pagerState,
             activeColor = MaterialTheme.colorScheme.primary,
             inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(dimens.paddingSmall)
         )
 
         val pulseScale by rememberInfiniteTransition().animateFloat(
@@ -138,7 +140,7 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
                 }
             },
             modifier = Modifier
-                .padding(16.dp)
+                .padding()
                 .graphicsLayer {
                     scaleX = pulseScale
                     scaleY = pulseScale
@@ -149,7 +151,7 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
         ) {
             Text(
                 text = if (pagerState.currentPage == pages.size - 1) "I am ready to change my life!" else "Next ->",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
             )
         }
     }
@@ -175,7 +177,7 @@ fun OnboardingContent(
             composition, iterations = iterations
         )
 
-        Box(modifier = Modifier.size(dimens.avatarSize)) {
+        Box(modifier = Modifier.size((dimens.avatarSize / 2) * 1)) {
             LottieAnimation(composition = composition, progress = { progress })
         }
 
@@ -189,7 +191,7 @@ fun OnboardingContent(
         Spacer(modifier = Modifier.height(dimens.paddingMedium))
         Text(
             text = page.subtitle,
-            style = MaterialTheme.typography.bodyLarge.copy(textAlign = TextAlign.Center),
+            style = MaterialTheme.typography.bodyMedium.copy(textAlign = TextAlign.Center),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
             textAlign = TextAlign.Center
         )

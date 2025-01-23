@@ -36,7 +36,6 @@ fun AboutScreen(navController: NavController) {
     ) {
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Title Section
         Text(
             text = "About This App", style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground
@@ -45,7 +44,6 @@ fun AboutScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Message Section
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
@@ -85,7 +83,7 @@ fun AboutScreen(navController: NavController) {
                 )
             }
         }
-        // Back Home Button
+
         FloatingActionButton(
             onClick = { navController.navigate(Screens.HOME.name) },
             containerColor = Color.Transparent,

@@ -77,7 +77,7 @@ fun NoInternetScreen() {
             painter = painterResource(id = R.drawable.img_nointernet),
             contentDescription = "No Internet",
             modifier = Modifier
-                .size(dimens.avatarSize)
+                .size(dimens.avatarSize / 2)
                 .padding(bottom = dimens.paddingMedium)
         )
 
@@ -117,15 +117,19 @@ fun ConnectivityObserver(
 
 @Composable
 fun EmotionChip(
-    emotionName: String, emoji: String, isSelected: Boolean, onClick: () -> Unit
+    emotionName: String,
+    emoji: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
     val dimens = LocalDimens.current
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .padding(dimens.paddingMedium / 2)
             .size(dimens.paddingMedium * 5)
-            .clickable { onClick() }) {
+            .clickable { onClick() }
+    ) {
         Box(
             modifier = Modifier
                 .size(dimens.paddingMedium * 4)
@@ -136,10 +140,9 @@ fun EmotionChip(
         ) {
             Text(
                 text = emoji,
-                fontSize = dimens.fontLarge
+                fontSize = MaterialTheme.typography.headlineSmall.fontSize
             )
         }
-        Spacer(modifier = Modifier.height(dimens.paddingSmall / 2))
         Text(
             text = emotionName,
             style = MaterialTheme.typography.labelSmall,
@@ -151,7 +154,9 @@ fun EmotionChip(
 
 @Composable
 fun ReasonChip(
-    reason: String, isSelected: Boolean, onClick: () -> Unit
+    reason: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
     val dimens = LocalDimens.current
 
@@ -160,13 +165,13 @@ fun ReasonChip(
         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(dimens.paddingSmall / 2)
     ) {
         Text(
             text = reason,
-            style = MaterialTheme.typography.bodySmall,
-            color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background,
-            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background,
+                textAlign = TextAlign.Center,
+            ),
             modifier = Modifier.padding(
                 horizontal = dimens.paddingSmall,
                 vertical = dimens.paddingSmall
@@ -202,9 +207,10 @@ fun SheetLayout(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.Bold
+                style = MaterialTheme.typography.titleMedium.copy(
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.Bold
+                )
             )
             IconButton(onClick = onClose) {
                 Icon(Icons.Default.Close, contentDescription = "Close")
@@ -248,14 +254,13 @@ fun JournalCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = getMoodEmoji(journal.title),
-                            fontSize = dimens.fontLarge,
+                            style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.padding(end = dimens.paddingSmall)
                         )
                         Column {
                             Text(
                                 text = getMoodLabelFromTitle(journal.title),
                                 style = MaterialTheme.typography.titleLarge.copy(
-                                    fontSize = dimens.fontMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
@@ -263,9 +268,8 @@ fun JournalCard(
                             Text(
                                 text = DateFormat.format("HH:mm", journal.date).toString(),
                                 style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = dimens.fontSmall
-                                ),
-                                color = MaterialTheme.colorScheme.onPrimary
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
                             )
                         }
                     }
@@ -289,8 +293,7 @@ fun JournalCard(
                     },
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = dimens.fontSmall
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 )
 
@@ -302,8 +305,7 @@ fun JournalCard(
                     },
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = dimens.fontSmall
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 )
 
@@ -316,10 +318,10 @@ fun JournalCard(
                         "No additional notes provided."
                     },
                     style = MaterialTheme.typography.bodySmall.copy(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        fontSize = dimens.fontSmall * 0.8,
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ),
-                    maxLines = 3
+                    maxLines = 1,
+                    lineHeight = dimens.fontSmall
                 )
 
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
@@ -339,6 +341,21 @@ fun JournalCard(
                             color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_no_media),
+                            contentDescription = "No Media Attached",
+                            tint = MaterialTheme.colorScheme.background,
+                            modifier = Modifier.size(dimens.paddingMedium)
+                        )
+                        Spacer(modifier = Modifier.width(dimens.paddingSmall / 2))
+                        Text(
+                            text = "No Media Attached",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
@@ -353,10 +370,9 @@ fun JournalCard(
                 ) {
                     Text(
                         text = "Tip:",
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        style = MaterialTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.surface,
-                            fontSize = dimens.fontSmall
+                            color = MaterialTheme.colorScheme.surface
                         )
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -369,8 +385,10 @@ fun JournalCard(
                         )
                         Text(
                             text = "Delete",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.surface,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.surface,
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize
+                            ),
                             modifier = Modifier.padding(start = dimens.paddingSmall / 2)
                         )
                     }
@@ -379,7 +397,7 @@ fun JournalCard(
                     text = getTipForMood(getMoodLabelFromTitle(journal.title)),
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.surface,
-                        fontSize = dimens.fontSmall * 0.8
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize * 0.8
                     )
                 )
             }

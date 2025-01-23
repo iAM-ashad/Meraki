@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +37,7 @@ import com.iamashad.meraki.ui.theme.ThemePreference
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.PromptEnableNotifications
 import com.iamashad.meraki.utils.ProvideDimens
+import com.iamashad.meraki.utils.rememberWindowSizeClass
 import com.iamashad.meraki.utils.scheduleDailyReminderAt
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -50,10 +50,6 @@ fun SettingsScreen(
 ) {
     val scrollState = rememberScrollState()
     val auth = FirebaseAuth.getInstance()
-    val user = auth.currentUser
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
     var selectedTime by remember { mutableStateOf("9:00 AM") }
     val context = LocalContext.current
     val isDynamicColorEnabled by ThemePreference.isDynamicColorEnabled(context)
@@ -69,10 +65,10 @@ fun SettingsScreen(
         isCheckedLocal = isDynamicColorEnabled
     }
 
-
+    val windowSize = rememberWindowSizeClass()
     PromptEnableNotifications(context)
 
-    ProvideDimens(screenWidth, screenHeight) {
+    ProvideDimens(windowSize) {
         val dimens = LocalDimens.current
 
         Column(

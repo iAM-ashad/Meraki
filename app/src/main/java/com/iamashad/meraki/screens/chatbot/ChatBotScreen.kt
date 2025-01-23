@@ -1,5 +1,6 @@
 package com.iamashad.meraki.screens.chatbot
 
+import android.content.res.Configuration
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -15,6 +16,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +44,7 @@ import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.utils.ConnectivityStatus
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
+import com.iamashad.meraki.utils.rememberWindowSizeClass
 
 @Composable
 fun ChatbotScreen(
@@ -63,17 +66,16 @@ fun ChatbotScreen(
     val animatedGradient = Brush.verticalGradient(colors = animatedColors)
     val userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
     val dimens = LocalDimens.current
-    val screenWidth = LocalConfiguration.current.screenWidthDp
-    val screenHeight = LocalConfiguration.current.screenHeightDp
 
     var hasPreviousConversation by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         hasPreviousConversation = viewModel.hasPreviousConversation()
         viewModel.initializeContext(userId)
     }
+    val windowSize = rememberWindowSizeClass()
 
     ConnectivityObserver(connectivityStatus = isConnected) {
-        ProvideDimens(screenWidth, screenHeight) {
+        ProvideDimens(windowSize) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -172,7 +174,7 @@ fun ChatHeader() {
         LottieAnimation(
             composition = lottieComposition.value,
             progress = { lottieProgress },
-            modifier = Modifier.size((dimens.avatarSize/2) * 1)
+            modifier = Modifier.size((dimens.avatarSize / 2) * 1)
         )
         Spacer(modifier = Modifier.width(dimens.paddingSmall))
         Column {
@@ -206,43 +208,51 @@ fun NewConversationScreen(
             MaterialTheme.colorScheme.primary
         )
     )
+    val windowSize = rememberWindowSizeClass()
+    val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
-        contentAlignment = Alignment.Center
+    if (windowSize.widthSizeClass == WindowWidthSizeClass.Expanded ||
+        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     ) {
-        Column(
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxSize()
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
         ) {
-            AnimatedAvatar(modifier = Modifier.size(dimens.avatarSize))
-
-            Spacer(modifier = Modifier.padding(vertical = dimens.paddingLarge))
-
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
+                    .weight(1f)
+                    .fillMaxHeight(),
+                contentAlignment = Alignment.Center
+            ) {
+                AnimatedAvatar(
+                    modifier = Modifier.size(dimens.avatarSize)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .weight(2f)
+                    .fillMaxHeight()
                     .clip(
                         RoundedCornerShape(
                             topStart = dimens.cornerRadius * 2,
-                            topEnd = dimens.cornerRadius * 2
+                            bottomStart = dimens.cornerRadius * 2
                         )
                     )
-                    .background(gradientBackground)
+                    .background(gradientBackground),
+                contentAlignment = Alignment.TopCenter
             ) {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(horizontal = dimens.paddingMedium)
                 ) {
                     Text(
                         text = "Unable to escape your thoughts?",
-                        style = MaterialTheme.typography.headlineMedium.copy(
+                        style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
-                            fontSize = dimens.fontLarge,
                             color = MaterialTheme.colorScheme.onSurface,
                         ),
                         modifier = Modifier.padding(
@@ -253,19 +263,16 @@ fun NewConversationScreen(
                     Text(
                         text = "This is your safe space to express.",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = dimens.fontSmall * 1.2,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                         ),
                         modifier = Modifier.padding(bottom = dimens.paddingLarge)
                     )
                     Text(
                         text = "Tap below to start a conversation :)",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = dimens.fontSmall,
+                        style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                         ),
-                        modifier = Modifier
-                            .padding(bottom = dimens.paddingMedium)
+                        modifier = Modifier.padding(bottom = dimens.paddingMedium)
                     )
 
                     Spacer(modifier = Modifier.weight(1f))
@@ -278,7 +285,9 @@ fun NewConversationScreen(
 
                     StartConversationButton(onClick = { viewModel.startNewConversation() })
                 }
+
                 Spacer(Modifier.padding(bottom = dimens.paddingLarge * 2))
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -289,6 +298,96 @@ fun NewConversationScreen(
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     ConfidentialityFooter()
+                }
+            }
+        }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                AnimatedAvatar(
+                    modifier = Modifier
+                        .size((dimens.avatarSize / 10) * 8)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height((screenHeightDp / 10) * 8)
+                        .clip(
+                            RoundedCornerShape(
+                                topStart = dimens.cornerRadius * 2,
+                                topEnd = dimens.cornerRadius * 2
+                            )
+                        )
+                        .background(gradientBackground)
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Unable to escape your thoughts?",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            ),
+                            modifier = Modifier.padding(
+                                top = dimens.paddingLarge * 2,
+                                bottom = dimens.paddingMedium
+                            )
+                        )
+                        Text(
+                            text = "This is your safe space to express.",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            ),
+                            modifier = Modifier.padding(bottom = dimens.paddingLarge)
+                        )
+                        Text(
+                            text = "Tap below to start a conversation :)",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            ),
+                            modifier = Modifier.padding(bottom = dimens.paddingMedium)
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        if (hasPreviousConversation) {
+                            ContinueConversationButton(
+                                onClick = { viewModel.loadPreviousConversation() }
+                            )
+                        }
+
+                        StartConversationButton(onClick = { viewModel.startNewConversation() })
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.BottomCenter)
+                            .background(Color.Transparent)
+                            .padding(
+                                start = dimens.paddingMedium,
+                                end = dimens.paddingMedium,
+                                top = dimens.paddingLarge
+                            )
+                            .clip(RoundedCornerShape(dimens.cornerRadius / 2)),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        ConfidentialityFooter()
+                    }
                 }
             }
         }
@@ -372,12 +471,11 @@ fun ConfidentialityFooter(
         )
         Spacer(modifier = Modifier.width(dimens.paddingSmall))
         Text(
-            text = "Your conversations are private and secure.",
+            text = "Your conversations are private",
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Bold,
-                fontSize = dimens.fontSmall
-            ),
-            color = MaterialTheme.colorScheme.surface.copy(.7f),
+                color = MaterialTheme.colorScheme.surface.copy(.7f)
+            )
         )
     }
 
@@ -386,17 +484,15 @@ fun ConfidentialityFooter(
             Text(
                 text = "Privacy Assurance",
                 style = MaterialTheme.typography.titleLarge.copy(
-                    fontSize = dimens.fontMedium
-                ),
-                color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             )
         }, text = {
             Text(
                 text = "All your conversations are stored securely on your device and are not uploaded to the cloud. You have complete control over your data.",
                 style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = dimens.fontSmall
-                ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
             )
         }, confirmButton = {
             Button(
@@ -408,8 +504,7 @@ fun ConfidentialityFooter(
                 )
             ) {
                 Text(
-                    "Got it!",
-                    fontSize = dimens.fontMedium * 0.7
+                    "Got it!"
                 )
             }
         })
@@ -447,7 +542,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                         placeholder = {
                             Text(
                                 "What was this conversation about?",
-                                fontSize = dimens.fontSmall
+                                style = MaterialTheme.typography.bodySmall
                             )
                         },
                         singleLine = true,
@@ -472,8 +567,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                     )
                 ) {
                     Text(
-                        "Save",
-                        fontSize = dimens.fontSmall
+                        "Save"
                     )
                 }
             },
@@ -488,8 +582,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                     elevation = ButtonDefaults.buttonElevation(dimens.elevation)
                 ) {
                     Text(
-                        "Cancel",
-                        fontSize = dimens.fontSmall
+                        "Cancel"
                     )
                 }
             },
@@ -508,8 +601,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
         elevation = ButtonDefaults.buttonElevation(dimens.elevation)
     ) {
         Text(
-            "Finish",
-            fontSize = dimens.fontSmall
+            "Finish"
         )
     }
 }
@@ -588,8 +680,7 @@ fun MessageRow(message: Message) {
                     text = message.message,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Start,
-                        fontSize = dimens.fontSmall
+                        textAlign = TextAlign.Start
                     ),
                 )
             }
@@ -616,7 +707,6 @@ fun MessageInput(onMessageSend: (String) -> Unit) {
             placeholder = {
                 Text(
                     "Type a message...",
-                    fontSize = dimens.fontSmall
                 )
             },
             modifier = Modifier

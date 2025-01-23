@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -23,6 +22,7 @@ import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.utils.LoadImageWithGlide
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
+import com.iamashad.meraki.utils.rememberWindowSizeClass
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -31,11 +31,9 @@ fun ViewJournalScreen(
     journal: Journal
 ) {
     var showFullSizeImage by remember { mutableStateOf(false) }
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
+    val windowSize = rememberWindowSizeClass()
 
-    ProvideDimens(screenWidth, screenHeight) {
+    ProvideDimens(windowSize) {
         val dimens = LocalDimens.current
         Box(
             modifier = Modifier
@@ -54,11 +52,11 @@ fun ViewJournalScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = dimens.paddingMedium),
+                    .padding(horizontal = dimens.paddingMedium)
+                    .verticalScroll(scrollState),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Card for Journal Content
                 Card(
                     shape = RoundedCornerShape(dimens.cornerRadius),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -78,16 +76,15 @@ fun ViewJournalScreen(
                         ) {
                             Text(
                                 text = "You felt ${journal.title}",
-                                style = MaterialTheme.typography.headlineLarge.copy(
-                                    fontWeight = FontWeight.Bold, fontSize = dimens.fontLarge
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimary,
+                                    textAlign = TextAlign.Center,
                                 ),
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(dimens.paddingMedium)
                             )
                         }
 
-                        // Show image if available
                         journal.imageUrl?.let { imageUrl ->
                             LoadImageWithGlide(
                                 imageUrl = imageUrl,
@@ -105,9 +102,9 @@ fun ViewJournalScreen(
                             Text(
                                 text = "Tags: ${journal.reasons.joinToString(", ")}",
                                 style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Medium, fontSize = 16.sp
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.secondary,
                                 ),
-                                color = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.padding(
                                     start = dimens.paddingSmall + (dimens.paddingSmall / 2),
                                     top = dimens.paddingSmall
@@ -117,8 +114,9 @@ fun ViewJournalScreen(
 
                         Text(
                             text = "Date: ${formatDate(journal.date)}",
-                            style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                             modifier = Modifier.padding(
                                 start = dimens.paddingSmall + (dimens.paddingSmall / 2)
                             )
@@ -127,12 +125,10 @@ fun ViewJournalScreen(
                         Text(
                             text = journal.content,
                             style = MaterialTheme.typography.bodyLarge.copy(
-                                lineHeight = 24.sp
+                                color = MaterialTheme.colorScheme.onSurface,
                             ),
-                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier
                                 .padding(dimens.paddingSmall + (dimens.paddingSmall / 2))
-                                .verticalScroll(scrollState)
                         )
                     }
                 }

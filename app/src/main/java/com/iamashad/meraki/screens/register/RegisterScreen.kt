@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -30,9 +29,13 @@ import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.utils.ConnectivityStatus
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
+import com.iamashad.meraki.utils.rememberWindowSizeClass
 
 @Composable
-fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = hiltViewModel()) {
+fun RegisterScreen(
+    navController: NavController,
+    viewModel: RegisterViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     val isConnected = ConnectivityStatus(context)
     val launcher = rememberLauncherForActivityResult(
@@ -47,12 +50,10 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
             }
         }
     }
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
+    val windowSize = rememberWindowSizeClass()
 
     ConnectivityObserver(connectivityStatus = isConnected) {
-        ProvideDimens(screenWidth, screenHeight) {
+        ProvideDimens(windowSize) {
             val dimens = LocalDimens.current
 
             Box(
@@ -79,16 +80,14 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = dimens.fontLarge * 1.5
                         ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(top = dimens.paddingMedium * 2)
                     )
                     Text(
                         text = """"Essence of Yourself"""",
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            color = MaterialTheme.colorScheme.onBackground.copy(.8f),
-                            fontSize = dimens.fontSmall * 1.5
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            color = MaterialTheme.colorScheme.onBackground.copy(.8f)
                         ),
                         textAlign = TextAlign.Center,
                         modifier = Modifier
@@ -103,7 +102,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                         LottieAnimation(
                             composition = composition,
                             progress = { progress },
-                            modifier = Modifier.size((dimens.avatarSize / 3) * 2)
+                            modifier = Modifier.size((dimens.avatarSize))
                         )
                     }
 
@@ -111,7 +110,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
 
                     Text(
                         text = "Your journey to emotional well-being starts here.",
-                        style = MaterialTheme.typography.bodyLarge.copy(
+                        style = MaterialTheme.typography.bodyMedium.copy(
                             color = MaterialTheme.colorScheme.onBackground
                         ),
                         textAlign = TextAlign.Center
@@ -129,7 +128,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                     ) {
                         Text(
                             text = "Get Started  \uD83D\uDC95",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                         )
                     }
 
@@ -141,7 +140,7 @@ fun RegisterScreen(navController: NavController, viewModel: RegisterViewModel = 
                     }) {
                         Text(
                             text = "Already have an account? Log In",
-                            style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.secondary)
+                            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary)
                         )
                     }
                 }

@@ -1,5 +1,6 @@
 package com.iamashad.meraki.screens.insights
 
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -10,14 +11,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
@@ -39,6 +40,7 @@ import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.MoodInsightsAnalyzer
 import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.getReasonIcon
+import com.iamashad.meraki.utils.rememberWindowSizeClass
 import kotlin.math.roundToInt
 
 @Composable
@@ -47,9 +49,6 @@ fun MoodInsightsScreen(
     navController: NavController
 ) {
     val insights by viewModel.moodInsights.collectAsState()
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
 
     var searchQuery by remember { mutableStateOf("") }
     val filteredReasons = remember(searchQuery, insights) {
@@ -57,81 +56,84 @@ fun MoodInsightsScreen(
             ?.filterKeys { it.contains(searchQuery, ignoreCase = true) }
             ?.toList() ?: emptyList()
     }
-    val focusRequester = remember { FocusRequester() }
-    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
         viewModel.fetchMoodInsights()
     }
+    val windowSize = rememberWindowSizeClass()
 
-    ProvideDimens(screenWidth, screenHeight) {
+    ProvideDimens(windowSize) {
         val dimens = LocalDimens.current
 
         if (insights == null || insights?.reasonsAnalysis.isNullOrEmpty()) {
             EmptyInsightsScreen { navController.navigate(Screens.JOURNAL.name) }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(dimens.paddingMedium),
-                verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
+            if (windowSize.widthSizeClass == WindowWidthSizeClass.Expanded ||
+                LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
             ) {
-
-                insights?.let { data ->
-                    HighlightsSection(
-                        overallMood = data.overallAverageMood.roundToInt()
-                    )
-
-                    Row(
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(dimens.paddingMedium),
+                    horizontalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
+                ) {
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = MaterialTheme.colorScheme.surface,
-                                shape = RoundedCornerShape(dimens.cornerRadius / 2)
-                            )
-                            .padding(horizontal = dimens.paddingSmall),
-                        verticalAlignment = Alignment.CenterVertically
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search Icon",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(dimens.paddingSmall / 2))
-                        TextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = { Text("Search...") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(focusRequester)
-                                .clip(RoundedCornerShape(dimens.cornerRadius)),
-                            colors = TextFieldDefaults.colors(
-                                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                unfocusedIndicatorColor = Color.Transparent,
-                                unfocusedContainerColor = Color.Transparent,
-                                focusedContainerColor = Color.Transparent
-                            ),
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodySmall,
-                            keyboardOptions = KeyboardOptions.Default.copy(
-                                imeAction = ImeAction.Done,
-                                capitalization = KeyboardCapitalization.Words
-                            ),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    focusManager.clearFocus() // Clear focus from TextField
-                                }
-                            )
-                        )
+                        HighlightsSection(overallMood = insights!!.overallAverageMood.roundToInt())
                     }
+
+                    Column(
+                        modifier = Modifier
+                            .weight(2f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
+                    ) {
+                        SearchBar(
+                            query = searchQuery,
+                            onQueryChanged = { searchQuery = it },
+                            onClearQuery = { searchQuery = "" }
+                        )
+
+                        Text(
+                            text = "Key Insights",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.padding(bottom = dimens.paddingSmall)
+                        )
+
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
+                        ) {
+                            items(filteredReasons) { (reason, deviation) ->
+                                ReasonDetailsCard(reason, deviation)
+                            }
+                        }
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(dimens.paddingMedium),
+                    verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
+                ) {
+                    HighlightsSection(overallMood = insights!!.overallAverageMood.roundToInt())
+
+                    SearchBar(
+                        query = searchQuery,
+                        onQueryChanged = { searchQuery = it },
+                        onClearQuery = { searchQuery = "" }
+                    )
 
                     Text(
                         text = "Key Insights",
                         style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            fontSize = dimens.fontMedium
+                            fontWeight = FontWeight.Bold
                         ),
                         modifier = Modifier.padding(bottom = dimens.paddingSmall)
                     )
@@ -143,17 +145,78 @@ fun MoodInsightsScreen(
                             ReasonDetailsCard(reason, deviation)
                         }
                     }
-                } ?: Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
                 }
             }
         }
     }
 }
 
+@Composable
+fun SearchBar(
+    query: String,
+    onQueryChanged: (String) -> Unit,
+    onClearQuery: () -> Unit
+) {
+    val dimens = LocalDimens.current
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(dimens.cornerRadius / 2)
+            )
+            .padding(horizontal = dimens.paddingSmall),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = "Search Icon",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(dimens.paddingSmall / 2))
+        TextField(
+            value = query,
+            onValueChange = onQueryChanged,
+            placeholder = { Text("Search...") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .clip(RoundedCornerShape(dimens.cornerRadius)),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent
+            ),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodySmall,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Done,
+                capitalization = KeyboardCapitalization.Words
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    focusManager.clearFocus()
+                }
+            ),
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = onClearQuery) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear Search",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        )
+    }
+}
 
 @Composable
 fun EmptyInsightsScreen(
@@ -260,16 +323,9 @@ fun ReasonDetailsCard(
                     Text(
                         text = "'$reason' has a ${if (isPositive) "good" else "bad"} effect on your mood",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = dimens.fontMedium * .8,
                             color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Bold
                         )
-                    )
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share Button",
-                        tint = MaterialTheme.colorScheme.background,
-                        modifier = Modifier.scale(.8f)
                     )
                 }
                 Column(
@@ -285,9 +341,8 @@ fun ReasonDetailsCard(
                             else -> "High confidence based on ${deviation.entriesCount} entries."
                         },
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            fontSize = dimens.fontSmall
-                        ),
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
                     )
                 }
                 Column(
@@ -297,16 +352,14 @@ fun ReasonDetailsCard(
                     Text(
                         text = "Suggestions",
                         style = MaterialTheme.typography.titleMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = dimens.fontMedium * .7
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     )
                     Text(
                         text = "Consider journaling about positive experiences after encountering '$reason'.",
                         style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = dimens.fontSmall * .8
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                        )
                     )
                 }
             }
@@ -344,10 +397,9 @@ fun HighlightsSection(overallMood: Int) {
 
             Text(
                 text = "Mood Statistics",
-                style = MaterialTheme.typography.headlineMedium.copy(
+                style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    fontSize = dimens.fontLarge
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             )
 
@@ -361,9 +413,8 @@ fun HighlightsSection(overallMood: Int) {
                 Column {
                     Text(
                         text = "Overall Mood Score: $overallMood",
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = dimens.fontMedium * 0.8
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     )
                     LinearProgressIndicator(
@@ -429,17 +480,15 @@ fun ImpactItem(
             Column {
                 Text(
                     text = "${moodImpact}%",
-                    style = MaterialTheme.typography.bodyLarge.copy(
+                    style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        fontSize = dimens.fontSmall * 1.3
+                        color = MaterialTheme.colorScheme.primaryContainer
                     )
                 )
                 Text(
                     text = "Impact on mood",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .8f),
-                        fontSize = dimens.fontSmall
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .8f)
                     ),
                 )
             }

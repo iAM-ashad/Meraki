@@ -166,15 +166,15 @@ fun calculateMoodScore(selectedEmotions: List<String>): Int {
 }
 
 val moodTips = mapOf(
-    "Happy" to "Celebrate your happiness by sharing it with a loved one or writing it down to cherish later.",
+    "Happy" to "Celebrate your happiness by sharing it with a loved one!",
     "Sad" to "It's okay to feel sad. Try journaling your thoughts or listening to calming music.",
-    "Excited" to "Channel your excitement into a creative project or plan something fun to look forward to!",
-    "Calm" to "Maintain your calmness by practicing mindfulness or enjoying a quiet moment with nature.",
-    "Confused" to "Break the situation into smaller parts to understand it better. A fresh perspective can help.",
+    "Excited" to "Channel your excitement into a creative project or plan something fun!",
+    "Calm" to "Maintain your calmness by practicing mindfulness.",
+    "Confused" to "Break the situation into smaller parts to understand it better.",
     "Surprised" to "Share your surprise with someone you trust, or reflect on what made the moment so unexpected.",
     "Amazed" to "Embrace your amazement by capturing the moment in a photo or writing about it.",
-    "Peaceful" to "Extend your sense of peace by meditating or taking a gentle walk in nature.",
-    "Cool" to "Stay confident and enjoy the moment. Consider sharing your cool attitude with a friend!",
+    "Peaceful" to "Extend your sense of peace by meditating or taking a gentle walk outside.",
+    "Cool" to "Stay confident and enjoy the moment!",
     "Stressed" to "Take a deep breath, step away for a moment, and try a quick relaxation exercise.",
     "Angry" to "Channel your anger into something constructive like exercise or writing down your feelings.",
     "Lonely" to "Reach out to a friend or family member. Sometimes a small connection makes a big difference.",
