@@ -80,7 +80,7 @@ fun MerakiNavigation() {
     val currentDestination by navController.currentBackStackEntryFlow.collectAsState(initial = null)
     val windowSize = rememberWindowSizeClass()
 
-    Scaffold { paddingValues ->
+    Scaffold {
         AdaptiveScreen(
             navController = navController,
             currentDestination = currentDestination?.destination?.route,
@@ -89,7 +89,7 @@ fun MerakiNavigation() {
             NavHost(
                 navController = navController,
                 startDestination = Screens.SPLASH.name,
-                modifier = Modifier.padding()
+                modifier = Modifier
             ) {
                 addNavGraph(navController)
             }
@@ -193,10 +193,20 @@ fun AdaptiveScreen(
     windowSize: WindowSizeClass,
     content: @Composable () -> Unit
 ) {
+    val destination by navController.currentBackStackEntryFlow.collectAsState(initial = null)
+    val showBottomBar = when (destination?.destination?.route) {
+        Screens.HOME.name, Screens.MOODTRACKER.name, Screens.JOURNAL.name, Screens.INSIGHTS.name -> true
+        else -> false
+    }
+
     when (windowSize.widthSizeClass) {
         WindowWidthSizeClass.Compact -> {
             Scaffold(
-                bottomBar = { BottomNavigationBar(navController, currentDestination) }
+                bottomBar = {
+                    if (showBottomBar) {
+                        BottomNavigationBar(navController, currentDestination)
+                    }
+                }
             ) { paddingValues ->
                 Box(
                     modifier = Modifier
