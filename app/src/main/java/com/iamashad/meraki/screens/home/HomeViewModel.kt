@@ -6,7 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
-import com.iamashad.meraki.repository.AdviceRepository
+import com.iamashad.meraki.model.QuotesItem
+import com.iamashad.meraki.repository.ZenQuotesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,13 +22,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
-    private val adviceRepository: AdviceRepository,
+    private val zenQuotesRepository: ZenQuotesRepository,
     firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore // Injected Firestore instance
 ) : ViewModel() {
 
-    private val _advice = MutableStateFlow("Loading advice...")
-    val advice: StateFlow<String> = _advice.asStateFlow()
+    private val _quotes = MutableStateFlow<List<Pair<String, String>>>(emptyList())
+    val quotes: StateFlow<List<Pair<String, String>>> = _quotes.asStateFlow()
+
+    private val _author = MutableStateFlow("Anonymous")
+    val author: StateFlow<String> = _author.asStateFlow()
 
     private val _user = MutableStateFlow(firebaseAuth.currentUser)
     val user: StateFlow<FirebaseUser?> = _user.asStateFlow()
@@ -35,20 +39,34 @@ class HomeScreenViewModel @Inject constructor(
     private val _photoUrl = MutableStateFlow(firebaseAuth.currentUser?.photoUrl)
     val photoUrl: StateFlow<Uri?> = _photoUrl.asStateFlow()
 
-    private val dateFormat =
-        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
 
     init {
-        fetchAdvice()
+        fetchInitialQuotes()
     }
 
-    private fun fetchAdvice() {
+    private fun fetchInitialQuotes() {
         viewModelScope.launch {
             try {
-                val response = adviceRepository.getAdvice()
-                _advice.emit(response.slip.advice)
+                // Fetch 5 initial quotes
+                val response = (1..5).map { zenQuotesRepository.getRandomQuote() }
+                val initialQuotes = response.map { it.q to it.a }
+                _quotes.emit(initialQuotes)
             } catch (e: Exception) {
-                _advice.emit("Failed to load advice: ${e.localizedMessage}")
+                println("Failed to fetch initial quotes: ${e.localizedMessage}")
+            }
+        }
+    }
+
+    fun fetchSingleQuote() {
+        viewModelScope.launch {
+            try {
+                // Fetch a single new quote
+                val newQuote = zenQuotesRepository.getRandomQuote()
+                _quotes.emit(_quotes.value + (newQuote.q to newQuote.a)) // Append the new quote
+            } catch (e: Exception) {
+                println("Failed to fetch new quote: ${e.localizedMessage}")
             }
         }
     }
@@ -102,7 +120,7 @@ class HomeScreenViewModel @Inject constructor(
             }
             streak
         } catch (e: Exception) {
-            println("Error logging daily usage: ${e.localizedMessage}")
+            println("Error calculating streak: ${e.localizedMessage}")
             0
         }
     }

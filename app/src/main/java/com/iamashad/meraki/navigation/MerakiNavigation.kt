@@ -1,16 +1,10 @@
 package com.iamashad.meraki.navigation
 
 import android.annotation.SuppressLint
-import androidx.compose.animation.*
-import androidx.compose.animation.core.EaseIn
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -255,15 +249,6 @@ fun AdaptiveScreen(
     }
 }
 
-
-fun fadeInAnimation(): EnterTransition {
-    return fadeIn(animationSpec = tween(600, easing = EaseIn))
-}
-
-fun fadeOutAnimation(): ExitTransition {
-    return fadeOut(animationSpec = tween(600, easing = LinearEasing))
-}
-
 @Composable
 fun AnimatedNavigationRail(
     navController: NavController,
@@ -295,8 +280,6 @@ fun AnimatedNavigationRail(
     ) {
         items.forEach { item ->
             val isSelected = currentDestination == item.route
-
-            // Animation states
             val scale by animateFloatAsState(
                 targetValue = if (isSelected) 1.2f else 1f,
                 animationSpec = spring(
@@ -329,11 +312,11 @@ fun AnimatedNavigationRail(
 
             Box(
                 modifier = Modifier
-                    .padding(vertical = itemSpacing / 2) // Add vertical spacing
-                    .offset(y = offset) // Apply animation offset
-                    .size(boxSize) // Set size for the containing box
+                    .padding(vertical = itemSpacing / 2)
+                    .offset(y = offset)
+                    .size(boxSize)
                     .clip(CircleShape)
-                    .background(backgroundBrush) // Animated background
+                    .background(backgroundBrush)
                     .clickable {
                         if (!isSelected) {
                             navController.navigate(item.route) {
@@ -342,14 +325,14 @@ fun AnimatedNavigationRail(
                             }
                         }
                     },
-                contentAlignment = Alignment.Center // Center the icon inside the box
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     painter = painterResource(id = item.icon),
                     contentDescription = item.label,
                     modifier = Modifier
-                        .size(iconSize) // Icon size independent of the box
-                        .scale(scale), // Apply scaling animation
+                        .size(iconSize)
+                        .scale(scale),
                     tint = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

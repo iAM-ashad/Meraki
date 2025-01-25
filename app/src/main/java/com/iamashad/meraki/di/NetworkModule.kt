@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.data.ChatDao
 import com.iamashad.meraki.data.ChatDatabase
 import com.iamashad.meraki.network.AdviceApi
+import com.iamashad.meraki.network.QuotesAPI
 import com.iamashad.meraki.repository.ChatRepository
 import com.iamashad.meraki.repository.FirestoreRepository
 import com.iamashad.meraki.repository.MoodRepository
@@ -41,6 +42,24 @@ object NetworkModule {
     @Singleton
     fun provideAdviceApi(@AdviceRetrofit retrofit: Retrofit): AdviceApi =
         retrofit.create(AdviceApi::class.java)
+
+    @Qualifier
+    @Retention(AnnotationRetention.BINARY)
+    annotation class QuotesRetrofit
+
+    @QuotesRetrofit
+    @Provides
+    @Singleton
+    fun provideZenQuotesRetrofit(): Retrofit = Retrofit.Builder()
+        .baseUrl("https://zenquotes.io/api/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    @Provides
+    @Singleton
+    fun provideZenQuotesApi(@QuotesRetrofit retrofit: Retrofit): QuotesAPI =
+        retrofit.create(QuotesAPI::class.java)
+
 
     @Provides
     @Singleton

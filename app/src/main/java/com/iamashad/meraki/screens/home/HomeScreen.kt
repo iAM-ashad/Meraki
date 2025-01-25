@@ -1,9 +1,14 @@
 package com.iamashad.meraki.screens.home
 
 import android.content.res.Configuration
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,13 +51,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.LottieAnimation
@@ -71,6 +80,8 @@ import com.iamashad.meraki.utils.daysOfWeek
 import com.iamashad.meraki.utils.getMoodColor
 import com.iamashad.meraki.utils.getMoodEmoji
 import com.iamashad.meraki.utils.rememberWindowSizeClass
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
 fun HomeScreen(
@@ -81,7 +92,7 @@ fun HomeScreen(
     val dimens = LocalDimens.current
 
     val user by homeViewModel.user.collectAsState()
-    val advice by homeViewModel.advice.collectAsState()
+    val quotes = homeViewModel.quotes.collectAsState()
     val photoUrl by homeViewModel.photoUrl.collectAsState()
     val lastMoods by moodTrackerViewModel.moodTrend.collectAsState()
     val isLoading by moodTrackerViewModel.loading.collectAsState()
@@ -157,7 +168,7 @@ fun HomeScreen(
                     }
 
                     item {
-                        AdviceCard(advice)
+                        QuoteCardStack(homeViewModel)
                     }
 
                     item {
@@ -223,7 +234,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    AdviceCard(advice)
+                    QuoteCardStack(homeViewModel)
                 }
 
                 item {
@@ -693,33 +704,148 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
 }
 
 @Composable
-fun AdviceCard(advice: String) {
+fun QuoteCardStack(viewModel: HomeScreenViewModel) {
+    val quotes by viewModel.quotes.collectAsState()
+    var currentIndex by remember { mutableIntStateOf(0) }
+    val screenWidth = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+    val scope = rememberCoroutineScope()
 
-    val dimens = LocalDimens.current
-    Card(
-        shape = RoundedCornerShape(
-            topStart = dimens.paddingLarge,
-            bottomEnd = dimens.paddingLarge
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(dimens.elevation),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(dimens.paddingSmall)
-    ) {
-        Text(
-            text = advice, style = MaterialTheme.typography.bodyLarge.copy(
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface
-            ), modifier = Modifier
-                .fillMaxWidth()
-                .padding(dimens.paddingSmall)
-        )
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        // Render cards from top to bottom
+        quotes.forEachIndexed { index, quote ->
+            if (index >= currentIndex) {
+                val isTopCard = index == currentIndex
+                val swipeOffset = remember { Animatable(0f) }
+                val alpha = remember { Animatable(1f) }
+
+                Box(
+                    modifier = Modifier
+                        .zIndex((quotes.size - index).toFloat())
+                        .graphicsLayer(
+                            scaleX = if (isTopCard) 1f else 0.95f - ((index - currentIndex) * 0.02f),
+                            scaleY = if (isTopCard) 1f else 0.95f - ((index - currentIndex) * 0.02f),
+                            translationY = if (isTopCard) 0f else (index - currentIndex) * 20f,
+                            alpha = if (isTopCard) alpha.value else 1f
+                        )
+                ) {
+                    if (isTopCard) {
+                        SwipeableCard(
+                            quote = quote.first,
+                            author = quote.second,
+                            swipeOffset = swipeOffset,
+                            alpha = alpha,
+                            screenWidth = screenWidth,
+                            onSwipeComplete = {
+                                scope.launch {
+                                    swipeOffset.animateTo(if (swipeOffset.value > 0) screenWidth else -screenWidth)
+                                    alpha.animateTo(0f)
+                                    currentIndex++
+
+                                    // Fetch a single new quote when reaching the end of the current stack
+                                    if (currentIndex >= quotes.size - 1) {
+                                        viewModel.fetchSingleQuote()
+                                    }
+                                }
+                            }
+                        )
+                    } else {
+                        QuoteCard(
+                            quote = quote.first,
+                            author = quote.second,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SwipeableCard(
+    quote: String,
+    author: String,
+    swipeOffset: Animatable<Float, AnimationVector1D>,
+    alpha: Animatable<Float, AnimationVector1D>,
+    screenWidth: Float,
+    onSwipeComplete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val scope = rememberCoroutineScope()
+
+    val dragState = rememberDraggableState { delta ->
+        scope.launch {
+            swipeOffset.snapTo(swipeOffset.value + delta)
+        }
     }
 
+    Box(
+        modifier = modifier
+            .offset { IntOffset(swipeOffset.value.roundToInt(), 0) }
+            .draggable(
+                orientation = Orientation.Horizontal,
+                state = dragState,
+                onDragStopped = {
+                    if (swipeOffset.value > screenWidth / 2 || swipeOffset.value < -screenWidth / 2) {
+                        onSwipeComplete() // Trigger swipe out
+                    } else {
+                        // Reset card position if not swiped far enough
+                        scope.launch {
+                            swipeOffset.animateTo(0f)
+                        }
+                    }
+                }
+            )
+    ) {
+        QuoteCard(
+            quote = quote,
+            author = author,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
+
+@Composable
+fun QuoteCard(
+    quote: String,
+    author: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(8.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "\"$quote\"",
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    textAlign = TextAlign.Center,
+                    fontStyle = FontStyle.Italic
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "- $author",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                ),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
 
 @Composable
 fun MeditateButton(navController: NavController) {

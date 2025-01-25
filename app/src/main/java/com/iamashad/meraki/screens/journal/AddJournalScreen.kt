@@ -137,8 +137,7 @@ fun AddJournalScreen(
                                     onSave()
                                     onClose()
                                 },
-                                onClose = onClose,
-                                isExpandedScreen = isExpandedScreen
+                                onClose = onClose
                             )
                         }
                     }
@@ -209,6 +208,14 @@ fun EmotionSelectionSheet(
                     colors = OutlinedTextFieldDefaults.colors()
                 )
 
+                Text(
+                    text = "Commonly Used Emotions",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(start = dimens.paddingSmall, bottom = dimens.paddingSmall)
+                )
+
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
                     modifier = Modifier.padding(start = dimens.paddingSmall)
@@ -229,7 +236,13 @@ fun EmotionSelectionSheet(
                         )
                     }
                 }
-
+                Text(
+                    text = "All Emotions",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(start = dimens.paddingSmall, top = dimens.paddingMedium)
+                )
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(if (isExpandedScreen) 4 else 3),
                     verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall),
@@ -253,7 +266,6 @@ fun EmotionSelectionSheet(
                     }
                 }
             }
-
             FloatingActionButton(
                 onClick = onNext,
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -292,7 +304,7 @@ fun ReasonSelectionSheet(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = dimens.paddingLarge * 2) // Reserve space for FAB
+                    .padding(bottom = dimens.paddingLarge * 2)
             ) {
                 Text(
                     text = "Commonly Used Reasons",
@@ -355,7 +367,6 @@ fun ReasonSelectionSheet(
                 }
             }
 
-            // Floating Action Button aligned to the bottom-right
             FloatingActionButton(
                 onClick = onNext,
                 containerColor = MaterialTheme.colorScheme.primary,
@@ -378,8 +389,7 @@ fun JournalEntrySheet(
     selectedImageUri: Uri?,
     onImageSelected: (Uri) -> Unit,
     onSave: () -> Unit,
-    onClose: () -> Unit,
-    isExpandedScreen: Boolean
+    onClose: () -> Unit
 ) {
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -411,7 +421,9 @@ fun JournalEntrySheet(
             OutlinedTextField(
                 value = journalEntry,
                 onValueChange = onJournalEntryChanged,
-                modifier = if(isExpandedScreen) Modifier.fillMaxWidth().height(dimens.paddingLarge*5) else Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(dimens.paddingLarge * 6),
                 placeholder = {
                     Text(
                         text = "Start writing here...",
@@ -426,7 +438,7 @@ fun JournalEntrySheet(
                 ),
                 shape = RoundedCornerShape(dimens.cornerRadius),
                 singleLine = false,
-                maxLines = 10
+                maxLines = 10,
             )
             Button(
                 onClick = {
