@@ -711,74 +711,79 @@ fun QuoteCardStack(viewModel: HomeScreenViewModel) {
     val screenWidth =
         with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
     val scope = rememberCoroutineScope()
+    val dimens = LocalDimens.current
 
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        // Render cards from top to bottom
-        quotes.forEachIndexed { index, quote ->
-            if (index >= currentIndex) {
-                val isTopCard = index == currentIndex
-                val swipeOffset = remember { Animatable(0f) }
-                val alpha = remember { Animatable(1f) }
+    if (quotes.isEmpty()) {
+        LoadingIndicator()
+    } else {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            // Render only the top card and one background card
+            quotes.forEachIndexed { index, quote ->
+                if (index == currentIndex || index == currentIndex + 1) {
+                    val isTopCard = index == currentIndex
+                    val swipeOffset = remember { Animatable(0f) }
+                    val alpha = remember { Animatable(1f) }
 
-                Box(
-                    modifier = Modifier
-                        .zIndex((quotes.size - index).toFloat())
-                        .graphicsLayer(
-                            scaleX = if (isTopCard) 1f else 0.95f - ((index - currentIndex) * 0.02f),
-                            scaleY = if (isTopCard) 1f else 0.95f - ((index - currentIndex) * 0.02f),
-                            translationY = if (isTopCard) 0f else (index - currentIndex) * 20f,
-                            alpha = if (isTopCard) alpha.value else 1f
-                        )
-                ) {
-                    if (isTopCard) {
-                        SwipeableCard(
-                            quote = quote.first,
-                            author = quote.second,
-                            swipeOffset = swipeOffset,
-                            alpha = alpha,
-                            screenWidth = screenWidth,
-                            onSwipeComplete = {
-                                scope.launch {
-                                    swipeOffset.animateTo(if (swipeOffset.value > 0) screenWidth else -screenWidth)
-                                    alpha.animateTo(0f)
-                                    currentIndex++
+                    Box(
+                        modifier = Modifier
+                            .zIndex((quotes.size - index).toFloat())
+                            .graphicsLayer(
+                                scaleX = if (isTopCard) 1f else 0.95f,
+                                scaleY = if (isTopCard) 1f else 0.95f,
+                                translationY = if (isTopCard) 0f else 20f,
+                                alpha = if (isTopCard) alpha.value else 0.8f
+                            )
+                    ) {
+                        if (isTopCard) {
+                            SwipeableCard(
+                                quote = quote.first,
+                                author = quote.second,
+                                swipeOffset = swipeOffset,
+                                alpha = alpha,
+                                screenWidth = screenWidth,
+                                onSwipeComplete = {
+                                    scope.launch {
+                                        swipeOffset.animateTo(if (swipeOffset.value > 0) screenWidth else -screenWidth)
+                                        alpha.animateTo(0f)
+                                        currentIndex++
 
-                                    // Fetch a single new quote when reaching the end of the current stack
-                                    if (currentIndex >= quotes.size - 1) {
-                                        viewModel.fetchSingleQuote()
+                                        // Fetch a single new quote when reaching the end of the current stack
+                                        if (currentIndex >= quotes.size - 1) {
+                                            viewModel.fetchSingleQuote()
+                                        }
                                     }
                                 }
-                            }
-                        )
-                    } else {
-                        QuoteCard(
-                            quote = quote.first,
-                            author = quote.second,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                            )
+                        } else {
+                            QuoteCard(
+                                quote = quote.first,
+                                author = quote.second,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             }
-        }
 
-        // Stack indicators
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            repeat(quotes.size) { index ->
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(
-                            if (index == currentIndex) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
-                            shape = CircleShape
-                        )
-                        .padding(horizontal = 4.dp)
-                )
+            // Stack indicators
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(dimens.paddingMedium),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(quotes.size) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(dimens.paddingSmall)
+                            .background(
+                                if (index == currentIndex) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                shape = CircleShape
+                            )
+                            .padding(horizontal = dimens.paddingSmall / 2)
+                    )
+                }
             }
         }
     }
@@ -987,6 +992,8 @@ fun EmptyMoodLogs() {
 
 @Composable
 fun LoadingIndicator() {
+    val dimens = LocalDimens.current
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -995,7 +1002,7 @@ fun LoadingIndicator() {
     ) {
         CircularProgressIndicator(
             color = MaterialTheme.colorScheme.background,
-            strokeWidth = 4.dp
+            strokeWidth = dimens.paddingSmall
         )
     }
 }

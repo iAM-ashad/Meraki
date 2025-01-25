@@ -1,8 +1,8 @@
 package com.iamashad.meraki.screens.settings
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import android.widget.TimePicker
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
@@ -35,9 +35,6 @@ import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.ui.theme.ThemePreference
 import com.iamashad.meraki.utils.LocalDimens
-import com.iamashad.meraki.utils.PromptEnableNotifications
-import com.iamashad.meraki.utils.ProvideDimens
-import com.iamashad.meraki.utils.rememberWindowSizeClass
 import com.iamashad.meraki.utils.scheduleDailyReminderAt
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -55,7 +52,7 @@ fun SettingsScreen(
     val isDynamicColorEnabled by ThemePreference.isDynamicColorEnabled(context)
         .collectAsState(initial = false)
     val coroutineScope = rememberCoroutineScope()
-
+    val dimens = LocalDimens.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showChatDeleteDialog by remember { mutableStateOf(false) }
@@ -65,203 +62,135 @@ fun SettingsScreen(
         isCheckedLocal = isDynamicColorEnabled
     }
 
-    val windowSize = rememberWindowSizeClass()
-    PromptEnableNotifications(context)
-
-    ProvideDimens(windowSize) {
-        val dimens = LocalDimens.current
-
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(scrollState)
+    ) {
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .verticalScroll(scrollState)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.onBackground)
+                .padding(vertical = dimens.paddingMedium),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.inversePrimary)
-                    .padding(vertical = dimens.paddingMedium),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "Account Settings",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontWeight = FontWeight.Bold
-                    )
+            Text(
+                text = "Settings",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.Bold
                 )
-            }
+            )
+        }
 
-            SettingsSection(title = "General Settings") {
-                SettingToggle(
-                    icon = R.drawable.ic_dynamic_colors,
-                    title = "Dynamic Color Mode",
-                    isChecked = isCheckedLocal
-                ) { isDynamic ->
-                    isCheckedLocal = isDynamic
-                    coroutineScope.launch {
-                        ThemePreference.setDynamicColor(context, isDynamic)
-                    }
-                }
-                SettingItem(icon = R.drawable.ic_notifications, title = "Set Reminder") {
-                    showTimePickerDialog = true
-                }
-                SettingItem(icon = R.drawable.ic_share, title = "Invite Friends") {
-                    //TODO
-                }
-                SettingItem(icon = R.drawable.ic_feedback, title = "Submit Feedback") {
-                    //TODO
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+        SettingsSection(title = "General Settings") {
+            SettingToggle(
+                icon = R.drawable.ic_dynamic_colors,
+                title = "Dynamic Color Mode",
+                isChecked = isCheckedLocal
+            ) { isDynamic ->
+                isCheckedLocal = isDynamic
+                coroutineScope.launch {
+                    ThemePreference.setDynamicColor(context, isDynamic)
                 }
             }
-
-            SettingsSection(title = "Security & Privacy") {
-                SettingItem(icon = R.drawable.ic_connect, title = "Connect With Us") {
-                    val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                        data = Uri.parse("mailto:wevolveapps.inc@gmail.com")
-                        putExtra(Intent.EXTRA_SUBJECT, "Feedback or Query")
-                    }
-                    context.startActivity(Intent.createChooser(emailIntent, "Send Email"))
+            SettingItem(icon = R.drawable.ic_notifications, title = "Set Reminder") {
+                showTimePickerDialog = true
+            }
+            SettingItem(icon = R.drawable.ic_share, title = "Invite Friends") {
+                val shareIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    type = "text/plain"
+                    putExtra(
+                        Intent.EXTRA_TEXT,
+                        "Check out this amazing app! Download it from: [App Link Placeholder Until App is Published]"
+                    )
                 }
-                SettingItem(icon = R.drawable.ic_delete_history, title = "Clear Chat History") {
-                    showChatDeleteDialog = true
-                }
+                context.startActivity(Intent.createChooser(shareIntent, "Share App"))
             }
 
-            SettingsSection(title = "Danger Zone", danger = true) {
-                SettingItem(
-                    icon = R.drawable.ic_delete_account,
-                    title = "Close Account"
-                ) {
-                    showDeleteDialog = true
-                }
+            SettingItem(icon = R.drawable.ic_feedback, title = "Submit Feedback") {
+                // TODO: Implement feedback functionality
             }
+        }
 
-            SettingsSection(title = "Log Out") {
-                SettingItem(icon = R.drawable.ic_logout, title = "Log Out") {
-                    showLogoutDialog = true
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+        SettingsSection(title = "Security & Privacy") {
+            SettingItem(icon = R.drawable.ic_connect, title = "Connect With Us") {
+                val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                    data = Uri.parse("mailto:wevolveapps.inc@gmail.com")
+                    putExtra(Intent.EXTRA_SUBJECT, "Feedback or Query")
                 }
+                context.startActivity(Intent.createChooser(emailIntent, "Send Email"))
+            }
+            SettingItem(icon = R.drawable.ic_delete_history, title = "Clear Chat History") {
+                showChatDeleteDialog = true
+            }
+        }
+
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+        SettingsSection(title = "Danger Zone", danger = true) {
+            SettingItem(icon = R.drawable.ic_delete_account, title = "Close Account") {
+                showDeleteDialog = true
+            }
+        }
+
+        Spacer(modifier = Modifier.height(dimens.paddingMedium))
+
+        SettingsSection(title = "Log Out") {
+            SettingItem(icon = R.drawable.ic_logout, title = "Log Out") {
+                showLogoutDialog = true
             }
         }
     }
+
     if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            confirmButton = {
-                Button(onClick = {
-                    auth.signOut()
-                    navController.navigate(Screens.REGISTER.name)
-                }) {
-                    Text("Log Out")
-                }
+        ConfirmationDialog(
+            title = "Log Out",
+            text = "Are you sure you want to log out?",
+            confirmText = "Log Out",
+            onConfirm = {
+                auth.signOut()
+                navController.navigate(Screens.REGISTER.name)
             },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-            title = { Text("Log Out") },
-            text = { Text("Are you sure you want to log out?") })
+            onDismiss = { showLogoutDialog = false }
+        )
     }
 
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            confirmButton = {
-                Button(onClick = {
-                    val googleSignInClient = GoogleSignIn.getClient(
-                        context,
-                        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                            .requestIdToken(context.getString(R.string.default_web_client_id))
-                            .requestEmail()
-                            .build()
-                    )
-
-                    googleSignInClient.silentSignIn().addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            val googleAccount = task.result
-                            val idToken = googleAccount?.idToken
-                            if (idToken != null) {
-                                val credential = GoogleAuthProvider.getCredential(idToken, null)
-                                auth.currentUser?.let { user ->
-                                    user.reauthenticate(credential)
-                                        .addOnCompleteListener { reauthTask ->
-                                            if (reauthTask.isSuccessful) {
-                                                user.delete().addOnCompleteListener { deleteTask ->
-                                                    if (deleteTask.isSuccessful) {
-                                                        showToast(
-                                                            context,
-                                                            "Account successfully deleted."
-                                                        )
-                                                        googleSignInClient.signOut()
-                                                        navController.navigate(Screens.REGISTER.name) {
-                                                            popUpTo(Screens.SETTINGS.name) {
-                                                                inclusive = true
-                                                            }
-                                                        }
-                                                    } else {
-                                                        showToast(
-                                                            context,
-                                                            "Failed to delete account: ${deleteTask.exception?.localizedMessage}"
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                showToast(
-                                                    context,
-                                                    "Re-authentication failed: ${reauthTask.exception?.localizedMessage}"
-                                                )
-                                            }
-                                        }
-                                }
-                            } else {
-                                showToast(context, "Failed to retrieve ID token.")
-                            }
-                        } else {
-                            showToast(
-                                context,
-                                "Silent sign-in failed: ${task.exception?.localizedMessage}"
-                            )
-                        }
-                    }
-                }) {
-                    Text("Delete")
-                }
-
+        ConfirmationDialog(
+            title = "Delete Account",
+            text = "Are you sure you want to permanently delete your account? This action cannot be undone.",
+            confirmText = "Delete",
+            onConfirm = {
+                performAccountDeletion(auth, context, navController)
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-            title = { Text("Delete Account") },
-            text = { Text("Are you sure you want to permanently delete your account? This action cannot be undone.") }
+            onDismiss = { showDeleteDialog = false }
         )
     }
 
     if (showChatDeleteDialog) {
-        AlertDialog(onDismissRequest = { showChatDeleteDialog = false },
-            confirmButton = {
-                Button(onClick = {
-                    chatViewModel.clearChatHistory()
-                    navController.popBackStack()
-                }) {
-                    Text("Clear Chats")
-                }
+        ConfirmationDialog(
+            title = "Clear Chat History",
+            text = "Are you sure you want to permanently clear your chats? This action cannot be undone.",
+            confirmText = "Clear",
+            onConfirm = {
+                chatViewModel.clearChatHistory()
+                navController.popBackStack()
             },
-            dismissButton = {
-                TextButton(onClick = { showChatDeleteDialog = false }) {
-                    Text("Cancel")
-                }
-            },
-            title = { Text("Clear Chat History") },
-            text = { Text("Are you sure you want to permanently clear your chats? This action cannot be undone.") })
+            onDismiss = { showChatDeleteDialog = false }
+        )
     }
+
     if (showTimePickerDialog) {
         CustomTimePickerDialog(
             initialTime = selectedTime,
             onTimeSelected = { time ->
-                Log.d("SettingsScreen", "Time selected: $time")
                 selectedTime = time
                 showTimePickerDialog = false
 
@@ -270,12 +199,91 @@ fun SettingsScreen(
                     time = time
                 )
             },
-            onDismiss = {
-                showTimePickerDialog = false
-            }
+            onDismiss = { showTimePickerDialog = false }
         )
     }
+}
 
+@Composable
+fun ConfirmationDialog(
+    title: String,
+    text: String,
+    confirmText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text(confirmText)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        title = { Text(title) },
+        text = { Text(text) }
+    )
+}
+
+fun performAccountDeletion(auth: FirebaseAuth, context: Context, navController: NavController) {
+    val googleSignInClient = GoogleSignIn.getClient(
+        context,
+        GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(context.getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+    )
+
+    googleSignInClient.silentSignIn().addOnCompleteListener { task ->
+        if (task.isSuccessful) {
+            val googleAccount = task.result
+            val idToken = googleAccount?.idToken
+            if (idToken != null) {
+                val credential = GoogleAuthProvider.getCredential(idToken, null)
+                auth.currentUser?.let { user ->
+                    user.reauthenticate(credential).addOnCompleteListener { reauthTask ->
+                        if (reauthTask.isSuccessful) {
+                            user.delete().addOnCompleteListener { deleteTask ->
+                                if (deleteTask.isSuccessful) {
+                                    showToast(
+                                        context,
+                                        "Account successfully deleted."
+                                    )
+                                    googleSignInClient.signOut()
+                                    navController.navigate(Screens.REGISTER.name) {
+                                        popUpTo(Screens.SETTINGS.name) {
+                                            inclusive = true
+                                        }
+                                    }
+                                } else {
+                                    showToast(
+                                        context,
+                                        "Failed to delete account: ${deleteTask.exception?.localizedMessage}"
+                                    )
+                                }
+                            }
+                        } else {
+                            showToast(
+                                context,
+                                "Re-authentication failed: ${reauthTask.exception?.localizedMessage}"
+                            )
+                        }
+                    }
+                }
+            } else {
+                showToast(context, "Failed to retrieve ID token.")
+            }
+        } else {
+            showToast(
+                context,
+                "Silent sign-in failed: ${task.exception?.localizedMessage}"
+            )
+        }
+    }
 }
 
 @Composable
