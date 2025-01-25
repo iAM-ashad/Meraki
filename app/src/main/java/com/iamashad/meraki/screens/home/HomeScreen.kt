@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -92,7 +93,6 @@ fun HomeScreen(
     val dimens = LocalDimens.current
 
     val user by homeViewModel.user.collectAsState()
-    val quotes = homeViewModel.quotes.collectAsState()
     val photoUrl by homeViewModel.photoUrl.collectAsState()
     val lastMoods by moodTrackerViewModel.moodTrend.collectAsState()
     val isLoading by moodTrackerViewModel.loading.collectAsState()
@@ -154,6 +154,11 @@ fun HomeScreen(
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
                 ) {
+
+                    item {
+                        QuoteCardStack(homeViewModel)
+                    }
+
                     item {
                         MoodPromptCard(navController)
                     }
@@ -165,10 +170,6 @@ fun HomeScreen(
                             lastMoods.isNotEmpty() -> MoodLogsCard(moodLogs = lastMoods.takeLast(7))
                             else -> EmptyMoodLogs()
                         }
-                    }
-
-                    item {
-                        QuoteCardStack(homeViewModel)
                     }
 
                     item {
@@ -221,6 +222,10 @@ fun HomeScreen(
                 }
 
                 item {
+                    QuoteCardStack(homeViewModel)
+                }
+
+                item {
                     MoodPromptCard(navController)
                 }
 
@@ -231,10 +236,6 @@ fun HomeScreen(
                         lastMoods.isNotEmpty() -> MoodLogsCard(moodLogs = lastMoods.takeLast(7))
                         else -> EmptyMoodLogs()
                     }
-                }
-
-                item {
-                    QuoteCardStack(homeViewModel)
                 }
 
                 item {
@@ -707,7 +708,8 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
 fun QuoteCardStack(viewModel: HomeScreenViewModel) {
     val quotes by viewModel.quotes.collectAsState()
     var currentIndex by remember { mutableIntStateOf(0) }
-    val screenWidth = with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+    val screenWidth =
+        with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
     val scope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -756,6 +758,27 @@ fun QuoteCardStack(viewModel: HomeScreenViewModel) {
                         )
                     }
                 }
+            }
+        }
+
+        // Stack indicators
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            repeat(quotes.size) { index ->
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            if (index == currentIndex) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        )
+                        .padding(horizontal = 4.dp)
+                )
             }
         }
     }
@@ -822,9 +845,24 @@ fun QuoteCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                )
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_quote),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "\"$quote\"",
                 style = MaterialTheme.typography.bodyLarge.copy(
@@ -834,18 +872,19 @@ fun QuoteCard(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                modifier = Modifier.width(50.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "- $author",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                ),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.primary
             )
         }
     }
 }
-
 
 @Composable
 fun MeditateButton(navController: NavController) {

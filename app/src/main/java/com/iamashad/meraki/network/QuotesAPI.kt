@@ -1,9 +1,9 @@
 package com.iamashad.meraki.network
 
-import com.iamashad.meraki.model.QuotesItem
+import com.iamashad.meraki.model.Quotes
 import retrofit2.http.GET
 
 interface QuotesAPI {
-    @GET("random")
-    suspend fun getRandomQuote(): List<QuotesItem>
+    @GET("quote")
+    suspend fun getRandomQuote(): Quotes
 }

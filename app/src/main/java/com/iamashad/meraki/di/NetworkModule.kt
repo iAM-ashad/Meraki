@@ -6,7 +6,6 @@ import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.data.ChatDao
 import com.iamashad.meraki.data.ChatDatabase
-import com.iamashad.meraki.network.AdviceApi
 import com.iamashad.meraki.network.QuotesAPI
 import com.iamashad.meraki.repository.ChatRepository
 import com.iamashad.meraki.repository.FirestoreRepository
@@ -28,36 +27,19 @@ object NetworkModule {
 
     @Qualifier
     @Retention(AnnotationRetention.BINARY)
-    annotation class AdviceRetrofit
-
-    @AdviceRetrofit
-    @Provides
-    @Singleton
-    fun provideAdviceRetrofit(): Retrofit = Retrofit.Builder()
-        .baseUrl("https://api.adviceslip.com/")
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-
-    @Provides
-    @Singleton
-    fun provideAdviceApi(@AdviceRetrofit retrofit: Retrofit): AdviceApi =
-        retrofit.create(AdviceApi::class.java)
-
-    @Qualifier
-    @Retention(AnnotationRetention.BINARY)
     annotation class QuotesRetrofit
 
     @QuotesRetrofit
     @Provides
     @Singleton
-    fun provideZenQuotesRetrofit(): Retrofit = Retrofit.Builder()
-        .baseUrl("https://zenquotes.io/api/")
+    fun provideQuotesRetrofit(): Retrofit = Retrofit.Builder()
+        .baseUrl("https://quotes-api-self.vercel.app/")
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
     @Provides
     @Singleton
-    fun provideZenQuotesApi(@QuotesRetrofit retrofit: Retrofit): QuotesAPI =
+    fun provideQuotesApi(@QuotesRetrofit retrofit: Retrofit): QuotesAPI =
         retrofit.create(QuotesAPI::class.java)
 
 

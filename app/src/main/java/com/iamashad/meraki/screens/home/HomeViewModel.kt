@@ -6,8 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
-import com.iamashad.meraki.model.QuotesItem
-import com.iamashad.meraki.repository.ZenQuotesRepository
+import com.iamashad.meraki.repository.QuotesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +21,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
-    private val zenQuotesRepository: ZenQuotesRepository,
+    private val quotesRepository: QuotesRepository,
     firebaseAuth: FirebaseAuth,
     private val firestore: FirebaseFirestore // Injected Firestore instance
 ) : ViewModel() {
@@ -50,8 +49,8 @@ class HomeScreenViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Fetch 5 initial quotes
-                val response = (1..5).map { zenQuotesRepository.getRandomQuote() }
-                val initialQuotes = response.map { it.q to it.a }
+                val response = (1..5).map { quotesRepository.getRandomQuote() }
+                val initialQuotes = response.map { it.quote to it.author }
                 _quotes.emit(initialQuotes)
             } catch (e: Exception) {
                 println("Failed to fetch initial quotes: ${e.localizedMessage}")
@@ -63,8 +62,8 @@ class HomeScreenViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Fetch a single new quote
-                val newQuote = zenQuotesRepository.getRandomQuote()
-                _quotes.emit(_quotes.value + (newQuote.q to newQuote.a)) // Append the new quote
+                val newQuote = quotesRepository.getRandomQuote()
+                _quotes.emit(_quotes.value + (newQuote.quote to newQuote.author)) // Append the new quote
             } catch (e: Exception) {
                 println("Failed to fetch new quote: ${e.localizedMessage}")
             }
