@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.google.firebase.auth.FirebaseAuth
+import com.iamashad.meraki.BuildConfig
 import com.iamashad.meraki.data.ChatDatabase
 import com.iamashad.meraki.data.ChatMessage
 import com.iamashad.meraki.model.Message
@@ -34,7 +35,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val messageList = mutableStateListOf<Message>()
 
     val generativeModel: GenerativeModel = provGenerativeModel(
-        apiKey = "AIzaSyDJm4lS9PSG83ximY7bX0JFk1epNQQtyZA"
+        apiKey = BuildConfig.GEMINI_API_KEY
     )
 
     var isTyping = mutableStateOf(false)
