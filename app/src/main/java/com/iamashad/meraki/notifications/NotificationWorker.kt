@@ -30,14 +30,12 @@ class NotificationWorker(
             val notificationManager =
                 applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                val channel = NotificationChannel(
-                    channelId, "Mood Journal Reminders",
-                    NotificationManager.IMPORTANCE_HIGH
-                )
-                notificationManager.createNotificationChannel(channel)
-                Log.d("NotificationWorker", "Notification channel created: $channelId")
-            }
+            val channel = NotificationChannel(
+                channelId, "Mood Journal Reminders",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+            Log.d("NotificationWorker", "Notification channel created: $channelId")
 
             val intent = Intent(applicationContext, MainActivity::class.java)
             val pendingIntent = PendingIntent.getActivity(
@@ -48,7 +46,7 @@ class NotificationWorker(
             val notification = NotificationCompat.Builder(applicationContext, channelId)
                 .setContentTitle("Your Mood Matters: Let’s Log Today’s Feelings")
                 .setContentText("You’re building a habit of self-care. Don’t miss today’s entry!")
-                .setSmallIcon(R.drawable.ic_launcher_foreground) // Ensure this drawable exists
+                .setSmallIcon(R.drawable.ic_app)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true)
                 .build()

@@ -35,10 +35,10 @@ import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.ui.theme.ThemePreference
 import com.iamashad.meraki.utils.LocalDimens
+import com.iamashad.meraki.utils.PromptEnableNotifications
 import com.iamashad.meraki.utils.scheduleDailyReminderAt
 import kotlinx.coroutines.launch
 import java.util.Locale
-
 
 @Composable
 fun SettingsScreen(
@@ -61,6 +61,7 @@ fun SettingsScreen(
     LaunchedEffect(isDynamicColorEnabled) {
         isCheckedLocal = isDynamicColorEnabled
     }
+    var showNotificationPrompt by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -98,6 +99,7 @@ fun SettingsScreen(
                 }
             }
             SettingItem(icon = R.drawable.ic_notifications, title = "Set Reminder") {
+                showNotificationPrompt = true
                 showTimePickerDialog = true
             }
             SettingItem(icon = R.drawable.ic_share, title = "Invite Friends") {
@@ -147,6 +149,10 @@ fun SettingsScreen(
                 showLogoutDialog = true
             }
         }
+    }
+
+    if (showNotificationPrompt) {
+        PromptEnableNotifications(context)
     }
 
     if (showLogoutDialog) {

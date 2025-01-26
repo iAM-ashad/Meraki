@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.firestore.FirebaseFirestore
+import com.iamashad.meraki.BuildConfig
 import com.iamashad.meraki.data.ChatDao
 import com.iamashad.meraki.data.ChatDatabase
 import com.iamashad.meraki.network.QuotesAPI
@@ -79,6 +80,6 @@ object NetworkModule {
 
     @Provides
     fun provideGenerativeModel(): GenerativeModel {
-        return provGenerativeModel(apiKey = "AIzaSyDJm4lS9PSG83ximY7bX0JFk1epNQQtyZA")
+        return provGenerativeModel(apiKey = BuildConfig.GEMINI_API_KEY)
     }
 }

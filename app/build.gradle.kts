@@ -1,3 +1,7 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +10,15 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
 }
+val localProperties = Properties().apply {
+    val localFile = rootProject.file("local.properties")
+    if (localFile.exists()) {
+        load(FileInputStream(localFile))
+    }
+}
+
+val geminiApiKey: String? = localProperties.getProperty("GEMINI_API_KEY")
+val webClientId: String? = localProperties.getProperty("WEB_CLIENT_ID")
 
 android {
     namespace = "com.iamashad.meraki"
@@ -19,6 +32,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "GEMINI_API_KEY", "\"${geminiApiKey}\"")
+        buildConfigField("String", "WEB_CLIENT_ID", "\"${webClientId}\"")
     }
 
     buildTypes {
@@ -38,6 +54,7 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -112,12 +129,6 @@ dependencies {
     implementation("androidx.compose.material3.adaptive:adaptive:1.1.0-alpha09")
     implementation ("androidx.compose.material3.adaptive:adaptive-layout:1.1.0-alpha09")
     implementation ("androidx.compose.material3.adaptive:adaptive-navigation:1.1.0-alpha09")
-
-
-
-
-
-
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
