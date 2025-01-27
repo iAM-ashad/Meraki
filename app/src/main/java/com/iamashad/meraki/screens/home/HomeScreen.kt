@@ -91,7 +91,6 @@ fun HomeScreen(
     moodTrackerViewModel: MoodTrackerViewModel = hiltViewModel()
 ) {
     val dimens = LocalDimens.current
-
     val user by homeViewModel.user.collectAsState()
     val photoUrl by homeViewModel.photoUrl.collectAsState()
     val lastMoods by moodTrackerViewModel.moodTrend.collectAsState()

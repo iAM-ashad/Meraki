@@ -9,6 +9,7 @@ plugins {
     id("kotlin-kapt")
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics")
 }
 val localProperties = Properties().apply {
     val localFile = rootProject.file("local.properties")
@@ -39,7 +40,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -101,6 +103,8 @@ dependencies {
     implementation ("com.google.firebase:firebase-firestore")
     implementation ("com.google.android.gms:play-services-auth:21.3.0")
     implementation ("com.google.firebase:firebase-messaging")
+    implementation ("com.google.firebase:firebase-analytics-ktx")
+    implementation ("com.google.firebase:firebase-crashlytics-ktx")
     // Exoplayer
     implementation ("androidx.media3:media3-exoplayer:1.5.0")
     implementation ("androidx.media3:media3-ui:1.5.0")
