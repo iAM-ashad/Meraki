@@ -1,5 +1,5 @@
-import java.util.Properties
 import java.io.FileInputStream
+import java.util.Properties
 
 
 plugins {
@@ -64,75 +64,75 @@ android {
 dependencies {
 
     //Glide
-    implementation ("com.github.bumptech.glide:compose:1.0.0-beta01")
+    implementation(libs.compose)
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation(libs.androidx.navigation.compose)
     // Dependency Injection
-    implementation("com.google.dagger:hilt-android:2.52")
-    kapt("com.google.dagger:hilt-compiler:2.52")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
     // Retrofit
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
     // Json Parsing
-    implementation("com.google.code.gson:gson:2.10.1")
-    implementation ("org.json:json:20210307")
+    implementation(libs.gson)
+    implementation(libs.json)
     // OkHTTP Logging
-    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
-    implementation ("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(libs.logging.interceptor)
+    implementation(libs.okhttp)
     // Mock WebServer
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.11.0")
+    testImplementation(libs.mockwebserver)
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.android)
     // Lifecycle Scopes
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    kapt("androidx.room:room-compiler:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
     // Datastore
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation(libs.androidx.datastore.preferences)
     // Lottie
-    implementation("com.airbnb.android:lottie-compose:6.6.2")
+    implementation(libs.lottie.compose)
     // Firebase
-    implementation (platform("com.google.firebase:firebase-bom:33.7.0"))
-    implementation ("com.google.firebase:firebase-analytics")
-    implementation ("com.google.firebase:firebase-auth")
-    implementation ("com.google.firebase:firebase-firestore")
-    implementation ("com.google.android.gms:play-services-auth:21.3.0")
-    implementation ("com.google.firebase:firebase-messaging")
-    implementation ("com.google.firebase:firebase-analytics-ktx")
-    implementation ("com.google.firebase:firebase-crashlytics-ktx")
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.play.services.auth)
+    implementation(libs.firebase.messaging)
+    implementation(libs.firebase.analytics.ktx)
+    implementation(libs.firebase.crashlytics.ktx)
     // Exoplayer
-    implementation ("androidx.media3:media3-exoplayer:1.5.0")
-    implementation ("androidx.media3:media3-ui:1.5.0")
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
     // LiveData
-    implementation ("androidx.compose.runtime:runtime-livedata:1.7.6")
-   // Gemini SDK
-    implementation ("com.google.ai.client.generativeai:generativeai:0.9.0")
+    implementation(libs.androidx.runtime.livedata)
+    // Gemini SDK
+    implementation(libs.generativeai)
     // Animated Navigation
-    implementation ("androidx.navigation:navigation-compose:2.8.5")
+    implementation(libs.androidx.navigation.compose)
     // Pagination
-    implementation ("androidx.paging:paging-runtime-ktx:3.3.5")
-    implementation ("androidx.paging:paging-compose:3.3.5")
+    implementation(libs.androidx.paging.runtime.ktx)
+    implementation(libs.androidx.paging.compose)
     // Material 3
-    implementation ("androidx.compose.material3:material3:1.3.1")
+    implementation(libs.material3)
     // Accompanist
-    implementation ("com.google.accompanist:accompanist-pager:0.28.0")
-    implementation ("com.google.accompanist:accompanist-pager-indicators:0.28.0")
-    implementation ("com.google.accompanist:accompanist-navigation-animation:0.30.1")
+    implementation(libs.accompanist.pager)
+    implementation(libs.accompanist.pager.indicators)
+    implementation(libs.accompanist.navigation.animation)
     // WorkManager
-    implementation ("androidx.work:work-runtime-ktx:2.10.0")
+    implementation(libs.androidx.work.runtime.ktx)
     // DataStore
-    implementation ("androidx.datastore:datastore-preferences:1.1.2")
+    implementation(libs.androidx.datastore.preferences)
     // WindowSizeClass API
-    implementation("androidx.compose.material3:material3-window-size-class:1.3.1")
+    implementation(libs.androidx.material3.window.size)
     // Adaptive Layout
-    implementation("androidx.compose.material3.adaptive:adaptive:1.1.0-alpha09")
-    implementation ("androidx.compose.material3.adaptive:adaptive-layout:1.1.0-alpha09")
-    implementation ("androidx.compose.material3.adaptive:adaptive-navigation:1.1.0-alpha09")
+    implementation(libs.androidx.adaptive)
+    implementation(libs.androidx.adaptive.layout)
+    implementation(libs.androidx.adaptive.navigation)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

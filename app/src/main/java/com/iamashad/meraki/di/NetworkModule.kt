@@ -1,14 +1,10 @@
 package com.iamashad.meraki.di
 
-import android.app.Application
 import android.content.Context
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.BuildConfig
-import com.iamashad.meraki.data.ChatDao
-import com.iamashad.meraki.data.ChatDatabase
 import com.iamashad.meraki.network.QuotesAPI
-import com.iamashad.meraki.repository.ChatRepository
 import com.iamashad.meraki.repository.FirestoreRepository
 import com.iamashad.meraki.repository.MoodRepository
 import com.iamashad.meraki.utils.ConnectivityStatus
@@ -16,6 +12,7 @@ import com.iamashad.meraki.utils.provGenerativeModel
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -34,7 +31,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideQuotesRetrofit(): Retrofit = Retrofit.Builder()
-        .baseUrl("https://quotes-api-self.vercel.app/")
+        .baseUrl(QUOTES_API_BASE_URL)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
@@ -46,7 +43,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideConnectivityStatus(context: Context): ConnectivityStatus {
+    fun provideConnectivityStatus(@ApplicationContext context: Context): ConnectivityStatus {
         return ConnectivityStatus(context)
     }
 
@@ -69,17 +66,9 @@ object NetworkModule {
     }
 
     @Provides
-    fun provideChatRepository(chatDao: ChatDao): ChatRepository {
-        return ChatRepository(chatDao)
-    }
-
-    @Provides
-    fun provideChatDao(application: Application): ChatDao {
-        return ChatDatabase.getInstance(application).chatDao()
-    }
-
-    @Provides
     fun provideGenerativeModel(): GenerativeModel {
         return provGenerativeModel(apiKey = BuildConfig.GEMINI_API_KEY)
     }
 }
+
+const val QUOTES_API_BASE_URL = "https://quotes-api-self.vercel.app/"
