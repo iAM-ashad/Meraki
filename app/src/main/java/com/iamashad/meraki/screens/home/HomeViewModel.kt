@@ -8,6 +8,8 @@ import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.repository.QuotesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -49,7 +51,10 @@ class HomeScreenViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Fetch 5 initial quotes
-                val response = (1..5).map { quotesRepository.getRandomQuote() }
+                val response = (1..5).map {
+                    async { quotesRepository.getRandomQuote() }
+                }.awaitAll()
+
                 val initialQuotes = response.map { it.quote to it.author }
                 _quotes.emit(initialQuotes)
             } catch (e: Exception) {
@@ -81,10 +86,12 @@ class HomeScreenViewModel @Inject constructor(
                 .await()
 
             if (snapshot.isEmpty) {
-                firestore.collection("users")
-                    .document(userId)
-                    .collection("streakLogs")
-                    .add(mapOf("date" to today))
+                val batch = firestore.batch()
+                val logRef = firestore.collection("users").document(userId).collection("streakLogs")
+                    .document()
+
+                batch.set(logRef, mapOf("date" to today))
+                batch.commit().await()
             }
         } catch (e: Exception) {
             println("Error logging daily usage: ${e.localizedMessage}")

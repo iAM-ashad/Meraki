@@ -2,6 +2,7 @@ package com.iamashad.meraki.di
 
 import android.content.Context
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.BuildConfig
 import com.iamashad.meraki.network.QuotesAPI
@@ -49,8 +50,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideFirestoreRepository(): FirestoreRepository {
-        return FirestoreRepository()
+    fun provideFirestoreRepository(db: FirebaseFirestore): FirestoreRepository {
+        return FirestoreRepository(db)
     }
 
     @Provides
@@ -61,8 +62,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideMoodRepository(firestore: FirebaseFirestore): MoodRepository {
-        return MoodRepository(firestore)
+    fun provideMoodRepository(firestore: FirebaseFirestore, auth: FirebaseAuth): MoodRepository {
+        return MoodRepository(firestore, auth)
     }
 
     @Provides

@@ -1,14 +1,20 @@
 package com.iamashad.meraki.repository
 
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.iamashad.meraki.model.Journal
+import jakarta.inject.Inject
+import jakarta.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
-class FirestoreRepository {
-    private val db = FirebaseFirestore.getInstance()
+@Singleton
+class FirestoreRepository @Inject constructor(
+    private val db: FirebaseFirestore
+) {
+
     private val journalsCollection = db.collection("journals")
 
     suspend fun addJournal(journal: Journal) {
@@ -21,10 +27,7 @@ class FirestoreRepository {
             "content" to journal.content,
             "moodScore" to journal.moodScore,
             "reasons" to journal.reasons,
-            "date" to com.google.firebase.Timestamp(
-                journal.date / 1000,
-                ((journal.date % 1000) * 1000000).toInt()
-            ),
+            "date" to FieldValue.serverTimestamp(),
             "imageUrl" to journal.imageUrl
         )
 

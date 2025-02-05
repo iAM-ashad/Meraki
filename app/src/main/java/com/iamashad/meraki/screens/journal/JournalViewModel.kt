@@ -42,7 +42,7 @@ class JournalViewModel @Inject constructor(
     private fun listenToJournals() {
         viewModelScope.launch {
             try {
-                repository.listenToJournals(userId).collect { updatedJournals ->
+                repository.listenToJournals(userId).collectLatest { updatedJournals ->
                     if (!_isSearching.value) {
                         _journals.value = updatedJournals
                     }

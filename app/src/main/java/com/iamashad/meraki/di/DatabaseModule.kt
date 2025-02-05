@@ -8,7 +8,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import jakarta.inject.Singleton
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -20,6 +20,7 @@ object DatabaseModule {
         return ChatRepository(chatDao)
     }
 
+    @Singleton
     @Provides
     fun provideChatDao(application: Application): ChatDao {
         return ChatDatabase.getInstance(application).chatDao()

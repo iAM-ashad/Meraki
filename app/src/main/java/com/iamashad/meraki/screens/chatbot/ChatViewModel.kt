@@ -1,42 +1,34 @@
 package com.iamashad.meraki.screens.chatbot
 
-import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
 import com.google.firebase.auth.FirebaseAuth
-import com.iamashad.meraki.BuildConfig
-import com.iamashad.meraki.data.ChatDatabase
 import com.iamashad.meraki.data.ChatMessage
 import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.repository.ChatRepository
 import com.iamashad.meraki.utils.analyzeEmotion
 import com.iamashad.meraki.utils.gradientMap
-import com.iamashad.meraki.utils.provGenerativeModel
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class ChatViewModel(application: Application) : AndroidViewModel(application) {
-    private val chatRepository: ChatRepository
+@HiltViewModel
+class ChatViewModel @Inject constructor(
+    private val chatRepository: ChatRepository,
+    private val generativeModel: GenerativeModel
+) : ViewModel() {
     var activeContext by mutableStateOf("neutral") // Default value
         private set
     private val userId: String =
         FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
-    init {
-        val chatDao = ChatDatabase.getInstance(application).chatDao()
-        chatRepository = ChatRepository(chatDao)
-    }
-
     val messageList = mutableStateListOf<Message>()
-
-    val generativeModel: GenerativeModel = provGenerativeModel(
-        apiKey = BuildConfig.GEMINI_API_KEY
-    )
 
     var isTyping = mutableStateOf(false)
         private set

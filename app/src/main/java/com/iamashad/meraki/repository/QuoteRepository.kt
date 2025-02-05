@@ -9,6 +9,6 @@ class QuotesRepository @Inject constructor(
 ) {
     suspend fun getRandomQuote(): Quotes {
         val quotes = quotesApi.getRandomQuote()
-        return quotes // Get the first (and only) quote in the list
+        return quotes
     }
 }

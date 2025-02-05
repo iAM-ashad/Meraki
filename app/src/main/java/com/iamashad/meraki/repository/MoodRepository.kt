@@ -9,12 +9,13 @@ import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
 class MoodRepository @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
 ) {
     private val moodsCollection = firestore.collection("moods")
 
     fun getAllMoods() = callbackFlow {
-        val currentUser = FirebaseAuth.getInstance().currentUser
+        val currentUser = auth.currentUser
         if (currentUser != null) {
             val listenerRegistration =
                 moodsCollection.whereEqualTo("userId", currentUser.uid) // Filter by user ID

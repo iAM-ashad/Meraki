@@ -2,9 +2,12 @@ package com.iamashad.meraki.repository
 
 import com.iamashad.meraki.data.ChatDao
 import com.iamashad.meraki.data.ChatMessage
+import jakarta.inject.Inject
+import jakarta.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 
-class ChatRepository(private val chatDao: ChatDao) {
+@Singleton
+class ChatRepository @Inject constructor(private val chatDao: ChatDao) {
     fun getChatMessagesFlow(userId: String): Flow<List<ChatMessage>> =
         chatDao.getAllMessagesFlow(userId)
 
@@ -25,5 +28,6 @@ class ChatRepository(private val chatDao: ChatDao) {
     suspend fun getAllMessages(userId: String): List<ChatMessage> {
         return chatDao.getAllMessages(userId).distinctBy { it.id }
     }
+
 }
 
