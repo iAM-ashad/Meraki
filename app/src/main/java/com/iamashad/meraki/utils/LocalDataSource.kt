@@ -7,12 +7,13 @@ val emotionKeywords = mapOf(
         "calm", "relaxed", "peaceful", "content", "serene", "chill", "at ease", "soothing"
     ), "stressed" to listOf(
         "stress",
+        "stressful",
         "stressed",
         "overwhelmed",
         "pressure",
         "burnout",
         "exhausted",
-        "tense",
+        "tensed",
         "worried sick"
     ), "anxious" to listOf(
         "anxiety",
@@ -56,7 +57,7 @@ val emotionKeywords = mapOf(
         "blue",
         "heartbroken",
         "low",
-        "teary",
+        "cry",
         "miserable",
         "hurt",
         "lonely",
@@ -72,7 +73,6 @@ val emotionKeywords = mapOf(
         "pissed",
         "outraged",
         "resentful",
-        "upset",
         "hostile"
     )
 )
