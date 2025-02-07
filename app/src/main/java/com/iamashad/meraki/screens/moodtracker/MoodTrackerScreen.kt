@@ -162,7 +162,7 @@ fun MoodTrackerScreen(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(dimens.paddingSmall / 2))
 
                                 MoodTrendGraph(
                                     moodData = recentTrend,
@@ -384,8 +384,8 @@ fun MoodTrackerScreen(
                         Text("OK")
                     }
                 },
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier.padding(16.dp)
+                shape = RoundedCornerShape(dimens.cornerRadius),
+                modifier = Modifier.padding(dimens.paddingMedium)
             )
         }
     }
