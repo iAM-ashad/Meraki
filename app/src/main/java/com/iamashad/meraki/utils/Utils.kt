@@ -317,7 +317,7 @@ fun getReasonIcon(reason: String): Int {
         "Weather" -> R.drawable.img_weather
         "Relationship" -> R.drawable.img_relationships
         "Sleep" -> R.drawable.img_sleep
-        "Social Life" -> R.drawable.img_social
+        "Social" -> R.drawable.img_social
         "Food" -> R.drawable.img_food
         "Self-esteem" -> R.drawable.img_selfesteem
         "Friends" -> R.drawable.img_friends
