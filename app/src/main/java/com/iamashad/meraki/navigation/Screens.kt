@@ -13,5 +13,7 @@ enum class Screens {
     SETTINGS,
     ABOUT,
     ONBOARDING,
-    INSIGHTS
+    INSIGHTS,
+    LOGIN,
+    CREATEUSER
 }

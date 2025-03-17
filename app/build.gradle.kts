@@ -39,7 +39,10 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
+            ndk {
+                debugSymbolLevel = "FULL"
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -98,6 +101,7 @@ dependencies {
     implementation(libs.lottie.compose)
     // Firebase
     implementation(platform(libs.firebase.bom))
+    implementation (libs.firebase.storage.ktx)
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)

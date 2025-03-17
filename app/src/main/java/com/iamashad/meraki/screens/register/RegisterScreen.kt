@@ -1,12 +1,21 @@
 package com.iamashad.meraki.screens.register
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -14,17 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.ConnectivityObserver
-import com.iamashad.meraki.components.showToast
 import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.utils.ConnectivityStatus
 import com.iamashad.meraki.utils.LocalDimens
@@ -33,23 +39,10 @@ import com.iamashad.meraki.utils.rememberWindowSizeClass
 
 @Composable
 fun RegisterScreen(
-    navController: NavController,
-    viewModel: RegisterViewModel = hiltViewModel()
+    navController: NavController
 ) {
     val context = LocalContext.current
     val isConnected = ConnectivityStatus(context)
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val account = GoogleSignIn.getSignedInAccountFromIntent(result.data).result
-        viewModel.firebaseAuthWithGoogle(account) { success ->
-            if (success) {
-                navController.navigate(Screens.HOME.name)
-            } else {
-                showToast(context, "Failed to sign in.")
-            }
-        }
-    }
     val windowSize = rememberWindowSizeClass()
 
     ConnectivityObserver(connectivityStatus = isConnected) {
@@ -135,8 +128,7 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
                     TextButton(onClick = {
-                        val signInIntent = viewModel.getGoogleSignInIntent()
-                        launcher.launch(signInIntent)
+                        navController.navigate(Screens.LOGIN.name)
                     }) {
                         Text(
                             text = "Already have an account? Log In",
