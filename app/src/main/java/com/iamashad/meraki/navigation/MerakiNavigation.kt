@@ -21,8 +21,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -50,6 +55,7 @@ import com.iamashad.meraki.screens.about.AboutScreen
 import com.iamashad.meraki.screens.breathing.BreathingScreen
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
 import com.iamashad.meraki.screens.chatbot.ChatbotScreen
+import com.iamashad.meraki.screens.createUser.CreateUserScreen
 import com.iamashad.meraki.screens.home.HomeScreen
 import com.iamashad.meraki.screens.insights.InsightsViewModel
 import com.iamashad.meraki.screens.insights.MoodInsightsScreen
@@ -57,12 +63,14 @@ import com.iamashad.meraki.screens.journal.AddJournalScreen
 import com.iamashad.meraki.screens.journal.JournalScreen
 import com.iamashad.meraki.screens.journal.JournalViewModel
 import com.iamashad.meraki.screens.journal.ViewJournalScreen
+import com.iamashad.meraki.screens.login.LoginScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerScreen
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
 import com.iamashad.meraki.screens.register.OnBoardingScreen
 import com.iamashad.meraki.screens.register.RegisterScreen
 import com.iamashad.meraki.screens.register.RegisterViewModel
 import com.iamashad.meraki.screens.settings.SettingsScreen
+import com.iamashad.meraki.screens.settings.SettingsViewModel
 import com.iamashad.meraki.screens.splash.SplashScreen
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.rememberWindowSizeClass
@@ -102,8 +110,7 @@ fun NavGraphBuilder.addNavGraph(navController: NavController) {
         MoodInsightsScreen(viewModel, navController)
     }
     composable(Screens.ONBOARDING.name) {
-        val viewModel = hiltViewModel<RegisterViewModel>()
-        OnBoardingScreen(navController, viewModel)
+        OnBoardingScreen(navController)
     }
     composable(
         route = "${Screens.CHATBOT.name}/{prompt}",
@@ -111,16 +118,27 @@ fun NavGraphBuilder.addNavGraph(navController: NavController) {
     ) {
         val viewModel = hiltViewModel<ChatViewModel>()
         ChatbotScreen(viewModel, navController)
+        ChatbotScreen(viewModel, navController)
     }
     composable(Screens.MOODTRACKER.name) {
         val viewModel = hiltViewModel<MoodTrackerViewModel>()
         MoodTrackerScreen(onMoodLogged = { viewModel.fetchMoodTrend() })
     }
     composable(Screens.SETTINGS.name) {
-        val viewModel = hiltViewModel<ChatViewModel>()
-        SettingsScreen(navController, viewModel)
+        val chatVM = hiltViewModel<ChatViewModel>()
+        val settingsVM = hiltViewModel<SettingsViewModel>()
+        val registerVM = hiltViewModel<RegisterViewModel>()
+        SettingsScreen(navController, settingsVM, registerVM, chatVM)
     }
     composable(Screens.BREATHING.name) { BreathingScreen(navController) }
+    composable(Screens.LOGIN.name) {
+        val viewModel = hiltViewModel<RegisterViewModel>()
+        LoginScreen(viewModel, navController) { navController.navigate(Screens.CREATEUSER.name) }
+    }
+    composable(Screens.CREATEUSER.name) {
+        val viewModel = hiltViewModel<RegisterViewModel>()
+        CreateUserScreen(viewModel, navController) { navController.navigate(Screens.LOGIN.name) }
+    }
     composable(
         route = "${Screens.ADDJOURNAL.name}/{journalId}",
         arguments = listOf(navArgument("journalId") { defaultValue = "" })

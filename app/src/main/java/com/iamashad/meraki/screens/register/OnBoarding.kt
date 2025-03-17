@@ -1,7 +1,5 @@
 package com.iamashad.meraki.screens.register
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -9,7 +7,14 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -20,27 +25,29 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.airbnb.lottie.compose.*
-import com.google.accompanist.pager.*
-import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
+import com.google.accompanist.pager.ExperimentalPagerApi
+import com.google.accompanist.pager.HorizontalPager
+import com.google.accompanist.pager.HorizontalPagerIndicator
+import com.google.accompanist.pager.rememberPagerState
 import com.iamashad.meraki.R
-import com.iamashad.meraki.components.showToast
+import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.utils.LocalDimens
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
-fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel = hiltViewModel()) {
+fun OnBoardingScreen(navController: NavController) {
     val dimens = LocalDimens.current
     val pagerState = rememberPagerState()
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
 
     val pages = listOf(
         OnboardingPage(
@@ -68,19 +75,6 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
             iterations = LottieConstants.IterateForever
         )
     )
-
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val account = GoogleSignIn.getSignedInAccountFromIntent(result.data).result
-        viewModel.firebaseAuthWithGoogle(account) { success ->
-            if (success) {
-                navController.navigate("HOME") // Navigate to home screen upon successful sign-in
-            } else {
-                showToast(context, "Failed to sign in. Please try again.")
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -130,9 +124,7 @@ fun OnBoardingScreen(navController: NavController, viewModel: RegisterViewModel 
             onClick = {
                 scope.launch {
                     if (pagerState.currentPage == pages.size - 1) {
-                        // Trigger Google Sign-In on the last page
-                        val signInIntent = viewModel.getGoogleSignInIntent()
-                        launcher.launch(signInIntent)
+                        navController.navigate(Screens.CREATEUSER.name)
                     } else {
                         // Navigate to the next page
                         pagerState.animateScrollToPage(pagerState.currentPage + 1)

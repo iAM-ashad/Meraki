@@ -4,11 +4,12 @@ accompanistPager = "0.28.0"
 adaptive = "1.1.0-alpha09"
 adaptiveLayout = "1.1.0-alpha09"
 adaptiveNavigation = "1.1.0-alpha09"
-agp = "8.8.0"
+agp = "8.9.0"
 compose = "1.0.0-beta01"
 converterGson = "2.9.0"
 datastorePreferences = "1.1.2"
 firebaseBom = "33.8.0"
+firebaseStorageKtx = "21.0.1"
 generativeai = "0.9.0"
 gson = "2.10.1"
 hiltAndroid = "2.52"
@@ -73,6 +74,7 @@ firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "fir
 firebase-crashlytics-ktx = { module = "com.google.firebase:firebase-crashlytics-ktx" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+firebase-storage-ktx = { module = "com.google.firebase:firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
 generativeai = { module = "com.google.ai.client.generativeai:generativeai", version.ref = "generativeai" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltCompiler" }

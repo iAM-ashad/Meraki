@@ -1,10 +1,7 @@
 package com.iamashad.meraki.screens.home
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.repository.QuotesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,8 +21,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
     private val quotesRepository: QuotesRepository,
-    firebaseAuth: FirebaseAuth,
-    private val firestore: FirebaseFirestore // Injected Firestore instance
+    private val firestore: FirebaseFirestore
 ) : ViewModel() {
 
     private val _quotes = MutableStateFlow<List<Pair<String, String>>>(emptyList())
@@ -34,14 +30,7 @@ class HomeScreenViewModel @Inject constructor(
     private val _author = MutableStateFlow("Anonymous")
     val author: StateFlow<String> = _author.asStateFlow()
 
-    private val _user = MutableStateFlow(firebaseAuth.currentUser)
-    val user: StateFlow<FirebaseUser?> = _user.asStateFlow()
-
-    private val _photoUrl = MutableStateFlow(firebaseAuth.currentUser?.photoUrl)
-    val photoUrl: StateFlow<Uri?> = _photoUrl.asStateFlow()
-
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-
 
     init {
         fetchInitialQuotes()
@@ -50,7 +39,6 @@ class HomeScreenViewModel @Inject constructor(
     private fun fetchInitialQuotes() {
         viewModelScope.launch {
             try {
-                // Fetch 5 initial quotes
                 val response = (1..5).map {
                     async { quotesRepository.getRandomQuote() }
                 }.awaitAll()
@@ -66,9 +54,8 @@ class HomeScreenViewModel @Inject constructor(
     fun fetchSingleQuote() {
         viewModelScope.launch {
             try {
-                // Fetch a single new quote
                 val newQuote = quotesRepository.getRandomQuote()
-                _quotes.emit(_quotes.value + (newQuote.quote to newQuote.author)) // Append the new quote
+                _quotes.emit(_quotes.value + (newQuote.quote to newQuote.author))
             } catch (e: Exception) {
                 println("Failed to fetch new quote: ${e.localizedMessage}")
             }
@@ -131,4 +118,3 @@ class HomeScreenViewModel @Inject constructor(
         }
     }
 }
-

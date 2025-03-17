@@ -40,12 +40,15 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,11 +73,10 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
-import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.R
 import com.iamashad.meraki.navigation.Screens
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
-import com.iamashad.meraki.utils.LoadImageWithGlide
+import com.iamashad.meraki.screens.settings.SettingsViewModel
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.daysOfWeek
@@ -88,11 +90,17 @@ import kotlin.math.roundToInt
 fun HomeScreen(
     navController: NavController,
     homeViewModel: HomeScreenViewModel = hiltViewModel(),
+    settingsViewModel: SettingsViewModel = hiltViewModel(),
     moodTrackerViewModel: MoodTrackerViewModel = hiltViewModel()
 ) {
     val dimens = LocalDimens.current
-    val user by homeViewModel.user.collectAsState()
-    val photoUrl by homeViewModel.photoUrl.collectAsState()
+    val user by settingsViewModel.user.collectAsState()
+    val profilePicRes by settingsViewModel.profilePicRes.collectAsState()
+    var profilePicState by remember { mutableIntStateOf(profilePicRes) }
+
+    LaunchedEffect(profilePicRes) {
+        profilePicState = profilePicRes
+    }
     val lastMoods by moodTrackerViewModel.moodTrend.collectAsState()
     val isLoading by moodTrackerViewModel.loading.collectAsState()
     var streakCount by remember { mutableIntStateOf(0) }
@@ -138,7 +146,7 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     ProfileCard(
-                        photoUrl = photoUrl.toString(),
+                        profilePicRes = profilePicState,
                         userName = user?.displayName ?: "User",
                         onProfileClick = { navController.navigate(Screens.SETTINGS.name) }
                     )
@@ -153,13 +161,12 @@ fun HomeScreen(
                         .fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
                 ) {
-
                     item {
                         QuoteCardStack(homeViewModel)
                     }
 
                     item {
-                        MoodPromptCard(navController)
+                        MoodPromptCard(navController, user?.displayName)
                     }
 
                     item {
@@ -207,7 +214,7 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         ProfileCard(
-                            photoUrl = photoUrl.toString(),
+                            profilePicRes = profilePicRes, // Default avatar
                             userName = user?.displayName ?: "User",
                             onProfileClick = { navController.navigate(Screens.SETTINGS.name) }
                         )
@@ -225,7 +232,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    MoodPromptCard(navController)
+                    MoodPromptCard(navController, user?.displayName)
                 }
 
                 item {
@@ -251,6 +258,7 @@ fun HomeScreen(
         }
     }
 }
+
 
 
 @Composable
@@ -482,8 +490,7 @@ fun CelebrationDialog(
 }
 
 @Composable
-fun MoodPromptCard(navController: NavController) {
-    val userName = FirebaseAuth.getInstance().currentUser?.displayName
+fun MoodPromptCard(navController: NavController, userName: String?) {
     val firstName = userName?.split(" ")?.firstOrNull()
     val dimens = LocalDimens.current
 
@@ -535,7 +542,6 @@ fun MoodPromptCard(navController: NavController) {
                     color = Color.White,
                     modifier = Modifier.padding(dimens.paddingSmall / 2)
                 )
-
             }
         }
     }
@@ -543,7 +549,7 @@ fun MoodPromptCard(navController: NavController) {
 
 @Composable
 fun ProfileCard(
-    photoUrl: String,
+    profilePicRes: Int,
     userName: String,
     onProfileClick: () -> Unit
 ) {
@@ -559,8 +565,9 @@ fun ProfileCard(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(dimens.paddingSmall)
         ) {
-            LoadImageWithGlide(
-                imageUrl = photoUrl,
+            Image(
+                painter = painterResource(id = profilePicRes),
+                contentDescription = "User Avatar",
                 modifier = Modifier
                     .size(dimens.avatarSize / 6)
                     .clip(CircleShape)
