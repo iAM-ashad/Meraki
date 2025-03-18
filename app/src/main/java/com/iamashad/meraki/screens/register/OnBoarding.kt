@@ -142,7 +142,7 @@ fun OnBoardingScreen(navController: NavController) {
             )
         ) {
             Text(
-                text = if (pagerState.currentPage == pages.size - 1) "I am ready to change my life!" else "Next ->",
+                text = if (pagerState.currentPage == pages.size - 1) "Let's Get Started!" else "Next ->",
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
             )
         }
