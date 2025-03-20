@@ -121,7 +121,7 @@ val allReasons = listOf(
     "Weather",
     "Relationship",
     "Sleep",
-    "Social Life",
+    "Social",
     "Food",
     "Self-esteem",
     "Friends",
