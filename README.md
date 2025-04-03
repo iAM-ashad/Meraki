@@ -1,4 +1,4 @@
-# 🌿 Meraki – Your Personal Emotional Wellness Companion
+# 🌿 Meraki – Mood and Wellness Companion
 
 Meraki is a beautifully crafted mental wellness Android application that empowers users to track, understand, and reflect on their emotional wellbeing through journaling, mood tracking, and AI-powered insights. Built with Jetpack Compose, Firebase, and Gemini AI, Meraki aims to create a safe, private, and engaging space for emotional expression and self-discovery.
 
