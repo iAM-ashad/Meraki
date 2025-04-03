@@ -18,50 +18,55 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * ViewModel to manage chatbot state, messages, and interactions
+ * Handles message sending, context tagging, history loading and emotion-based feedback
+ */
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val generativeModel: GenerativeModel
 ) : ViewModel() {
-    var activeContext by mutableStateOf("neutral") // Default value
-        private set
-    private val userId: String =
-        FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
 
+    // Contextual label based on emotional tone or user input topic
+    var activeContext by mutableStateOf("neutral")
+        private set
+
+    private val userId: String = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+
+    // List of chat messages shown in the UI
     val messageList = mutableStateListOf<Message>()
 
+    // UI flag for showing typing animation
     var isTyping = mutableStateOf(false)
         private set
 
+    // Checks if there are any previously saved messages
     suspend fun hasPreviousConversation(): Boolean {
         return chatRepository.getLastContext(userId) != null
     }
 
+    // Initializes active context based on previous session or default
     fun initializeContext(userId: String) {
         viewModelScope.launch {
             val lastContext = chatRepository.getLastContext(userId)
-            activeContext = lastContext ?: "neutral" // Use default if null
+            activeContext = lastContext ?: "neutral"
             Log.d("ChatViewModel", "Active context initialized: $activeContext")
         }
     }
 
+    // Loads previous conversation from repository and populates messageList
     fun loadPreviousConversation() {
         viewModelScope.launch {
-            // Fetch all messages from the repository
             val chatHistory = chatRepository.getAllMessages(userId)
-            val newMessageList = chatHistory.map {
-                Message(it.message, it.role)
-            }
-
-            // Clear the existing list to avoid duplication
+            val newMessageList = chatHistory.map { Message(it.message, it.role) }
             messageList.clear()
-
-            // Add only unique messages
             messageList.addAll(newMessageList.distinct())
             activeContext = chatRepository.getLastContext(userId)!!
         }
     }
 
+    // Begins a new session and generates a friendly greeting
     fun startNewConversation() {
         viewModelScope.launch {
             messageList.clear()
@@ -83,7 +88,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-
+    // Tags the last message with a user-defined context
     fun finishConversation(tag: String) {
         viewModelScope.launch {
             activeContext = tag
@@ -92,24 +97,29 @@ class ChatViewModel @Inject constructor(
                 message = lastMessage.message,
                 role = lastMessage.role,
                 context = tag,
-                userId = userId // Associate with the current user
+                userId = userId
             )
             chatRepository.insertMessage(chatMessage)
         }
     }
 
+    // Persists message in Room database
     private fun storeMessageInDatabase(message: Message) {
         viewModelScope.launch {
             chatRepository.insertMessage(
                 ChatMessage(
                     message = message.message,
                     role = message.role,
-                    userId = userId // Associate with the current user
+                    userId = userId
                 )
             )
         }
     }
 
+    /**
+     * Sends a message to the model and retrieves a generated response.
+     * Also updates emotional context based on user input.
+     */
     fun sendMessage(messageText: String, role: String = "user") {
         viewModelScope.launch {
             val message = Message(messageText, role)
@@ -117,7 +127,7 @@ class ChatViewModel @Inject constructor(
             storeMessageInDatabase(message)
 
             if (role == "user") {
-                activeContext = analyzeEmotion(messageText)
+                activeContext = analyzeEmotion(messageText) // Update emotion context
                 isTyping.value = true
 
                 val response = generativeModel.startChat(history = messageList.map {
@@ -133,6 +143,7 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    // Clears message list and history in the database
     fun clearChatHistory() {
         viewModelScope.launch {
             chatRepository.clearChatHistory(userId)
@@ -141,8 +152,8 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    // Returns a background gradient list based on current mood/context
     fun determineGradientColors(): List<Color> {
         return gradientMap[activeContext] ?: gradientMap["neutral"]!!
     }
 }
-

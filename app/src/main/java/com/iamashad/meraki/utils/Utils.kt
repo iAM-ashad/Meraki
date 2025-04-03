@@ -24,7 +24,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
-import androidx.work.*
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkManager
 import com.bumptech.glide.Glide
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.content
@@ -210,7 +212,7 @@ fun getMoodLabel(score: Int): String {
 }
 
 fun calculateMoodChange(moodTrend: List<Pair<String, Int>>, entryCount: Int): Int? {
-    if (moodTrend.isEmpty()) return null // Handle empty trend
+    if (moodTrend.isEmpty()) return null
     val recentMoodTrend = moodTrend.takeLast(entryCount)
     if (recentMoodTrend.size < 2) return null // At least two entries are needed for calculation
 

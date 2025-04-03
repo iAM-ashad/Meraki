@@ -12,12 +12,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,7 +32,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.navigation.NavController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -35,28 +39,35 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iamashad.meraki.R
 import kotlinx.coroutines.delay
 
+/**
+ * A guided breathing session screen using audio, animation, and countdown.
+ * Helps users relax through a calming routine.
+ */
 @Composable
-fun BreathingScreen(navController: NavController) {
-    // State variables
+fun BreathingScreen() {
+    // State for session status and timer
     var isSessionActive by remember { mutableStateOf(false) }
-    var timerValue by remember { mutableStateOf(210) } // Default session time: 210 seconds
+    var timerValue by remember { mutableIntStateOf(210) } // 3.5 minutes session
     val progress = remember(timerValue) { 1f * timerValue / 210 }
 
-    // Context for audio
+    // Set up ExoPlayer to play local audio
     val context = LocalContext.current
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
-            val audioUri =
-                "android.resource://${context.packageName}/${R.raw.guided_breathing}"
+            val audioUri = "android.resource://${context.packageName}/${R.raw.guided_breathing}"
             val mediaItem = androidx.media3.common.MediaItem.fromUri(audioUri)
             setMediaItem(mediaItem)
             prepare()
         }
     }
 
+    // Load Lottie animation (e.g., a pulsing circle or relaxing visual)
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.colors))
 
-    // Effect for starting/stopping the session
+    /**
+     * Starts session: countdown + audio
+     * Auto-resets when finished
+     */
     LaunchedEffect(isSessionActive) {
         if (isSessionActive) {
             exoPlayer.play()
@@ -70,6 +81,7 @@ fun BreathingScreen(navController: NavController) {
         }
     }
 
+    // UI Layout
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -77,17 +89,16 @@ fun BreathingScreen(navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Meditating Image (Visible during session)
-
+        // Calm image (optional branding or visual)
         Image(
-            painter = painterResource(R.drawable.breathingimage), // Replace with your image
+            painter = painterResource(R.drawable.breathingimage),
             contentDescription = "Meditating Person",
             modifier = Modifier
-                .size(150.dp) // Adjust the size as needed
+                .size(150.dp)
                 .padding(8.dp)
         )
 
-        // Instructional Text
+        // Instructional text based on session state
         Text(
             text = if (!isSessionActive) {
                 "Relax your mind and body. Click the button below to start a guided breathing session."
@@ -102,20 +113,19 @@ fun BreathingScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Circular Progress Bar with Lottie Animation
+        // Circular breathing progress indicator with Lottie visual
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(250.dp)
         ) {
-            // Circular Progress Bar
-            androidx.compose.material3.CircularProgressIndicator(
-                progress = progress,
-                strokeWidth = 10.dp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxSize()
+            CircularProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 10.dp
             )
 
-            // Lottie Animation (Radial Animation)
+            // Lottie animation inside the progress circle
             Box(
                 modifier = Modifier
                     .size(200.dp)
@@ -136,7 +146,7 @@ fun BreathingScreen(navController: NavController) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Start Button
+        // Start button (only visible when session is not running)
         if (!isSessionActive) {
             Button(
                 onClick = { isSessionActive = true },
@@ -147,13 +157,10 @@ fun BreathingScreen(navController: NavController) {
         }
     }
 
-    // Cleanup the audio player when composable leaves the composition
+    // Release the audio player when the screen is dismissed
     DisposableEffect(Unit) {
         onDispose {
             exoPlayer.release()
         }
     }
 }
-
-
-

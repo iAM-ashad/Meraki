@@ -111,7 +111,7 @@ fun LoginScreen(
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.inversePrimary,
                     unfocusedBorderColor = Color.Gray,
-                    unfocusedTextColor = MaterialTheme.colorScheme.background,
+                    unfocusedTextColor = MaterialTheme.colorScheme.primary,
                     focusedTextColor = MaterialTheme.colorScheme.inversePrimary,
                     focusedLabelColor = MaterialTheme.colorScheme.inversePrimary,
                 ),

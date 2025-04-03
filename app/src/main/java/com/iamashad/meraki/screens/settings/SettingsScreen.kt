@@ -117,7 +117,9 @@ fun SettingsScreen(
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
-                        .clickable { showAvatarDialog = true })
+                        .clickable { showAvatarDialog = true }
+                        .padding(8.dp)
+                )
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
                 Text(text = user?.displayName ?: "User", fontWeight = FontWeight.Bold)
                 Button(onClick = { showAvatarDialog = true }) { Text("Change Avatar") }

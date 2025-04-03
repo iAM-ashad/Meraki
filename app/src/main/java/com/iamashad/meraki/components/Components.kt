@@ -1,5 +1,6 @@
 package com.iamashad.meraki.components
 
+// Core Android and Compose imports
 import android.content.Context
 import android.content.Intent
 import android.text.format.DateFormat
@@ -79,25 +80,26 @@ import com.iamashad.meraki.utils.getMoodEmoji
 import com.iamashad.meraki.utils.getMoodLabelFromTitle
 import com.iamashad.meraki.utils.getTipForMood
 
-
+/**
+ * Utility function to display a toast message.
+ */
 fun showToast(context: Context, msg: String) {
     Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
 }
 
-
+/**
+ * Composable text that displays a clickable "privacy policy" link.
+ * Opens the link in an external browser.
+ */
 @Composable
 fun PrivacyPolicyText() {
     val context = LocalContext.current
     val privacyPolicyUrl = "https://sites.google.com/view/meraki-privacy-policy/home?authuser=6"
 
     val annotatedString = buildAnnotatedString {
-        withStyle (
-            style = SpanStyle(
-                color = Color.Black
-            )) {
-                append("I accept the ")
-            }
-
+        withStyle(style = SpanStyle(color = Color.Black)) {
+            append("I accept the ")
+        }
         pushStringAnnotation(tag = "URL", annotation = privacyPolicyUrl)
         withStyle(
             style = SpanStyle(
@@ -121,6 +123,9 @@ fun PrivacyPolicyText() {
     )
 }
 
+/**
+ * Reusable search bar with clear (X) icon.
+ */
 @Composable
 fun AppSearchBar(
     query: String,
@@ -147,6 +152,7 @@ fun AppSearchBar(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
+
         TextField(
             value = query,
             onValueChange = onQueryChanged,
@@ -184,6 +190,9 @@ fun AppSearchBar(
     }
 }
 
+/**
+ * Shown when there is no internet connection.
+ */
 @Composable
 fun NoInternetScreen() {
     val dimens = LocalDimens.current
@@ -223,13 +232,15 @@ fun NoInternetScreen() {
     }
 }
 
+/**
+ * Observes connectivity and shows a fallback screen if offline.
+ */
 @Composable
 fun ConnectivityObserver(
     connectivityStatus: ConnectivityStatus,
     content: @Composable () -> Unit
 ) {
     val isConnected by connectivityStatus.observeAsState(initial = true)
-
     if (!isConnected) {
         NoInternetScreen()
     } else {
@@ -237,6 +248,9 @@ fun ConnectivityObserver(
     }
 }
 
+/**
+ * Chip UI representing a mood/emotion with emoji.
+ */
 @Composable
 fun EmotionChip(
     emotionName: String,
@@ -258,7 +272,8 @@ fun EmotionChip(
                 .background(
                     if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else Color.Transparent,
                     shape = CircleShape
-                ), contentAlignment = Alignment.Center
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 text = emoji,
@@ -274,6 +289,9 @@ fun EmotionChip(
     }
 }
 
+/**
+ * Chip for selecting a reason for the selected emotion.
+ */
 @Composable
 fun ReasonChip(
     reason: String,
@@ -285,14 +303,13 @@ fun ReasonChip(
     Surface(
         shape = RoundedCornerShape(dimens.cornerRadius),
         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier
-            .clickable(onClick = onClick)
+        modifier = Modifier.clickable(onClick = onClick)
     ) {
         Text(
             text = reason,
             style = MaterialTheme.typography.labelSmall.copy(
                 color = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background,
-                textAlign = TextAlign.Center,
+                textAlign = TextAlign.Center
             ),
             modifier = Modifier.padding(
                 horizontal = dimens.paddingSmall,
@@ -302,9 +319,14 @@ fun ReasonChip(
     }
 }
 
+/**
+ * Layout structure for a sheet dialog with a title and content.
+ */
 @Composable
 fun SheetLayout(
-    title: String, onClose: () -> Unit, content: @Composable ColumnScope.() -> Unit
+    title: String,
+    onClose: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     val dimens = LocalDimens.current
 
@@ -313,7 +335,7 @@ fun SheetLayout(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
+                    listOf(
                         MaterialTheme.colorScheme.background,
                         MaterialTheme.colorScheme.inversePrimary
                     )
@@ -338,14 +360,21 @@ fun SheetLayout(
                 Icon(Icons.Default.Close, contentDescription = "Close")
             }
         }
+
         Spacer(modifier = Modifier.height(dimens.paddingMedium))
         content()
     }
 }
 
+/**
+ * Card showing a journal entry with mood, time, content, media, and tip.
+ * Includes edit and delete options.
+ */
 @Composable
 fun JournalCard(
-    journal: Journal, onEditClick: (Journal) -> Unit, onDeleteButtonClick: (String) -> Unit
+    journal: Journal,
+    onEditClick: (Journal) -> Unit,
+    onDeleteButtonClick: (String) -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val dimens = LocalDimens.current
@@ -356,18 +385,21 @@ fun JournalCard(
         elevation = CardDefaults.cardElevation(dimens.elevation),
         modifier = Modifier.fillMaxWidth()
     ) {
+        // Inner gradient box
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    brush = Brush.linearGradient(
+                    Brush.linearGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary
                         )
                     )
                 )
         ) {
             Column(modifier = Modifier.padding(dimens.paddingMedium)) {
+                // Top section with emoji, time, edit button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -410,9 +442,7 @@ fun JournalCard(
                 Text(
                     text = if (journal.title.isNotEmpty()) {
                         "You felt ${journal.title}"
-                    } else {
-                        "You felt Neutral"
-                    },
+                    } else "You felt Neutral",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary
@@ -422,9 +452,7 @@ fun JournalCard(
                 Text(
                     text = if (journal.reasons.isNotEmpty()) {
                         "Because of ${journal.reasons.joinToString()}"
-                    } else {
-                        "Because of unknown reasons"
-                    },
+                    } else "Because of unknown reasons",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary
@@ -434,11 +462,8 @@ fun JournalCard(
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
                 Text(
-                    text = if (journal.content.isNotBlank()) {
-                        "Note: ${journal.content}"
-                    } else {
-                        "No additional notes provided."
-                    },
+                    text = if (journal.content.isNotBlank()) "Note: ${journal.content}"
+                    else "No additional notes provided.",
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ),
@@ -481,10 +506,9 @@ fun JournalCard(
                 }
 
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
-
                 HorizontalDivider(color = MaterialTheme.colorScheme.surface, thickness = 0.5.dp)
-
                 Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -498,7 +522,8 @@ fun JournalCard(
                         )
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.Delete,
+                        Icon(
+                            imageVector = Icons.Default.Delete,
                             contentDescription = "Delete Icon",
                             tint = MaterialTheme.colorScheme.surface,
                             modifier = Modifier
@@ -508,13 +533,13 @@ fun JournalCard(
                         Text(
                             text = "Delete",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                color = MaterialTheme.colorScheme.surface,
-                                fontSize = MaterialTheme.typography.bodySmall.fontSize
+                                color = MaterialTheme.colorScheme.surface
                             ),
                             modifier = Modifier.padding(start = dimens.paddingSmall / 2)
                         )
                     }
                 }
+
                 Text(
                     text = getTipForMood(getMoodLabelFromTitle(journal.title)),
                     style = MaterialTheme.typography.bodySmall.copy(
@@ -526,8 +551,10 @@ fun JournalCard(
         }
     }
 
+    // Confirmation dialog for deleting a journal entry
     if (showDeleteDialog) {
-        AlertDialog(onDismissRequest = { showDeleteDialog = false },
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete Journal") },
             text = { Text("Are you sure you want to delete this journal? This action cannot be undone.") },
             confirmButton = {
@@ -542,14 +569,18 @@ fun JournalCard(
                 TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancel")
                 }
-            })
+            }
+        )
     }
 }
 
-
+/**
+ * Line chart displaying a smooth mood trend graph using a cubic Bezier path.
+ */
 @Composable
 fun MoodTrendGraph(
-    moodData: List<Pair<String, Int>>, modifier: Modifier = Modifier
+    moodData: List<Pair<String, Int>>,
+    modifier: Modifier = Modifier
 ) {
     if (moodData.isEmpty()) return
 
@@ -557,14 +588,13 @@ fun MoodTrendGraph(
     val minMood = moodData.minOfOrNull { it.second } ?: 0
     val moodRange = maxMood - minMood
     val gradientBrush = Brush.verticalGradient(
-        colors = listOf(
-            Color(220, 141, 243, 255), Color(53, 33, 59, 255)
+        listOf(
+            Color(220, 141, 243, 255),
+            Color(53, 33, 59, 255)
         )
     )
 
-    Canvas(
-        modifier = modifier.fillMaxWidth()
-    ) {
+    Canvas(modifier = modifier.fillMaxWidth()) {
         val width = size.width
         val height = size.height
         val xStep = width / (moodData.size - 1).coerceAtLeast(1)
@@ -588,11 +618,16 @@ fun MoodTrendGraph(
         }
 
         drawPath(
-            path = path, brush = gradientBrush, style = Stroke(width = 6.dp.toPx())
+            path = path,
+            brush = gradientBrush,
+            style = Stroke(width = 6.dp.toPx())
         )
     }
 }
 
+/**
+ * Helper function to calculate Y-position of each mood point in the chart.
+ */
 private fun getY(
     moodData: List<Pair<String, Int>>,
     index: Int,

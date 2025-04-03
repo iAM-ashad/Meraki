@@ -3,16 +3,7 @@ package com.iamashad.meraki.screens.createUser
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -21,23 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,11 +26,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.iamashad.meraki.R
@@ -66,6 +38,10 @@ import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.rememberWindowSizeClass
 
+/**
+ * UI Composable for the Create User (Sign Up) screen.
+ * Handles user input, form validation, avatar selection, and navigation.
+ */
 @Composable
 fun CreateUserScreen(
     viewModel: RegisterViewModel = viewModel(),
@@ -73,18 +49,23 @@ fun CreateUserScreen(
     onNavigateToLogin: () -> Unit
 ) {
     val dimens = LocalDimens.current
+
+    // State variables for form fields
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var selectedAvatar by remember { mutableStateOf<Int?>(null) }
     var acceptPolicy by remember { mutableStateOf(false) }
+
+    // Observe error state from ViewModel
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
 
+    // List of available avatar drawable resources
     val avatars = listOf(
         R.drawable.avatar1, R.drawable.avatar2, R.drawable.avatar3,
         R.drawable.avatar4, R.drawable.avatar5, R.drawable.avatar6,
@@ -101,21 +82,20 @@ fun CreateUserScreen(
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Header image box
             Box(
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.TopEnd
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.img_signup_register),
-                    contentDescription = "Sign Up Illustration",
-                    modifier = Modifier
-
+                    contentDescription = "Sign Up Illustration"
                 )
             }
 
             Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
+            // Screen title and subtitle
             Text(
                 text = "Sign Up",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
@@ -128,9 +108,10 @@ fun CreateUserScreen(
 
             Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
-            // **🔹 Input Fields**
+            // Full Name Input
             OutlinedTextField(
-                value = name, onValueChange = { name = it },
+                value = name,
+                onValueChange = { name = it },
                 label = { Text("Full Name") },
                 shape = RoundedCornerShape(dimens.cornerRadius),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -140,11 +121,7 @@ fun CreateUserScreen(
                     focusedTextColor = MaterialTheme.colorScheme.inversePrimary,
                     focusedLabelColor = MaterialTheme.colorScheme.inversePrimary,
                 ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        focusManager.clearFocus()
-                    }
-                ),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next,
@@ -155,11 +132,15 @@ fun CreateUserScreen(
                     .padding(horizontal = dimens.paddingMedium)
                     .focusRequester(focusRequester)
             )
+
             Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
+            // Email Input
             OutlinedTextField(
-                value = email, onValueChange = { email = it },
+                value = email,
+                onValueChange = { email = it },
                 label = { Text("Email") },
+                shape = RoundedCornerShape(dimens.cornerRadius),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.inversePrimary,
                     unfocusedBorderColor = Color.Gray,
@@ -167,42 +148,25 @@ fun CreateUserScreen(
                     focusedTextColor = MaterialTheme.colorScheme.inversePrimary,
                     focusedLabelColor = MaterialTheme.colorScheme.inversePrimary,
                 ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        focusManager.clearFocus()
-                    }
-                ),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
                 ),
-                shape = RoundedCornerShape(dimens.cornerRadius),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = dimens.paddingMedium)
                     .focusRequester(focusRequester)
             )
+
             Spacer(modifier = Modifier.height(dimens.paddingSmall))
 
+            // Password Input
             OutlinedTextField(
-                value = password, onValueChange = { password = it },
+                value = password,
+                onValueChange = { password = it },
                 label = { Text("Password") },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.inversePrimary,
-                    unfocusedBorderColor = Color.Gray,
-                    unfocusedTextColor = MaterialTheme.colorScheme.background,
-                    focusedTextColor = MaterialTheme.colorScheme.inversePrimary,
-                    focusedLabelColor = MaterialTheme.colorScheme.inversePrimary,
-                ),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        focusManager.clearFocus()
-                    }
-                ),
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
+                shape = RoundedCornerShape(dimens.cornerRadius),
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -210,12 +174,22 @@ fun CreateUserScreen(
                             painter = painterResource(id = if (passwordVisible) R.drawable.ic_visibility else R.drawable.ic_visibility_off),
                             contentDescription = "Toggle Password Visibility",
                             tint = MaterialTheme.colorScheme.inversePrimary,
-                            modifier = Modifier
-                                .scale(.5f)
+                            modifier = Modifier.scale(.5f)
                         )
                     }
                 },
-                shape = RoundedCornerShape(dimens.cornerRadius),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.inversePrimary,
+                    unfocusedBorderColor = Color.Gray,
+                    unfocusedTextColor = MaterialTheme.colorScheme.background,
+                    focusedTextColor = MaterialTheme.colorScheme.inversePrimary,
+                    focusedLabelColor = MaterialTheme.colorScheme.inversePrimary,
+                ),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = dimens.paddingMedium)
@@ -224,7 +198,7 @@ fun CreateUserScreen(
 
             Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
-            // **🔹 Avatar Selection**
+            // Avatar Picker
             Text(
                 text = "Choose Your Avatar",
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -233,8 +207,7 @@ fun CreateUserScreen(
             )
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall / 4),
-                modifier = Modifier
-                    .padding(start = dimens.paddingSmall / 2, end = dimens.paddingSmall / 2)
+                modifier = Modifier.padding(horizontal = dimens.paddingSmall / 2)
             ) {
                 items(avatars) { avatarRes ->
                     Image(
@@ -254,7 +227,7 @@ fun CreateUserScreen(
 
             Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
-            // **🔹 Privacy Policy Checkbox**
+            // Privacy policy agreement
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -265,7 +238,7 @@ fun CreateUserScreen(
                     colors = CheckboxDefaults.colors(
                         uncheckedColor = Color.Gray,
                         checkedColor = MaterialTheme.colorScheme.inversePrimary,
-                        checkmarkColor = MaterialTheme.colorScheme.onSurface,
+                        checkmarkColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
                 PrivacyPolicyText()
@@ -273,11 +246,11 @@ fun CreateUserScreen(
 
             Spacer(modifier = Modifier.height(dimens.paddingMedium / 2))
 
-            // **🔹 Sign Up Button**
+            // Sign Up Button
             Button(
                 onClick = {
                     if (name.isBlank() || email.isBlank() || password.isBlank() || !acceptPolicy) {
-                        showToast(context, "Please fill all the details!" )
+                        showToast(context, "Please fill all the details!")
                         return@Button
                     }
                     viewModel.registerUser(email, password, name, selectedAvatar) { success, message ->
@@ -308,18 +281,18 @@ fun CreateUserScreen(
 
             Spacer(modifier = Modifier.height(dimens.paddingSmall / 2))
 
-            // **🔹 Login Navigation**
+            // Login redirect
             TextButton(onClick = onNavigateToLogin) {
                 Text(
-                    "Already have an account? Log in",
+                    text = "Already have an account? Log in",
                     color = Color.Black,
                     fontWeight = FontWeight.Bold,
                     fontStyle = FontStyle.Italic,
-                    modifier = Modifier
-                        .padding(bottom = dimens.paddingSmall)
+                    modifier = Modifier.padding(bottom = dimens.paddingSmall)
                 )
             }
 
+            // Error feedback
             if (errorMessage != null) {
                 Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
             }
