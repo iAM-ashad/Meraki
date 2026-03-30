@@ -11,9 +11,9 @@ interface QuotesAPI {
     /**
      * Fetches a random motivational or inspirational quote from the API.
      *
-     * Endpoint: GET /quote
-     * @return A [Quotes] object containing the quote and its author.
+     * Endpoint: GET /api/random (ZenQuotes)
+     * @return A single-element list containing a [Quotes] object with the quote and its author.
      */
-    @GET("quote")
-    suspend fun getRandomQuote(): Quotes
+    @GET("api/random")
+    suspend fun getRandomQuote(): List<Quotes>
 }

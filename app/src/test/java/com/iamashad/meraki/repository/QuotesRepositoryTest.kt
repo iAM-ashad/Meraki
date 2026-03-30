@@ -53,7 +53,8 @@ class QuotesRepositoryTest {
 
     @Test
     fun `getRandomQuote - parses author and quote from JSON response`() = runTest(testDispatcher) {
-        val json = """{"author":"Marcus Aurelius","quote":"The impediment to action advances action."}"""
+        // ZenQuotes wraps the result in a single-element JSON array and uses "a"/"q" keys.
+        val json = """[{"a":"Marcus Aurelius","q":"The impediment to action advances action.","h":""}]"""
         mockWebServer.enqueue(MockResponse().setBody(json).setResponseCode(200))
 
         val result = repository.getRandomQuote()
@@ -64,7 +65,7 @@ class QuotesRepositoryTest {
 
     @Test
     fun `getRandomQuote - returns correct Quotes object on 200 OK`() = runTest(testDispatcher) {
-        val json = """{"author":"Seneca","quote":"Luck is what happens when preparation meets opportunity."}"""
+        val json = """[{"a":"Seneca","q":"Luck is what happens when preparation meets opportunity.","h":""}]"""
         mockWebServer.enqueue(MockResponse().setBody(json).setResponseCode(200))
 
         val result = repository.getRandomQuote()
@@ -75,19 +76,19 @@ class QuotesRepositoryTest {
 
     @Test
     fun `getRandomQuote - request hits the correct endpoint`() = runTest(testDispatcher) {
-        val json = """{"author":"A","quote":"Q"}"""
+        val json = """[{"a":"A","q":"Q","h":""}]"""
         mockWebServer.enqueue(MockResponse().setBody(json).setResponseCode(200))
 
         repository.getRandomQuote()
 
         val recordedRequest = mockWebServer.takeRequest()
-        assertThat(recordedRequest.path).isEqualTo("/quote")
+        assertThat(recordedRequest.path).isEqualTo("/api/random")
         assertThat(recordedRequest.method).isEqualTo("GET")
     }
 
     @Test
     fun `getRandomQuote - author field is preserved exactly as received`() = runTest(testDispatcher) {
-        val json = """{"author":"Albert Einstein","quote":"Imagination is more important than knowledge."}"""
+        val json = """[{"a":"Albert Einstein","q":"Imagination is more important than knowledge.","h":""}]"""
         mockWebServer.enqueue(MockResponse().setBody(json).setResponseCode(200))
 
         val result = repository.getRandomQuote()
@@ -97,7 +98,7 @@ class QuotesRepositoryTest {
 
     @Test
     fun `getRandomQuote - handles empty author gracefully`() = runTest(testDispatcher) {
-        val json = """{"author":"","quote":"Anonymous wisdom."}"""
+        val json = """[{"a":"","q":"Anonymous wisdom.","h":""}]"""
         mockWebServer.enqueue(MockResponse().setBody(json).setResponseCode(200))
 
         val result = repository.getRandomQuote()

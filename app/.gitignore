@@ -1,3 +1,22 @@
 /build
 # Ignore google-services.json
 google-services.json
+
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Android
+local.properties
+.idea/
+*.iml
+
+# Generated
+app/build/
+app/generated/
+app/intermediates/
+app/sessions/
+
+# Kotlin / KSP
+ksp/

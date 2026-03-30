@@ -115,4 +115,4 @@ object NetworkModule {
 /**
  * Base URL used for accessing the Quotes API service.
  */
-const val QUOTES_API_BASE_URL = "https://quotes-api-self.vercel.app/"
+const val QUOTES_API_BASE_URL = "https://zenquotes.io/"

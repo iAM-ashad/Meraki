@@ -24,9 +24,11 @@ class QuotesRepository @Inject constructor(
     /**
      * Suspends and retrieves a random quote from the API.
      *
+     * ZenQuotes wraps its response in a JSON array; .first() unwraps the single element.
+     *
      * @return A [Quotes] object containing the quote and its author.
      */
     suspend fun getRandomQuote(): Quotes = withContext(ioDispatcher) {
-        quotesApi.getRandomQuote()
+        quotesApi.getRandomQuote().first()
     }
 }

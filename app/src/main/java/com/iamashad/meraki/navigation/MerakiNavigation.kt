@@ -223,10 +223,10 @@ fun AdaptiveScreen(
     windowSize: WindowAdaptiveInfo,
     content: @Composable () -> Unit
 ) {
-    val destination by navController.currentBackStackEntryFlow.collectAsState(initial = null)
-    val showBottomBar = destination?.destination?.let { dest ->
+    val showBottomBar = currentDestination?.let { dest ->
         dest.hasRoute<Home>() || dest.hasRoute<MoodTracker>() ||
-                dest.hasRoute<Journal>() || dest.hasRoute<Insights>()
+                dest.hasRoute<Journal>() || dest.hasRoute<Insights>() ||
+                dest.hasRoute<Chatbot>()
     } ?: false
 
     when (windowSize.windowSizeClass.windowWidthSizeClass) {
@@ -234,7 +234,7 @@ fun AdaptiveScreen(
             Scaffold(
                 bottomBar = {
                     if (showBottomBar) {
-                        BottomNavigationBar(navController)
+                        BottomNavigationBar(navController, currentDestination)
                     }
                 }
             ) { paddingValues ->
@@ -255,7 +255,8 @@ fun AdaptiveScreen(
             ) {
                 ScrollableNavigationRail(
                     navController = navController,
-                    windowSizeClass = windowSize
+                    windowSizeClass = windowSize,
+                    currentDestination = currentDestination
                 )
 
                 Box(
@@ -270,7 +271,7 @@ fun AdaptiveScreen(
 
         else -> {
             Scaffold(
-                bottomBar = { BottomNavigationBar(navController) }
+                bottomBar = { BottomNavigationBar(navController, currentDestination) }
             ) { paddingValues ->
                 Box(
                     modifier = Modifier
@@ -291,7 +292,8 @@ fun AdaptiveScreen(
 @Composable
 fun AnimatedNavigationRail(
     navController: NavController,
-    windowSizeClass: WindowAdaptiveInfo
+    windowSizeClass: WindowAdaptiveInfo,
+    currentDestination: androidx.navigation.NavDestination?
 ) {
     val dimens = LocalDimens.current
 
@@ -317,8 +319,7 @@ fun AnimatedNavigationRail(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         items.forEach { item ->
-            val isSelected = navController.currentBackStackEntry
-                ?.destination?.hasRoute(item.route::class) == true
+            val isSelected = currentDestination?.hasRoute(item.route::class) == true
             val scale by animateFloatAsState(
                 targetValue = if (isSelected) 1.2f else 1f,
                 animationSpec = spring(
@@ -380,7 +381,8 @@ fun AnimatedNavigationRail(
 @Composable
 fun ScrollableNavigationRail(
     navController: NavController,
-    windowSizeClass: WindowAdaptiveInfo
+    windowSizeClass: WindowAdaptiveInfo,
+    currentDestination: androidx.navigation.NavDestination?
 ) {
     Column(
         modifier = Modifier
@@ -388,7 +390,7 @@ fun ScrollableNavigationRail(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Top
     ) {
-        AnimatedNavigationRail(navController, windowSizeClass)
+        AnimatedNavigationRail(navController, windowSizeClass, currentDestination)
     }
 }
 
@@ -397,7 +399,10 @@ fun ScrollableNavigationRail(
  * Selection is determined via hasRoute(KClass) — works with type-safe routes.
  */
 @Composable
-fun BottomNavigationBar(navController: NavController) {
+fun BottomNavigationBar(
+    navController: NavController,
+    currentDestination: androidx.navigation.NavDestination?
+) {
     val items = listOf(
         NavigationItem("Health", MoodTracker, R.drawable.ic_moodtracker),
         NavigationItem("Chatbot", Chatbot(), R.drawable.ic_chat),
@@ -414,8 +419,7 @@ fun BottomNavigationBar(navController: NavController) {
         modifier = Modifier.fillMaxWidth()
     ) {
         items.forEach { item ->
-            val isSelected = navController.currentBackStackEntry
-                ?.destination?.hasRoute(item.route::class) == true
+            val isSelected = currentDestination?.hasRoute(item.route::class) == true
 
             val scale by animateFloatAsState(
                 targetValue = if (isSelected) 1f else 0.7f,
