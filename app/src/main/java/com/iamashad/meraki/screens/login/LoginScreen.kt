@@ -176,7 +176,7 @@ fun LoginScreen(
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
                         Icon(
                             painter = painterResource(id = if (passwordVisible) R.drawable.ic_visibility else R.drawable.ic_visibility_off),
-                            contentDescription = "Toggle Password Visibility",
+                            contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
                             tint = MaterialTheme.colorScheme.inversePrimary,
                             modifier = Modifier.scale(.5f)
                         )

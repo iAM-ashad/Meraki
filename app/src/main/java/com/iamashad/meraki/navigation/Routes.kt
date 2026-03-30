@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 /**
  * Type-safe navigation routes for every screen in the Meraki app.
  *
- * Replaces the [Screens] enum (removed). Each route is an @Serializable
+ * Replaces the [Screens] enum (removed). Each route is a @Serializable
  * object or data class consumed by Navigation Compose 2.8+ composable<T> /
  * NavHost(startDestination = T) APIs.
  *

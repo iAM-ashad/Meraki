@@ -14,6 +14,7 @@ import androidx.compose.runtime.Immutable
  * @property date Timestamp of when the journal entry was created (in milliseconds).
  * @property imageUrl Optional URL pointing to an image associated with the journal.
  */
+
 // Phase 6: @Immutable signals to the Compose compiler that all properties are stable,
 // enabling skipping of unnecessary recompositions in lists and cards.
 @Immutable

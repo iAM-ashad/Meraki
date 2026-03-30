@@ -44,6 +44,7 @@ import com.iamashad.meraki.components.SheetLayout
 import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.utils.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddJournalScreen(
     viewModel: JournalViewModel,

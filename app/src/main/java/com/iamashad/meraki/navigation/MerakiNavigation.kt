@@ -29,7 +29,6 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
-import androidx.window.core.layout.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,7 +47,8 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.compose.toRoute
+import androidx.navigation.toRoute
+import androidx.window.core.layout.WindowWidthSizeClass
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.R
@@ -74,6 +74,12 @@ import com.iamashad.meraki.screens.settings.SettingsViewModel
 import com.iamashad.meraki.screens.splash.SplashScreen
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.rememberWindowAdaptiveInfo
+
+/**
+ * Holds the display label, type-safe route, and icon resource for a nav destination.
+ * Used by both [AnimatedNavigationBar] and [AnimatedNavigationRail].
+ */
+data class NavigationItem(val label: String, val route: Any, val icon: Int)
 
 /**
  * Sets up the app's main navigation using NavController and an adaptive layout.
@@ -168,7 +174,8 @@ fun NavGraphBuilder.addNavGraph(navController: NavController) {
         JournalScreen(
             viewModel = viewModel,
             onAddJournalClick = {
-                val newJournalId = FirebaseFirestore.getInstance().collection("journals").document().id
+                val newJournalId =
+                    FirebaseFirestore.getInstance().collection("journals").document().id
                 navController.navigate(AddJournal(journalId = newJournalId))
             },
             onViewJournalClick = { journal ->
@@ -314,14 +321,25 @@ fun AnimatedNavigationRail(
                 ?.destination?.hasRoute(item.route::class) == true
             val scale by animateFloatAsState(
                 targetValue = if (isSelected) 1.2f else 1f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = 50f)
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioHighBouncy,
+                    stiffness = 50f
+                )
             )
             val offset by animateDpAsState(
                 targetValue = if (isSelected) (-10).dp else 0.dp,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = 50f)
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioHighBouncy,
+                    stiffness = 50f
+                )
             )
             val backgroundBrush = if (isSelected) {
-                Brush.radialGradient(colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)))
+                Brush.radialGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                )
             } else {
                 Brush.radialGradient(colors = listOf(Color.Transparent, Color.Transparent))
             }
@@ -401,11 +419,17 @@ fun BottomNavigationBar(navController: NavController) {
 
             val scale by animateFloatAsState(
                 targetValue = if (isSelected) 1f else 0.7f,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = 50f)
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioHighBouncy,
+                    stiffness = 50f
+                )
             )
             val offset by animateDpAsState(
                 targetValue = if (isSelected) (-5).dp else 0.dp,
-                animationSpec = spring(dampingRatio = Spring.DampingRatioHighBouncy, stiffness = 50f)
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioHighBouncy,
+                    stiffness = 50f
+                )
             )
 
             NavigationBarItem(
@@ -434,7 +458,9 @@ fun BottomNavigationBar(navController: NavController) {
                         Icon(
                             painter = painterResource(id = item.icon),
                             contentDescription = item.label,
-                            tint = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
+                            tint = if (isSelected) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onBackground.copy(
+                                alpha = 0.8f
+                            ),
                             modifier = Modifier
                                 .scale(scale)
                                 .padding(dimens.paddingSmall + (dimens.paddingSmall / 2))
@@ -455,21 +481,8 @@ fun BottomNavigationBar(navController: NavController) {
                     }
                 },
                 colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent),
-                modifier = Modifier.align(Alignment.Bottom)
+                modifier = Modifier
             )
         }
     }
 }
-
-/**
- * Represents a single item in the navigation bar or rail.
- *
- * @property label  Descriptive name of the screen.
- * @property route  Type-safe route object (any @Serializable route from Routes.kt).
- * @property icon   Drawable resource ID for the icon.
- */
-data class NavigationItem(
-    val label: String,
-    val route: Any,
-    val icon: Int
-)

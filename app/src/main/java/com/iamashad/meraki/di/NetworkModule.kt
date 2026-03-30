@@ -1,14 +1,13 @@
 package com.iamashad.meraki.di
 
-import android.content.Context
 // Phase 5: firebase-ai replaces deprecated com.google.ai.client.generativeai.
+import android.content.Context
 import com.google.firebase.ai.GenerativeModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.network.QuotesAPI
 import com.iamashad.meraki.repository.FirestoreRepository
 import com.iamashad.meraki.repository.MoodRepository
-import kotlinx.coroutines.CoroutineDispatcher
 import com.iamashad.meraki.utils.ConnectivityStatus
 import com.iamashad.meraki.utils.provGenerativeModel
 import dagger.Module
@@ -16,6 +15,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Qualifier
