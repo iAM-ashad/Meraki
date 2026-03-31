@@ -1,8 +1,10 @@
 package com.iamashad.meraki.screens.home
 
 import android.content.res.Configuration
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -82,8 +84,10 @@ import com.iamashad.meraki.screens.settings.SettingsViewModel
 import com.iamashad.meraki.utils.LocalDimens
 import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.daysOfWeek
+import com.iamashad.meraki.utils.getHomeMoodTint
 import com.iamashad.meraki.utils.getMoodColor
 import com.iamashad.meraki.utils.getMoodEmoji
+import com.iamashad.meraki.utils.getMoodPromptSubtext
 import com.iamashad.meraki.utils.rememberWindowAdaptiveInfo
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -108,6 +112,20 @@ fun HomeScreen(
     var streakCount by remember { mutableIntStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // Mood-Aware UI: read the last session's dominant emotion and derive subtle tint colors.
+    val dominantEmotion by homeViewModel.dominantEmotion.collectAsState()
+    val moodTint = getHomeMoodTint(dominantEmotion)
+    val animatedTopColor by animateColorAsState(
+        targetValue = moodTint.first,
+        animationSpec = tween(durationMillis = 900),
+        label = "moodTopTint"
+    )
+    val animatedBottomColor by animateColorAsState(
+        targetValue = moodTint.second,
+        animationSpec = tween(durationMillis = 900),
+        label = "moodBottomTint"
+    )
+
     LaunchedEffect(user) {
         user?.uid?.let { userId ->
             try {
@@ -131,9 +149,9 @@ fun HomeScreen(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color.White,
+                                animatedTopColor,
                                 MaterialTheme.colorScheme.onPrimaryContainer,
-                                MaterialTheme.colorScheme.primaryContainer,
+                                animatedBottomColor,
                             )
                         )
                     )
@@ -168,7 +186,7 @@ fun HomeScreen(
                     }
 
                     item {
-                        MoodPromptCard(navController, user?.displayName)
+                        MoodPromptCard(navController, user?.displayName, dominantEmotion)
                     }
 
                     item {
@@ -199,9 +217,9 @@ fun HomeScreen(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color.White,
+                                animatedTopColor,
                                 MaterialTheme.colorScheme.onPrimaryContainer,
-                                MaterialTheme.colorScheme.primaryContainer,
+                                animatedBottomColor,
                             )
                         )
                     )
@@ -234,7 +252,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    MoodPromptCard(navController, user?.displayName)
+                    MoodPromptCard(navController, user?.displayName, dominantEmotion)
                 }
 
                 item {
@@ -493,9 +511,12 @@ fun CelebrationDialog(
 }
 
 @Composable
-fun MoodPromptCard(navController: NavController, userName: String?) {
+fun MoodPromptCard(navController: NavController, userName: String?, dominantEmotion: String = "neutral") {
     val firstName = userName?.split(" ")?.firstOrNull()
     val dimens = LocalDimens.current
+
+    // Mood-Aware UI: subtext softens for negative emotions, brightens for positive ones.
+    val subtext = getMoodPromptSubtext(dominantEmotion)
 
     Card(shape = RoundedCornerShape(dimens.cornerRadius),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
@@ -522,7 +543,7 @@ fun MoodPromptCard(navController: NavController, userName: String?) {
                     )
                 )
                 Text(
-                    text = "Take a moment to reflect—it only takes a second.",
+                    text = subtext,
                     style = MaterialTheme.typography.bodySmall.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

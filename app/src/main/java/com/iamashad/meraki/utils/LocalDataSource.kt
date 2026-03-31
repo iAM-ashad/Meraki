@@ -199,5 +199,53 @@ val daysOfWeek = listOf(
     "Sun"
 )
 
+/**
+ * Mood-Aware UI: very soft pastel gradient stops for the Home screen background.
+ *
+ * These are deliberately desaturated and light — the goal is a gentle "color
+ * temperature" shift rather than a bold change. Each pair maps to
+ * [topColor, bottomColor] that replaces the fixed white/purple gradient on
+ * HomeScreen when the user has a recorded dominant emotion from their last
+ * chat session.
+ *
+ * Design rationale:
+ *  - Negative emotions (anxious, sad, stressed, angry) → cool or muted tones that
+ *    feel calm and contained — not alarming, just gently reflective.
+ *  - Positive emotions (happy, calm) → warm or airy tones that feel open and energetic.
+ *  - Neutral → the existing app default (white tint, unchanged feel).
+ */
+val homeMoodTintMap: Map<String, Pair<Color, Color>> = mapOf(
+    "happy"   to (Color(0xFFFFFDE7) to Color(0xFFF3E5F5)), // soft lemon → lavender
+    "calm"    to (Color(0xFFE1F5FE) to Color(0xFFEDE7F6)), // pale sky → pale lavender
+    "anxious" to (Color(0xFFEDE7F6) to Color(0xFFE8EAF6)), // soft lavender → indigo tint
+    "sad"     to (Color(0xFFE3F2FD) to Color(0xFFECEFF1)), // light blue → blue-grey
+    "stressed" to (Color(0xFFFFF3E0) to Color(0xFFFCE4EC)), // pale peach → pale pink
+    "angry"   to (Color(0xFFFCE4EC) to Color(0xFFE8EAF6)), // blush → cool lavender (calming contrast)
+    "neutral" to (Color(0xFFFFFFFF) to Color(0xFFF3E5F5))  // white → default lavender
+)
+
+/**
+ * Returns the mood-aware home tint color pair for [emotion], falling back to neutral.
+ */
+fun getHomeMoodTint(emotion: String): Pair<Color, Color> =
+    homeMoodTintMap[emotion] ?: homeMoodTintMap["neutral"]!!
+
+/**
+ * Mood-Aware UI: subtext shown in the MoodPromptCard on the Home screen.
+ *
+ * For negative emotions the copy is softer and lower-pressure — "no rush,
+ * just check in". For positive emotions it's lighter and more curious.
+ */
+fun getMoodPromptSubtext(emotion: String): String = when (emotion) {
+    "sad", "anxious", "stressed" ->
+        "No pressure — just a gentle check-in whenever you're ready."
+    "angry" ->
+        "Take a breath. Whenever you're ready, we're here."
+    "happy", "calm" ->
+        "You've been doing well — keep the momentum going!"
+    else ->
+        "Take a moment to reflect — it only takes a second."
+}
+
 
 

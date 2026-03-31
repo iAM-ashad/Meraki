@@ -222,7 +222,7 @@ class ChatViewModel @Inject constructor(
             val keyThemes = summaries.firstOrNull()?.keyThemes
             val activeContext = summaries.firstOrNull()?.dominantEmotion ?: "neutral"
 
-            val greetingMessage = buildGreeting(firstName, keyThemes, cachedUserProfile)
+            val greetingMessage = buildGreeting(firstName, keyThemes, cachedUserProfile, activeContext)
 
             val botMessage = Message(greetingMessage, "model")
             _uiState.update { it.copy(messages = listOf(botMessage), activeContext = activeContext) }
@@ -573,14 +573,40 @@ class ChatViewModel @Inject constructor(
      * Phase 4 (updated): builds a personalised greeting using auto-generated
      * [SessionSummary.keyThemes] instead of the old manual context tag, so the
      * opening line reflects the real topics from the previous session.
+     *
+     * Mood-Aware UI: the dominant emotion from the last session now steers the
+     * greeting's emotional register. Negative emotions (anxious, sad, stressed,
+     * angry) get a validation-led opening that meets the user where they are.
+     * Positive emotions (calm, happy) stay light and curious. This means the
+     * AI's very first line already feels attuned rather than generic.
      */
     private fun buildGreeting(
         firstName: String?,
         keyThemes: String?,
-        userProfile: String
+        userProfile: String,
+        lastDominantEmotion: String = "neutral"
     ): String {
         val name = firstName ?: "there"
+
+        val isNegative = lastDominantEmotion in setOf("sad", "anxious", "stressed", "angry")
+        val isPositive = lastDominantEmotion in setOf("happy", "calm")
+
         return when {
+            // Validation-led openings for users returning after a difficult session
+            isNegative && userProfile.isNotEmpty() && !keyThemes.isNullOrBlank() ->
+                "Welcome back, $name. I hope things have felt a little lighter since we talked about $keyThemes — how are you doing today?"
+            isNegative && userProfile.isNotEmpty() ->
+                "Welcome back, $name. I hope you've been able to take care of yourself — how are you holding up today?"
+            isNegative ->
+                "Hi $name, it's good to see you. You don't have to have it all figured out — how are you feeling right now?"
+
+            // Energetic, curious openings for users in a positive state
+            isPositive && !keyThemes.isNullOrBlank() ->
+                "Welcome back, $name! Things seemed to be going well last time — how are you keeping up with $keyThemes?"
+            isPositive ->
+                "Welcome back, $name! Great to see you — what's on your mind today?"
+
+            // Standard continuity-aware openings (neutral / no prior data)
             userProfile.isNotEmpty() && !keyThemes.isNullOrBlank() ->
                 "Welcome back, $name. Last time we touched on $keyThemes — how are things feeling today?"
             userProfile.isNotEmpty() ->

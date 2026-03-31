@@ -41,7 +41,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class Chatbot(val prompt: String = "")
 
 /** Mood logging and trend view. */
-@Serializable object MoodTracker
+@Serializable data class MoodTracker(val preFilledEmotions: String? = null)
 
 /** App preferences and account management. */
 @Serializable object Settings

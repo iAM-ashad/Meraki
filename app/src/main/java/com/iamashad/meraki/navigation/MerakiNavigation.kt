@@ -160,7 +160,10 @@ fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot:
 
     composable<MoodTracker> {
         val viewModel = hiltViewModel<MoodTrackerViewModel>()
-        MoodTrackerScreen(onMoodLogged = { viewModel.fetchMoodTrend() })
+        MoodTrackerScreen(
+            moodTrackerViewModel = viewModel,
+            onMoodLogged = { viewModel.fetchMoodTrend() }
+        )
     }
 
     composable<Settings> {
@@ -194,7 +197,12 @@ fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot:
             userId = FirebaseAuth.getInstance().currentUser?.uid.orEmpty(),
             journalId = args.journalId,
             onClose = { navController.popBackStack() },
-            onSave = { navController.popBackStack() }
+            onSave = { emotions ->
+                navController.popBackStack()
+                if (emotions != null) {
+                    navController.navigate(MoodTracker(preFilledEmotions = emotions))
+                }
+            }
         )
     }
 
@@ -327,7 +335,7 @@ fun AnimatedNavigationRail(
     val dimens = LocalDimens.current
 
     val items = listOf(
-        NavigationItem("Health", MoodTracker, R.drawable.ic_moodtracker),
+        NavigationItem("Health", MoodTracker(), R.drawable.ic_moodtracker),
         NavigationItem("Chatbot", Chatbot(), R.drawable.ic_chat),
         NavigationItem("Home", Home, R.drawable.home_123),
         NavigationItem("Journal", Journal, R.drawable.ic_journal),
@@ -433,7 +441,7 @@ fun BottomNavigationBar(
     currentDestination: androidx.navigation.NavDestination?
 ) {
     val items = listOf(
-        NavigationItem("Health", MoodTracker, R.drawable.ic_moodtracker),
+        NavigationItem("Health", MoodTracker(), R.drawable.ic_moodtracker),
         NavigationItem("Chatbot", Chatbot(), R.drawable.ic_chat),
         NavigationItem("Home", Home, R.drawable.home_123),
         NavigationItem("Journal", Journal, R.drawable.ic_journal),

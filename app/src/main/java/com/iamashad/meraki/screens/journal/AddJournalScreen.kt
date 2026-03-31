@@ -51,7 +51,8 @@ fun AddJournalScreen(
     userId: String,
     journalId: String,
     onClose: () -> Unit,
-    onSave: () -> Unit
+    onSave: (String?) -> Unit,
+    onNavigateToMoodLog: (() -> Unit)? = null
 ) {
     // Phase 5: Replaced manual SheetState constructor (required Density workaround + ExperimentalMaterial3Api)
     // with rememberStandardBottomSheetState — stable since M3 1.3.0; no Density needed.
@@ -70,6 +71,10 @@ fun AddJournalScreen(
     var moodScore by remember { mutableIntStateOf(50) }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val adaptiveInfo = rememberWindowAdaptiveInfo()
+
+    // Post-journal mood check-in state
+    var showMoodCheckIn by remember { mutableStateOf(false) }
+    var savedEmotions by remember { mutableStateOf(listOf<String>()) }
 
     ProvideDimens(adaptiveInfo) {
         val dimens = LocalDimens.current
@@ -139,8 +144,7 @@ fun AddJournalScreen(
                                             imageUrl = selectedImageUri?.toString()
                                         )
                                     )
-                                    onSave()
-                                    onClose()
+                                    onSave(selectedEmotions.joinToString())
                                 },
                                 onClose = onClose
                             )

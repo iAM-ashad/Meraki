@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.repository.QuotesRepository
+import com.iamashad.meraki.utils.MemoryManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -21,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
     private val quotesRepository: QuotesRepository, // Repository to fetch quotes
-    private val firestore: FirebaseFirestore // Firestore instance for streak logging
+    private val firestore: FirebaseFirestore, // Firestore instance for streak logging
+    private val memoryManager: MemoryManager  // For reading the last session's dominant emotion
 ) : ViewModel() {
 
     // StateFlow to hold a list of quotes (quote -> author)
@@ -32,12 +34,33 @@ class HomeScreenViewModel @Inject constructor(
     private val _author = MutableStateFlow("Anonymous")
     val author: StateFlow<String> = _author.asStateFlow()
 
+    /**
+     * The dominant emotion from the user's most recent chat session.
+     * Defaults to "neutral" on first launch (no session history).
+     * Drives the mood-aware UI tint on the Home screen.
+     */
+    private val _dominantEmotion = MutableStateFlow("neutral")
+    val dominantEmotion: StateFlow<String> = _dominantEmotion.asStateFlow()
+
     // Date formatter used to handle log dates
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     init {
         // Automatically fetch quotes when ViewModel is created
         fetchInitialQuotes()
+        loadDominantEmotion()
+    }
+
+    /**
+     * Reads the last session summary to seed the mood-aware UI tint.
+     * Falls back to "neutral" when no prior session exists.
+     */
+    private fun loadDominantEmotion() {
+        viewModelScope.launch {
+            val summaries = memoryManager.getRecentSummaries()
+            val emotion = summaries.firstOrNull()?.dominantEmotion ?: "neutral"
+            _dominantEmotion.emit(emotion)
+        }
     }
 
     // Fetches 5 quotes concurrently and stores them in state
