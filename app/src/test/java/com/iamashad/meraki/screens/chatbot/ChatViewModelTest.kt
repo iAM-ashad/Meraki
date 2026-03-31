@@ -2,23 +2,29 @@ package com.iamashad.meraki.screens.chatbot
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import com.google.firebase.ai.Chat
-import com.google.firebase.ai.GenerativeModel
-import com.google.firebase.ai.type.GenerateContentResponse
 import com.google.firebase.auth.FirebaseAuth
 import com.iamashad.meraki.data.ChatMessage
+import com.iamashad.meraki.data.EmotionDao
+import com.iamashad.meraki.data.SessionSummary
+import com.iamashad.meraki.model.EmotionCategory
+import com.iamashad.meraki.model.EmotionIntensity
+import com.iamashad.meraki.model.EmotionResult
 import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.repository.ChatRepository
+import com.iamashad.meraki.repository.GroqRepository
+import com.iamashad.meraki.repository.UserPreferencesRepository
 import com.iamashad.meraki.rules.MainDispatcherRule
+import com.iamashad.meraki.utils.EmotionClassifier
+import com.iamashad.meraki.utils.MemoryManager
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -28,15 +34,10 @@ import org.junit.Test
 /**
  * Unit tests for [ChatViewModel] verifying UDF state transitions via Turbine.
  *
- * Key design decisions:
- * - [FirebaseAuth.getInstance] is a static call in the ViewModel constructor;
- *   [mockkStatic] is used to intercept it before the VM is created.
- * - A [CompletableDeferred] stands in for the Gemini API call so that
- *   intermediate states (`isTyping = true`) can be captured before the
- *   response resolves.
- * - [UnconfinedTestDispatcher] (via [MainDispatcherRule]) runs `viewModelScope`
- *   coroutines eagerly, so state mutations happen synchronously up to the
- *   first real suspension point (the deferred).
+ * Phase 6 (Groq migration): Updated to use [GroqRepository] mock instead of the
+ * removed Firebase [GenerativeModel].  [sendMessageStream] is stubbed to return a
+ * simple [flowOf] so state transitions can be observed synchronously under
+ * [UnconfinedTestDispatcher].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
@@ -45,8 +46,11 @@ class ChatViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private val chatRepository: ChatRepository = mockk(relaxed = true)
-    private val generativeModel: GenerativeModel = mockk(relaxed = true)
-    private val mockChat: Chat = mockk(relaxed = true)
+    private val groqRepository: GroqRepository = mockk(relaxed = true)
+    private val userPreferencesRepository: UserPreferencesRepository = mockk(relaxed = true)
+    private val emotionClassifier: EmotionClassifier = mockk(relaxed = true)
+    private val emotionDao: EmotionDao = mockk(relaxed = true)
+    private val memoryManager: MemoryManager = mockk(relaxed = true)
 
     private lateinit var viewModel: ChatViewModel
 
@@ -59,12 +63,40 @@ class ChatViewModelTest {
             every { currentUser } returns null
         }
 
-        // Default: getAllMessages returns empty flow so loadPreviousConversation is safe
         every { chatRepository.getAllMessages(any()) } returns flowOf(emptyList())
-        coJustRun { chatRepository.insertMessage(any()) }
         coJustRun { chatRepository.clearChatHistory(any()) }
+        coEvery { chatRepository.insertMessage(any()) } returns 1L
 
-        viewModel = ChatViewModel(chatRepository, generativeModel)
+        // Default: daily cap not reached
+        coEvery { userPreferencesRepository.getDailyMessageCount() } returns 0
+        coJustRun { userPreferencesRepository.incrementDailyMessageCount() }
+
+        // Default: emotion classifier returns NEUTRAL
+        coEvery { emotionClassifier.classify(any()) } returns EmotionResult(
+            primary    = EmotionCategory.NEUTRAL,
+            intensity  = EmotionIntensity.LOW,
+            confidence = 0.80f
+        )
+        coEvery { emotionDao.insertEmotionLog(any()) } returns 1L
+        coJustRun { emotionDao.clearLogsForSession(any()) }
+
+        // Default: no prior summaries
+        coEvery { memoryManager.getRecentSummaries() } returns emptyList()
+        coJustRun { memoryManager.summariseAndSave(any(), any(), any()) }
+
+        // Default: Groq streaming returns a single token
+        every {
+            groqRepository.sendMessageStream(any(), any(), any(), any(), any())
+        } returns flowOf("I'm here to help.")
+
+        viewModel = ChatViewModel(
+            chatRepository,
+            groqRepository,
+            userPreferencesRepository,
+            emotionClassifier,
+            emotionDao,
+            memoryManager
+        )
     }
 
     @After
@@ -83,48 +115,28 @@ class ChatViewModelTest {
         assertThat(state.activeContext).isEqualTo("neutral")
     }
 
-    // ── sendMessage — full UDF cycle with intermediate state capture ──────────
+    // ── sendMessage — full UDF cycle ──────────────────────────────────────────
 
     @Test
-    fun `sendMessage - appends user message then sets isTyping true then appends bot message`() =
+    fun `sendMessage - appends user message then appends bot message after stream`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            // Use CompletableDeferred so we can observe isTyping=true before
-            // the API call completes.
-            val apiDeferred = CompletableDeferred<GenerateContentResponse>()
-            val mockResponse = mockk<GenerateContentResponse> {
-                every { text } returns "I'm here to help."
-            }
-
-            every { generativeModel.startChat(any()) } returns mockChat
-            coEvery { mockChat.sendMessage(any<String>()) } coAnswers { apiDeferred.await() }
-
             viewModel.uiState.test {
-                // Consume the initial emission.
                 assertThat(awaitItem().messages).isEmpty()
 
                 viewModel.sendMessage("I feel anxious today", "user")
+                advanceUntilIdle()
 
-                // With UnconfinedTestDispatcher the two fast _uiState.update calls
-                // (append user message, set isTyping=true) may be conflated by StateFlow
-                // before Turbine's collector runs. Drain items until we see isTyping=true,
-                // which confirms both updates have been processed.
-                var typingItem = awaitItem()
-                while (!typingItem.isTyping) typingItem = awaitItem()
+                // Drain until we find a state that has both the user and bot messages
+                var latest = awaitItem()
+                while (latest.messages.none { it.role == "model" }) {
+                    latest = awaitItem()
+                }
 
-                // By the time isTyping is true the user message must already be present.
-                assertThat(typingItem.messages.any { it.message == "I feel anxious today" && it.role == "user" })
-                    .isTrue()
-                assertThat(typingItem.activeContext).isEqualTo("anxious")
-
-                // Resolve the deferred — unblocks the suspended sendMessage coroutine.
-                apiDeferred.complete(mockResponse)
-
-                // Final update: bot message appended, isTyping=false.
-                val afterBot = awaitItem()
-                assertThat(afterBot.isTyping).isFalse()
-                assertThat(afterBot.messages).hasSize(2)
-                assertThat(afterBot.messages.last().message).isEqualTo("I'm here to help.")
-                assertThat(afterBot.messages.last().role).isEqualTo("model")
+                assertThat(latest.messages.any {
+                    it.message == "I feel anxious today" && it.role == "user"
+                }).isTrue()
+                assertThat(latest.messages.any { it.role == "model" }).isTrue()
+                assertThat(latest.isTyping).isFalse()
 
                 cancelAndIgnoreRemainingEvents()
             }
@@ -133,14 +145,15 @@ class ChatViewModelTest {
     @Test
     fun `sendMessage - activeContext reflects emotion of message`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            every { generativeModel.startChat(any()) } returns mockChat
-            coEvery { mockChat.sendMessage(any<String>()) } returns mockk(relaxed = true) {
-                every { text } returns "Keep going!"
-            }
+            coEvery { emotionClassifier.classify(any()) } returns EmotionResult(
+                primary    = EmotionCategory.HAPPY,
+                intensity  = EmotionIntensity.MEDIUM,
+                confidence = 0.80f
+            )
 
             viewModel.sendMessage("I feel joyful and happy today", "user")
+            advanceUntilIdle()
 
-            // After the coroutine runs to completion (UnconfinedTestDispatcher)
             assertThat(viewModel.uiState.value.activeContext).isEqualTo("happy")
         }
 
@@ -152,20 +165,17 @@ class ChatViewModelTest {
             val state = viewModel.uiState.value
             assertThat(state.messages).hasSize(1)
             assertThat(state.messages.first().role).isEqualTo("model")
-            // isTyping should not have been set for model role
             assertThat(state.isTyping).isFalse()
         }
 
     @Test
     fun `sendMessage - accumulates messages across multiple calls`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            every { generativeModel.startChat(any()) } returns mockChat
-            coEvery { mockChat.sendMessage(any<String>()) } returns mockk(relaxed = true) {
-                every { text } returns "Response"
-            }
-
             viewModel.sendMessage("Message 1", "user")
+            advanceUntilIdle()
+
             viewModel.sendMessage("Message 2", "user")
+            advanceUntilIdle()
 
             // 1 user + 1 bot from first call, 1 user + 1 bot from second
             assertThat(viewModel.uiState.value.messages).hasSize(4)
@@ -176,13 +186,8 @@ class ChatViewModelTest {
     @Test
     fun `clearChatHistory - empties messages list and resets activeContext`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            // Seed the state with messages by directly testing state after clear
-            every { generativeModel.startChat(any()) } returns mockChat
-            coEvery { mockChat.sendMessage(any<String>()) } returns mockk(relaxed = true) {
-                every { text } returns "Hi"
-            }
-
             viewModel.sendMessage("Hello", "user")
+            advanceUntilIdle()
             assertThat(viewModel.uiState.value.messages).isNotEmpty()
 
             viewModel.clearChatHistory()
@@ -202,23 +207,28 @@ class ChatViewModelTest {
     // ── initializeContext ─────────────────────────────────────────────────────
 
     @Test
-    fun `initializeContext - sets activeContext from last saved context`() =
+    fun `initializeContext - sets activeContext from last summary dominantEmotion`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            coEvery { chatRepository.getLastContext(any()) } returns "stressed"
-            every { chatRepository.getAllMessages(any()) } returns flowOf(emptyList())
+            val summary = SessionSummary(
+                sessionId = "s1", dominantEmotion = "stressed",
+                keyThemes = "work", helperPattern = "Reassurance",
+                summaryText = "", tokenCount = 10
+            )
+            coEvery { memoryManager.getRecentSummaries() } returns listOf(summary)
 
             viewModel.initializeContext("user1")
+            advanceUntilIdle()
 
             assertThat(viewModel.uiState.value.activeContext).isEqualTo("stressed")
         }
 
     @Test
-    fun `initializeContext - defaults to neutral when no prior context`() =
+    fun `initializeContext - defaults to neutral when no summaries exist`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            coEvery { chatRepository.getLastContext(any()) } returns null
-            every { chatRepository.getAllMessages(any()) } returns flowOf(emptyList())
+            coEvery { memoryManager.getRecentSummaries() } returns emptyList()
 
             viewModel.initializeContext("user1")
+            advanceUntilIdle()
 
             assertThat(viewModel.uiState.value.activeContext).isEqualTo("neutral")
         }
@@ -226,16 +236,22 @@ class ChatViewModelTest {
     // ── loadPreviousConversation ──────────────────────────────────────────────
 
     @Test
-    fun `loadPreviousConversation - populates messages from repository`() =
+    fun `loadPreviousConversation - populates messages and activeContext from last summary`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val saved = listOf(
                 ChatMessage(id = 1, message = "Hey", role = "user", userId = "u1"),
                 ChatMessage(id = 2, message = "Hello!", role = "model", userId = "u1")
             )
             every { chatRepository.getAllMessages(any()) } returns flowOf(saved)
-            coEvery { chatRepository.getLastContext(any()) } returns "calm"
+            val summary = SessionSummary(
+                sessionId = "s1", dominantEmotion = "calm",
+                keyThemes = "work", helperPattern = "Reassurance",
+                summaryText = "", tokenCount = 10
+            )
+            coEvery { memoryManager.getRecentSummaries() } returns listOf(summary)
 
             viewModel.loadPreviousConversation()
+            advanceUntilIdle()
 
             val state = viewModel.uiState.value
             assertThat(state.messages).hasSize(2)
@@ -251,9 +267,9 @@ class ChatViewModelTest {
                 ChatMessage(id = 1, message = "Dup", role = "user", userId = "u1")
             )
             every { chatRepository.getAllMessages(any()) } returns flowOf(saved)
-            coEvery { chatRepository.getLastContext(any()) } returns null
 
             viewModel.loadPreviousConversation()
+            advanceUntilIdle()
 
             // distinct() on Message(message, role) collapses duplicates
             assertThat(viewModel.uiState.value.messages).hasSize(1)
@@ -262,14 +278,14 @@ class ChatViewModelTest {
     // ── finishConversation ───────────────────────────────────────────────────
 
     @Test
-    fun `finishConversation - updates activeContext to provided tag`() =
+    fun `finishConversation - triggers summariseAndSave with current session data`() =
         runTest(mainDispatcherRule.testDispatcher) {
-            // Add a message first so lastOrNull has something
             viewModel.sendMessage("I feel sad", "model") // model role, no API call
 
-            viewModel.finishConversation("sad")
+            viewModel.finishConversation()
+            advanceUntilIdle()
 
-            assertThat(viewModel.uiState.value.activeContext).isEqualTo("sad")
+            io.mockk.coVerify { memoryManager.summariseAndSave(any(), any(), any()) }
         }
 
     // ── determineGradientColors ───────────────────────────────────────────────

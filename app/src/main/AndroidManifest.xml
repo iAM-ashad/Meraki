@@ -6,6 +6,9 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Phase 5: Required to reschedule WorkManager jobs after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:name=".MerakiApplication"
         android:allowBackup="true"
@@ -21,6 +24,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.Meraki">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,6 +41,21 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+
+        <!--
+            Phase 5: BootReceiver — re-schedules CheckInWorker and WeeklyInsightWorker
+            after a device restart so WorkManager periodic jobs survive reboots.
+            android:exported="true" is required so the system can deliver BOOT_COMPLETED.
+        -->
+        <receiver
+            android:name=".notifications.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <!-- HTC / some OEM devices use QUICKBOOT_POWERON instead -->
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

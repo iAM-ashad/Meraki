@@ -139,9 +139,10 @@ fun ChatbotScreen(
                         ChatInputSection(
                             onMessageSend = { viewModel.sendMessage(it) },
                             onFinishConversation = {
-                                viewModel.finishConversation(it)
+                                viewModel.finishConversation()
                                 navController.navigate(Home)
-                            }
+                            },
+                            isSending = uiState.isTyping
                         )
                     }
                 }
@@ -173,7 +174,11 @@ fun ContinueConversationButton(onClick: () -> Unit) {
 
 
 @Composable
-fun ChatInputSection(onMessageSend: (String) -> Unit, onFinishConversation: (String) -> Unit) {
+fun ChatInputSection(
+    onMessageSend: (String) -> Unit,
+    onFinishConversation: () -> Unit,
+    isSending: Boolean = false
+) {
     val dimens = LocalDimens.current
     Row(
         modifier = Modifier
@@ -183,7 +188,7 @@ fun ChatInputSection(onMessageSend: (String) -> Unit, onFinishConversation: (Str
         verticalAlignment = Alignment.CenterVertically
     ) {
         FinishConversationButton(onFinish = onFinishConversation)
-        MessageInput(onMessageSend = onMessageSend)
+        MessageInput(onMessageSend = onMessageSend, isSending = isSending)
     }
 }
 
@@ -547,9 +552,8 @@ fun ConfidentialityFooter(
 
 
 @Composable
-fun FinishConversationButton(onFinish: (String) -> Unit) {
+fun FinishConversationButton(onFinish: () -> Unit) {
     var showPopup by remember { mutableStateOf(false) }
-    var conversationTag by remember { mutableStateOf("") }
     val dimens = LocalDimens.current
     if (showPopup) {
         AlertDialog(
@@ -562,36 +566,16 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                 )
             },
             text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(dimens.paddingSmall)
-                ) {
-                    Text(
-                        "Enter a tag for this conversation (e.g., Sleep Issues, Anxiety):",
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    OutlinedTextField(
-                        value = conversationTag,
-                        onValueChange = { conversationTag = it },
-                        placeholder = {
-                            Text(
-                                "What was this conversation about?",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(dimens.cornerRadius)
-                    )
-                }
+                Text(
+                    "Are you sure you want to end this conversation? Your session will be saved automatically.",
+                    color = MaterialTheme.colorScheme.onBackground
+                )
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        if (conversationTag.isNotEmpty()) {
-                            onFinish(conversationTag)
-                            showPopup = false
-                        }
+                        onFinish()
+                        showPopup = false
                     },
                     elevation = ButtonDefaults.buttonElevation(dimens.elevation),
                     shape = RoundedCornerShape(dimens.cornerRadius),
@@ -600,9 +584,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 ) {
-                    Text(
-                        "Save"
-                    )
+                    Text("End Session")
                 }
             },
             dismissButton = {
@@ -615,9 +597,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
                     ),
                     elevation = ButtonDefaults.buttonElevation(dimens.elevation)
                 ) {
-                    Text(
-                        "Cancel"
-                    )
+                    Text("Cancel")
                 }
             },
             containerColor = MaterialTheme.colorScheme.background,
@@ -634,9 +614,7 @@ fun FinishConversationButton(onFinish: (String) -> Unit) {
         ),
         elevation = ButtonDefaults.buttonElevation(dimens.elevation)
     ) {
-        Text(
-            "Finish"
-        )
+        Text("Finish")
     }
 }
 
@@ -723,8 +701,10 @@ fun MessageRow(message: Message) {
 }
 
 
+// Phase 2: accepts isSending so the send button (and optionally the text field)
+// are disabled while a response is in flight, preventing duplicate API calls.
 @Composable
-fun MessageInput(onMessageSend: (String) -> Unit) {
+fun MessageInput(onMessageSend: (String) -> Unit, isSending: Boolean = false) {
     var message by remember { mutableStateOf("") }
     val dimens = LocalDimens.current
     val focusRequester = remember { FocusRequester() }
@@ -744,6 +724,7 @@ fun MessageInput(onMessageSend: (String) -> Unit) {
                     "Type a message...",
                 )
             },
+            enabled = !isSending,
             modifier = Modifier
                 .focusRequester(focusRequester)
                 .weight(1f)
@@ -762,16 +743,20 @@ fun MessageInput(onMessageSend: (String) -> Unit) {
             maxLines = 4
         )
         Spacer(modifier = Modifier.width(dimens.paddingSmall))
-        IconButton(onClick = {
-            if (message.isNotEmpty()) {
-                onMessageSend(message)
-                message = ""
-            }
-        }) {
+        IconButton(
+            onClick = {
+                if (message.isNotEmpty()) {
+                    onMessageSend(message)
+                    message = ""
+                }
+            },
+            enabled = !isSending
+        ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Default.Send,
                 contentDescription = "Send",
-                tint = MaterialTheme.colorScheme.surface
+                tint = if (isSending) MaterialTheme.colorScheme.surface.copy(alpha = 0.38f)
+                       else MaterialTheme.colorScheme.surface
             )
         }
     }

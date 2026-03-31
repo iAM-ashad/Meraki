@@ -38,9 +38,12 @@ interface ChatDao {
      * If a conflict occurs (e.g., duplicate primary key), the existing record is replaced.
      *
      * @param chatMessage The message to insert.
+     * @return The auto-generated row ID of the inserted message.
+     *         Used by ChatViewModel to populate [EmotionLog.messageId] so that
+     *         emotion logs can be cross-referenced to their source messages.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessage(chatMessage: ChatMessage)
+    suspend fun insertMessage(chatMessage: ChatMessage): Long
 
     /**
      * Deletes all chat messages for the given user ID.

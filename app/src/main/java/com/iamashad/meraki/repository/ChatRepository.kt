@@ -30,8 +30,12 @@ class ChatRepository(
 
     /**
      * Inserts a chat message into the local database.
+     *
+     * @return The auto-generated row ID of the inserted [ChatMessage].
+     *         Forwarded to [EmotionLog.messageId] so emotion logs remain
+     *         traceable to their originating message.
      */
-    suspend fun insertMessage(chatMessage: ChatMessage) = withContext(ioDispatcher) {
+    suspend fun insertMessage(chatMessage: ChatMessage): Long = withContext(ioDispatcher) {
         chatDao.insertMessage(chatMessage)
     }
 
@@ -45,7 +49,17 @@ class ChatRepository(
     /**
      * Retrieves the last non-null, non-blank context message for a user.
      * Phase 3: uses getAllMessages().first() to avoid a separate DAO query.
+     *
+     * @deprecated Manual context tags have been replaced by auto-generated
+     * [com.iamashad.meraki.data.SessionSummary] entries. Use
+     * [com.iamashad.meraki.utils.MemoryManager.getRecentSummaries] and read
+     * [com.iamashad.meraki.data.SessionSummary.keyThemes] instead.
      */
+    @Deprecated(
+        message = "Manual context tags replaced by SessionSummary.keyThemes. " +
+                  "Use MemoryManager.getRecentSummaries() instead.",
+        level = DeprecationLevel.WARNING
+    )
     suspend fun getLastContext(userId: String): String? = withContext(ioDispatcher) {
         getAllMessages(userId).first()
             .lastOrNull { !it.context.isNullOrBlank() }

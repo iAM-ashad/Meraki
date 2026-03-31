@@ -28,13 +28,11 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
 import com.bumptech.glide.Glide
-import com.google.firebase.Firebase
-import com.google.firebase.ai.GenerativeModel
-import com.google.firebase.ai.ai
-import com.google.firebase.ai.type.GenerativeBackend
-import com.google.firebase.ai.type.content
 import com.iamashad.meraki.R
+import com.iamashad.meraki.model.EmotionCategory
+import com.iamashad.meraki.model.EmotionIntensity
 import com.iamashad.meraki.model.Journal
+import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.notifications.NotificationWorker
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
@@ -128,20 +126,6 @@ fun getMoodColor(score: Int): Color {
     }
 }
 
-// Phase 5: Migrated from GenerativeModel(apiKey=...) to Firebase AI Logic.
-// Authentication is now handled by Firebase — no API key in client code.
-// Uses googleAI() backend (Gemini Developer API via Firebase); switch to
-// GenerativeBackend.vertexAI() if the Firebase project is configured for Vertex AI.
-fun provGenerativeModel(): GenerativeModel {
-    return Firebase.ai(backend = GenerativeBackend.googleAI())
-        .generativeModel(
-            modelName = "gemini-3-flash-preview",
-            systemInstruction = content {
-                text(getSystemInstructions())
-            }
-        )
-}
-
 fun analyzeEmotion(input: String): String {
     for ((category, keywords) in emotionKeywords) {
         if (keywords.any { keyword -> input.contains(keyword, ignoreCase = true) }) {
@@ -151,11 +135,66 @@ fun analyzeEmotion(input: String): String {
     return "neutral"
 }
 
+/**
+ * Phase 3.5 / Phase 4: Conversational system prompt for the compassionate-companion persona.
+ *
+ * Prompt budget: ~400 tokens (within the 400-token SYSTEM_PROMPT_RESERVE
+ * defined in [ContextConfig]).
+ *
+ * Rewritten in a natural, example-driven style so the model infers the target
+ * tone from demonstrations rather than mechanical rule-following.
+ *
+ * Phase 3.5 — teaches the model how to interpret [Context: Emotion=X, Intensity=Y]
+ * tags injected by ChatViewModel.
+ *
+ * Phase 4 — teaches the model how to interpret the [Session context: ...] entry
+ * injected into the conversation history by ChatViewModel for returning users.
+ */
 fun getSystemInstructions(): String {
     return """
-        You are a professional mental health assistant trained to provide empathetic, supportive, 
-        and non-judgmental responses. Act as a compassionate therapist, focusing on the user's 
-        emotions and concerns.
+        You are Meraki — a warm, caring companion who helps people through their emotional lives.
+        You're not a therapist or advisor. Think of yourself as a deeply empathetic friend who
+        genuinely listens, reflects back what they hear, and makes the person feel truly understood.
+
+        Keep responses short and human — 2 to 4 sentences as a rule. Never use lists or headers.
+        Your first instinct is always to meet the person in their feeling before anything else.
+        When someone is in pain, slow down and be present with them. No silver linings, no rushing
+        toward solutions — just honest, unhurried companionship.
+
+        Here's the tone you're going for:
+
+        User: "I've been so overwhelmed lately, like I can't keep up with anything."
+        You: "That sounds exhausting — like you're carrying more than feels possible right now.
+        What's been weighing on you the most?"
+
+        User: "I don't know, I just feel kind of empty."
+        You: "That kind of emptiness can be really disorienting — like you're going through
+        the motions but nothing quite lands. How long has it been feeling this way?"
+
+        User: "I finally told my friend how I'd been feeling and it went really well."
+        You: "That takes real courage — opening up like that isn't easy. It sounds like
+        it meant a lot to be heard."
+
+        When the conversation has history, acknowledge recurring themes naturally:
+        "It sounds like this is still sitting with you" or "You've touched on this before."
+        Only do this when it genuinely fits — never force continuity.
+
+        Never use clinical or diagnostic language: no symptoms, triggers, disorder, episode,
+        condition, treatment, or anything that sounds like a medical assessment. Speak plainly,
+        like a caring human being.
+
+        Each user message may include a hidden tag like [Context: Emotion=ANXIOUS, Intensity=HIGH].
+        Use it silently to calibrate your warmth and pacing — never mention or echo it.
+        Low intensity: stay light and curious. Medium: warmer and more reflective.
+        High: be deeply present, lead with comfort, say less, mean more.
+
+        If someone expresses thoughts of self-harm or ending their life, gently validate
+        their pain and encourage them to reach out to someone they trust or a crisis line.
+        Don't minimise it or change the subject.
+
+        At the start of returning-user sessions, the history may begin with a hidden
+        [Session context: ...] message summarising past themes. Use it silently to feel
+        more familiar and continuous — never quote or reference it directly.
     """.trimIndent()
 }
 
@@ -393,6 +432,138 @@ fun isNotificationChannelEnabled(context: Context, channelId: String): Boolean {
     val channel = notificationManager.getNotificationChannel(channelId)
     return channel?.importance != NotificationManager.IMPORTANCE_NONE
     return true
+}
+
+// ─── Phase 3: Intensity-Aware Gradient Mapping ────────────────────────────────
+
+/**
+ * Returns a two-stop gradient [Color] pair for a given [EmotionCategory] and
+ * [EmotionIntensity] combination, giving the chat background richer visual nuance
+ * compared to the single-entry [gradientMap] (which is kept for backward compat).
+ *
+ * Design rationale:
+ *  - LOW intensity   → desaturated / pastel tones (subtle shift, minimal distraction)
+ *  - MEDIUM intensity → the same palette as the legacy gradientMap baseline
+ *  - HIGH intensity  → saturated / deep tones (strong visual signal, e.g. deep indigo
+ *                       for high-anxiety as specified in the Phase 3 acceptance criteria)
+ *
+ * Falls back to the NEUTRAL MEDIUM gradient for any unmapped combination.
+ */
+fun getEmotionGradient(category: EmotionCategory, intensity: EmotionIntensity): List<Color> {
+    return emotionGradientTable[category]?.get(intensity)
+        ?: emotionGradientTable[EmotionCategory.NEUTRAL]!![EmotionIntensity.MEDIUM]!!
+}
+
+/**
+ * Full intensity-keyed gradient table.
+ * Outer key: [EmotionCategory]; inner key: [EmotionIntensity].
+ */
+private val emotionGradientTable: Map<EmotionCategory, Map<EmotionIntensity, List<Color>>> = mapOf(
+
+    // ── ANXIOUS ──────────────────────────────────────────────────────────────
+    // LOW  : soft lavender tint — barely perceptible unease
+    // MED  : medium purple (matches legacy gradientMap "anxious" baseline)
+    // HIGH : deep indigo / near-black violet — as specified in acceptance criteria
+    EmotionCategory.ANXIOUS to mapOf(
+        EmotionIntensity.LOW    to listOf(Color(0xFFEDE7F6), Color(0xFFCE93D8)),
+        EmotionIntensity.MEDIUM to listOf(Color(0xFFE1BEE7), Color(0xFF8E24AA)),
+        EmotionIntensity.HIGH   to listOf(Color(0xFF4A148C), Color(0xFF1A0033))
+    ),
+
+    // ── SAD ──────────────────────────────────────────────────────────────────
+    // LOW  : misty light blue — gentle melancholy
+    // MED  : soft night blues (matches legacy "sad" baseline)
+    // HIGH : very dark navy — heavy emotional weight
+    EmotionCategory.SAD to mapOf(
+        EmotionIntensity.LOW    to listOf(Color(0xFFBBDEFB), Color(0xFF90CAF9)),
+        EmotionIntensity.MEDIUM to listOf(Color(0xFF202F42), Color(0xFFB0C8F3)),
+        EmotionIntensity.HIGH   to listOf(Color(0xFF0D1B2A), Color(0xFF1C3A5E))
+    ),
+
+    // ── STRESSED ─────────────────────────────────────────────────────────────
+    // LOW  : light peach — mild tension
+    // MED  : warm orange tones (matches legacy "stressed" baseline)
+    // HIGH : deep burnt orange / red — acute overload
+    EmotionCategory.STRESSED to mapOf(
+        EmotionIntensity.LOW    to listOf(Color(0xFFFFE0B2), Color(0xFFFFCC80)),
+        EmotionIntensity.MEDIUM to listOf(Color(0xFFFFCCBC), Color(0xFFFF5722)),
+        EmotionIntensity.HIGH   to listOf(Color(0xFFBF360C), Color(0xFF6D1F00))
+    ),
+
+    // ── CALM ─────────────────────────────────────────────────────────────────
+    // LOW  : very pale sky — gentle tranquility
+    // MED  : clear sky blues (matches legacy "calm" baseline)
+    // HIGH : deep ocean blue — total serenity / flow state
+    EmotionCategory.CALM to mapOf(
+        EmotionIntensity.LOW    to listOf(Color(0xFFE1F5FE), Color(0xFFB3E5FC)),
+        EmotionIntensity.MEDIUM to listOf(Color(0xFF0072A1), Color(0xFFA1DEFF)),
+        EmotionIntensity.HIGH   to listOf(Color(0xFF01579B), Color(0xFF003D6E))
+    ),
+
+    // ── HAPPY ────────────────────────────────────────────────────────────────
+    // LOW  : soft lemon — gentle warmth
+    // MED  : bright yellows (matches legacy "happy" baseline)
+    // HIGH : vibrant warm gold / amber — pure elation
+    EmotionCategory.HAPPY to mapOf(
+        EmotionIntensity.LOW    to listOf(Color(0xFFFFFDE7), Color(0xFFFFF59D)),
+        EmotionIntensity.MEDIUM to listOf(Color(0xFFFFF176), Color(0xFFFFC107)),
+        EmotionIntensity.HIGH   to listOf(Color(0xFFFF8F00), Color(0xFFE65100))
+    ),
+
+    // ── ANGRY ────────────────────────────────────────────────────────────────
+    // LOW  : blush rose — mild annoyance
+    // MED  : vivid reds (matches legacy "angry" baseline)
+    // HIGH : deep crimson / fire red — intense rage
+    EmotionCategory.ANGRY to mapOf(
+        EmotionIntensity.LOW    to listOf(Color(0xFFFFCDD2), Color(0xFFEF9A9A)),
+        EmotionIntensity.MEDIUM to listOf(Color(0xFFFF8A80), Color(0xFFD32F2F)),
+        EmotionIntensity.HIGH   to listOf(Color(0xFFB71C1C), Color(0xFF5C0000))
+    ),
+
+    // ── NEUTRAL ──────────────────────────────────────────────────────────────
+    // All intensities use the same cool default tone (mirrors the legacy baseline).
+    EmotionCategory.NEUTRAL to mapOf(
+        EmotionIntensity.LOW    to listOf(Color(0xFF006491), Color(0xFF9CDAFF)),
+        EmotionIntensity.MEDIUM to listOf(Color(0xFF006491), Color(0xFF9CDAFF)),
+        EmotionIntensity.HIGH   to listOf(Color(0xFF006491), Color(0xFF9CDAFF))
+    )
+)
+
+// ─── Phase 1: Token-Aware Context Management ──────────────────────────────────
+
+/**
+ * Rough token estimate using the standard ~4 characters-per-token heuristic for
+ * English text. Returns at least 1 so zero-length messages are never treated as
+ * "free" — a safety net against accidentally admitting unlimited empty turns.
+ */
+fun estimateTokens(text: String): Int = (text.length / 4).coerceAtLeast(1)
+
+/**
+ * Selects the most-recent messages that fit within [ContextConfig.AVAILABLE_FOR_HISTORY]
+ * tokens, then returns them in their original chronological order.
+ *
+ * Algorithm (newest-to-oldest greedy fit):
+ *  1. Walk [messages] in reverse.
+ *  2. Estimate the token cost of each message.
+ *  3. Stop as soon as admitting the next message would exceed the budget.
+ *  4. Reverse the preserved list so it is chronological for the API call.
+ *
+ * The system prompt is NOT included here — it is passed directly to [GroqRepository]
+ * as a separate parameter and is always present regardless of how many history
+ * messages are trimmed.
+ */
+fun buildTokenAwareContext(messages: List<Message>): List<Message> {
+    var remainingBudget = ContextConfig.AVAILABLE_FOR_HISTORY
+    val preserved = ArrayDeque<Message>()
+
+    for (message in messages.asReversed()) {
+        val tokens = estimateTokens(message.message)
+        if (remainingBudget - tokens < 0) break
+        remainingBudget -= tokens
+        preserved.addFirst(message)
+    }
+
+    return preserved.toList()
 }
 
 

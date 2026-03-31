@@ -91,10 +91,18 @@ fun SettingsScreen(
     var showChatDeleteDialog by remember { mutableStateOf(false) }
     var showResetPasswordDialog by remember { mutableStateOf(false) }
     var showTimePickerDialog by remember { mutableStateOf(false) }
-    var showPasswordDialog by remember { mutableStateOf(false) }  // New: Show password dialog
+    var showCheckInTimePickerDialog by remember { mutableStateOf(false) }
+    var showPasswordDialog by remember { mutableStateOf(false) }
     var selectedTime by remember { mutableStateOf("9:00 AM") }
     var showNotificationPrompt by remember { mutableStateOf(false) }
-    var userPassword by remember { mutableStateOf("") }  // New: Store user password input
+    var userPassword by remember { mutableStateOf("") }
+
+    // ── Phase 5: notification preference state ────────────────────────────────
+    val dailyCheckInEnabled  by settingsViewModel.dailyCheckInEnabled.collectAsStateWithLifecycle()
+    val weeklyInsightsEnabled by settingsViewModel.weeklyInsightsEnabled.collectAsStateWithLifecycle()
+    val smartNudgesEnabled   by settingsViewModel.smartNudgesEnabled.collectAsStateWithLifecycle()
+    val preferredCheckInTime by settingsViewModel.preferredCheckInTime.collectAsStateWithLifecycle()
+    val shouldShowNudgePrompt by settingsViewModel.shouldShowNudgePrompt.collectAsStateWithLifecycle()
 
     val isDynamicColorEnabled by ThemePreference.isDynamicColorEnabled(context)
         .collectAsState(initial = false)
@@ -103,7 +111,7 @@ fun SettingsScreen(
 
     val user by settingsViewModel.user.collectAsState()
     val profilePicRes by settingsViewModel.profilePicRes.collectAsState()
-    // Phase 2: collect consolidated AuthUiState for one-shot toast (resetPassword result)
+
     val registerUiState by registerViewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(registerUiState.toastMessage) {
         registerUiState.toastMessage?.let {
@@ -112,7 +120,6 @@ fun SettingsScreen(
         }
     }
 
-    // Phase 6: collect one-time navigation/toast events from AuthUiEvent channel.
     LaunchedEffect(Unit) {
         registerViewModel.events.collect { event ->
             when (event) {
@@ -130,7 +137,7 @@ fun SettingsScreen(
             .fillMaxSize()
             .verticalScroll(scrollState)
     ) {
-        // Profile Section
+        // ── Profile Section ───────────────────────────────────────────────────
         SettingsSection(title = "Profile") {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -151,7 +158,7 @@ fun SettingsScreen(
             }
         }
 
-        // General Settings
+        // ── General Settings ──────────────────────────────────────────────────
         SettingsSection(title = "General Settings") {
             SettingToggle(
                 icon = R.drawable.ic_dynamic_colors,
@@ -170,67 +177,149 @@ fun SettingsScreen(
             ) { showChatDeleteDialog = true }
         }
 
+        // ── Phase 5: Notification Preferences section ─────────────────────────
+        SettingsSection(title = "Notification Preferences") {
+
+            // Toggle 1 — Daily Check-ins (Default: ON)
+            SettingToggle(
+                icon     = R.drawable.ic_notifications,
+                title    = "Daily Check-ins",
+                subtitle = "A gentle daily check-in at your preferred time",
+                isChecked = dailyCheckInEnabled,
+                onToggle  = { enabled ->
+                    settingsViewModel.setDailyCheckInEnabled(enabled, context, preferredCheckInTime)
+                }
+            )
+
+            // Toggle 2 — Weekly Insights (Default: ON)
+            SettingToggle(
+                icon     = R.drawable.ic_insights,
+                title    = "Weekly Insights",
+                subtitle = "A Sunday summary of your emotional week",
+                isChecked = weeklyInsightsEnabled,
+                onToggle  = { enabled ->
+                    settingsViewModel.setWeeklyInsightsEnabled(enabled, context)
+                }
+            )
+
+            // Toggle 3 — Smart Nudges (Default: OFF; auto-prompted after 4 sessions)
+            SettingToggle(
+                icon     = R.drawable.ic_dynamic_colors,
+                title    = "Smart Nudges",
+                subtitle = "Personalised nudges based on your patterns (available after 4 sessions)",
+                isChecked = smartNudgesEnabled,
+                onToggle  = { enabled ->
+                    settingsViewModel.setSmartNudgesEnabled(enabled)
+                }
+            )
+
+            // Preferred Check-in Time picker
+            SettingItem(
+                icon  = R.drawable.ic_notifications,
+                title = "Preferred Check-in Time  ·  $preferredCheckInTime"
+            ) {
+                showCheckInTimePickerDialog = true
+            }
+        }
+
+        // ── Phase 4: Privacy & Memory section ─────────────────────────────────
+        SettingsSection(title = "Privacy & Memory") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_delete_history),
+                    contentDescription = "Memory",
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "How Meraki remembers you",
+                    fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Meraki saves a short summary at the end of each conversation — " +
+                        "your key themes, emotional patterns, and what kind of support helped most. " +
+                        "Summaries from your last 14 sessions are used to personalise the start " +
+                        "of each new conversation. All memory is stored only on this device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "To permanently delete all conversation history and memory summaries, " +
+                        "tap \"Clear Chat History\" in General Settings above.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // ── Account Settings ──────────────────────────────────────────────────
         SettingsSection(title = "Account Settings") {
             SettingItem(icon = R.drawable.ic_password, title = "Update Password") {
-                showResetPasswordDialog = true  // Show password reset dialog
+                showResetPasswordDialog = true
             }
-
             SettingItem(icon = R.drawable.ic_logout, title = "Log Out") {
                 showLogoutDialog = true
             }
             SettingItem(icon = R.drawable.ic_delete_account, title = "Close Account") {
-                showPasswordDialog = true  // Show password input dialog
+                showPasswordDialog = true
             }
         }
     }
+
+    // ── Dialogs ───────────────────────────────────────────────────────────────
 
     if (showChatDeleteDialog) ConfirmationDialog(
         "Clear Chat History",
         "Delete all chats?",
         "Clear",
-        {showChatDeleteDialog = false}
+        { showChatDeleteDialog = false }
     ) { chatViewModel.clearChatHistory(); showChatDeleteDialog = false }
 
-    // Dialogs
     if (showAvatarDialog) AvatarSelectionDialog(navController, {
         settingsViewModel.updateUserAvatar(it); showAvatarDialog = false
     }) { showAvatarDialog = false }
 
-    if (showPasswordDialog) {  // New: Ask for password before deleting account
+    if (showPasswordDialog) {
         PasswordInputDialog(
             password = userPassword,
             onPasswordChange = { userPassword = it },
             onDismiss = { showPasswordDialog = false },
             onConfirm = {
                 showPasswordDialog = false
-                showDeleteDialog = true  // Show final confirmation dialog
+                showDeleteDialog = true
             }
         )
     }
 
     if (showDeleteDialog) {
         ConfirmationDialog(
-            title = "Delete Account",
-            text = "Are you sure you want to permanently delete your account? This action cannot be undone.",
+            title       = "Delete Account",
+            text        = "Are you sure you want to permanently delete your account? This action cannot be undone.",
             confirmText = "Delete",
-            onConfirm = {
-                // Phase 6: no callback — navigation/toast handled via AuthUiEvent channel.
-                registerViewModel.deleteUserAccount(password = userPassword)
-            },
-            onDismiss = { showDeleteDialog = false }
+            onConfirm   = { registerViewModel.deleteUserAccount(password = userPassword) },
+            onDismiss   = { showDeleteDialog = false }
         )
     }
-    if (showResetPasswordDialog) { // New: Reset password confirmation dialog
+
+    if (showResetPasswordDialog) {
         ResetPasswordDialog(
             userEmail = user?.email ?: "",
             onDismiss = { showResetPasswordDialog = false },
             onConfirm = {
-                // Phase 2: no callback — result emitted as toastMessage in AuthUiState
                 registerViewModel.resetPassword(user?.email ?: "")
                 showResetPasswordDialog = false
             }
         )
     }
+
     if (showLogoutDialog) ConfirmationDialog(
         "Log Out",
         "Are you sure?",
@@ -241,14 +330,58 @@ fun SettingsScreen(
         showToast(context, "Logged out successfully!")
         navController.navigate(Register)
     }
+
     if (showNotificationPrompt) PromptEnableNotifications(context)
+
+    // Existing general reminder time picker
     if (showTimePickerDialog) CustomTimePickerDialog(
         selectedTime, {
-            selectedTime = it; showTimePickerDialog = false; scheduleDailyReminderAt(
-            context, it
+            selectedTime = it
+            showTimePickerDialog = false
+            scheduleDailyReminderAt(context, it)
+        }
+    ) { showTimePickerDialog = false }
+
+    // Phase 5: Preferred check-in time picker
+    if (showCheckInTimePickerDialog) CustomTimePickerDialog(
+        initialTime = preferredCheckInTime,
+        onTimeSelected = { newTime ->
+            showCheckInTimePickerDialog = false
+            settingsViewModel.setPreferredCheckInTime(newTime, context)
+            showToast(context, "Check-in time set to $newTime")
+        },
+        onDismiss = { showCheckInTimePickerDialog = false }
+    )
+
+    // Phase 5: Smart-nudge auto-prompt dialog (shown once after 4 sessions)
+    if (shouldShowNudgePrompt) {
+        AlertDialog(
+            onDismissRequest = { settingsViewModel.markNudgePromptShown() },
+            title = { Text("Enable Smart Nudges?") },
+            text = {
+                Text(
+                    "You've had 4 or more sessions with Meraki. Smart Nudges can now " +
+                    "recognise your patterns and send personalised check-ins — like reminding " +
+                    "you about topics you've mentioned before. Would you like to turn them on?"
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    settingsViewModel.setSmartNudgesEnabled(true)
+                    settingsViewModel.markNudgePromptShown()
+                    showToast(context, "Smart Nudges enabled!")
+                }) { Text("Enable") }
+            },
+            dismissButton = {
+                TextButton(onClick = { settingsViewModel.markNudgePromptShown() }) {
+                    Text("Not Now")
+                }
+            }
         )
-        }) { showTimePickerDialog = false }
+    }
 }
+
+// ── Composable components ─────────────────────────────────────────────────────
 
 @Composable
 fun ResetPasswordDialog(
@@ -273,14 +406,10 @@ fun ResetPasswordDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm) {
-                Text("Send Reset Email")
-            }
+            Button(onClick = onConfirm) { Text("Send Reset Email") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
@@ -314,18 +443,13 @@ fun PasswordInputDialog(
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm) {
-                Text("Confirm")
-            }
+            Button(onClick = onConfirm) { Text("Confirm") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
-
 
 @Composable
 fun AvatarSelectionDialog(
@@ -333,19 +457,12 @@ fun AvatarSelectionDialog(
     onAvatarSelected: (Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val avatars =
-        listOf(
-            R.drawable.avatar1,
-            R.drawable.avatar2,
-            R.drawable.avatar3,
-            R.drawable.avatar4,
-            R.drawable.avatar5,
-            R.drawable.avatar6,
-            R.drawable.avatar7,
-            R.drawable.avatar8,
-            R.drawable.avatar9,
-            R.drawable.avatar10
-        )
+    val avatars = listOf(
+        R.drawable.avatar1, R.drawable.avatar2, R.drawable.avatar3,
+        R.drawable.avatar4,  R.drawable.avatar5, R.drawable.avatar6,
+        R.drawable.avatar7,  R.drawable.avatar8, R.drawable.avatar9,
+        R.drawable.avatar10
+    )
     AlertDialog(onDismissRequest = onDismiss, title = { Text("Choose Avatar") }, text = {
         LazyRow {
             items(avatars) {
@@ -377,7 +494,7 @@ fun ConfirmationDialog(
         confirmButton = { Button(onClick = onConfirm) { Text(confirmText) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
         title = { Text(title) },
-        text = { Text(text) })
+        text  = { Text(text) })
 }
 
 @Composable
@@ -399,16 +516,27 @@ fun SettingItem(@DrawableRes icon: Int, title: String, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable { onClick() }
             .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically) {
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Icon(painterResource(icon), contentDescription = title, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = title, fontWeight = FontWeight.SemiBold)
     }
 }
 
+/**
+ * A toggle row for a settings item.
+ *
+ * Phase 5 addition: optional [subtitle] shown below [title] in secondary style
+ * to describe the feature concisely.
+ */
 @Composable
 fun SettingToggle(
-    @DrawableRes icon: Int, title: String, isChecked: Boolean, onToggle: (Boolean) -> Unit
+    @DrawableRes icon: Int,
+    title: String,
+    isChecked: Boolean,
+    subtitle: String? = null,
+    onToggle: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -418,7 +546,16 @@ fun SettingToggle(
     ) {
         Icon(painterResource(icon), contentDescription = title, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(16.dp))
-        Text(text = title, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, fontWeight = FontWeight.SemiBold)
+            if (subtitle != null) {
+                Text(
+                    text  = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         Switch(checked = isChecked, onCheckedChange = onToggle)
     }
 }
@@ -428,14 +565,14 @@ fun CustomTimePickerDialog(
     initialTime: String, onTimeSelected: (String) -> Unit, onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    var selectedHour by remember { mutableIntStateOf(9) }
+    var selectedHour   by remember { mutableIntStateOf(9) }
     var selectedMinute by remember { mutableIntStateOf(0) }
     val dimens = LocalDimens.current
 
     LaunchedEffect(initialTime) {
         val parts = initialTime.split(":").mapNotNull { it.toIntOrNull() }
         if (parts.size == 2) {
-            selectedHour = parts[0]
+            selectedHour   = parts[0]
             selectedMinute = parts[1]
         }
     }
@@ -463,20 +600,20 @@ fun CustomTimePickerDialog(
                 verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
             ) {
                 Text(
-                    text = "Set Reminder Time",
+                    text  = "Set Reminder Time",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
                 AndroidView(
-                    factory = { context ->
-                        TimePicker(context).apply {
+                    factory = { ctx ->
+                        TimePicker(ctx).apply {
                             setIs24HourView(true)
-                            hour = selectedHour
+                            hour   = selectedHour
                             minute = selectedMinute
-                            setOnTimeChangedListener { _, hour, minute ->
-                                selectedHour = hour
-                                selectedMinute = minute
+                            setOnTimeChangedListener { _, h, m ->
+                                selectedHour   = h
+                                selectedMinute = m
                             }
                         }
                     }, modifier = Modifier.wrapContentSize()
@@ -510,4 +647,3 @@ fun CustomTimePickerDialog(
         }
     }
 }
-

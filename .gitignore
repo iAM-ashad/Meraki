@@ -1,15 +1,52 @@
+# ----------------------------
+# Android / Gradle
+# ----------------------------
+.gradle/
+/build/
+/app/build/
+/app/intermediates/
+/app/generated/
+/app/sessions/
+
+# ----------------------------
+# Local config
+# ----------------------------
+local.properties
+
+# ----------------------------
+# IDE (Android Studio / IntelliJ)
+# ----------------------------
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# ----------------------------
+# OS files
+# ----------------------------
 .DS_Store
-/build
-/captures
+
+# ----------------------------
+# NDK / CMake
+# ----------------------------
 .externalNativeBuild
 .cxx
-local.properties
+
+# ----------------------------
+# Misc
+# ----------------------------
+captures/
+
+# ----------------------------
+# Firebase / Secrets (IMPORTANT)
+# ----------------------------
+google-services.json
+
+# ----------------------------
+# Kotlin / KSP
+# ----------------------------
+ksp/

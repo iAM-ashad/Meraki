@@ -34,6 +34,14 @@ android {
         versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Groq API key — read from local.properties; falls back to empty string so the
+        // build never fails when the key is absent (e.g. CI without secrets).
+        buildConfigField(
+            "String",
+            "GROQ_API_KEY",
+            "\"${localProperties.getProperty("GROQ_API_KEY", "")}\""
+        )
     }
 
     buildTypes {
@@ -56,6 +64,12 @@ android {
     buildFeatures {
         buildConfig = true
         compose = true
+    }
+    // Phase 3: Prevent AGP from compressing .tflite model files inside the APK.
+    // TensorFlow Lite's MappedByteBuffer loader requires the file to be byte-aligned
+    // (uncompressed) so it can be memory-mapped directly from the APK.
+    androidResources {
+        noCompress += "tflite"
     }
     testOptions {
         unitTests {
@@ -141,10 +155,7 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     // LiveData
     implementation(libs.androidx.runtime.livedata)
-    // Phase 5: Firebase AI Logic SDK — replaces deprecated com.google.ai.client.generativeai.
-    // BOM-managed; no version pin needed. Supports googleAI() and vertexAI() backends.
-    implementation(libs.firebase.ai)
-    // App Check: validates requests come from legitimate app instances (required by firebase-ai).
+    // App Check: validates requests come from legitimate app instances.
     implementation(libs.firebase.appcheck.playintegrity)
     // Debug App Check provider — only included in debug builds; zero impact on release.
     debugImplementation(libs.firebase.appcheck.debug)
@@ -155,6 +166,20 @@ dependencies {
     implementation(libs.material3)
     // Accompanist removed in Phase 3: pager migrated to Foundation pager;
     // navigation already used native NavHost (no Accompanist nav was needed).
+    // Phase 3: On-Device Emotion Intelligence — ML Kit + TensorFlow Lite.
+    // ML Kit Language ID: detect language of user text before TFLite inference.
+    implementation(libs.mlkit.language.id)
+    // TFLite core interpreter.
+    // NOTE: Do NOT exclude tensorflow-lite-api or add it as compileOnly.
+    // InterpreterImpl lives inside tensorflow-lite-api; removing it from the
+    // runtime classpath causes a NoClassDefFoundError on app launch.
+    // The earlier "manifest merger conflict" concern was a misdiagnosis —
+    // a plain implementation dependency works correctly.
+    implementation(libs.tensorflow.lite)
+
+    /*implementation(libs.tensorflow.lite.support) {
+        exclude(group = "org.tensorflow", module = "tensorflow-lite-support-api")
+    }*/
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
     // DataStore

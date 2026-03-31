@@ -30,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -85,12 +86,37 @@ data class NavigationItem(val label: String, val route: Any, val icon: Int)
  * Sets up the app's main navigation using NavController and an adaptive layout.
  * Uses Navigation Compose 2.8+ type-safe routes (@Serializable objects/data classes).
  */
+/**
+ * Phase 5: [navigateToChatbot] is set to true when the user taps a Meraki notification.
+ *
+ * Two navigation paths handled here:
+ *  1. **Fresh launch** — [SplashScreen] receives the flag and routes authenticated users
+ *     to [Chatbot] instead of [Home].
+ *  2. **App already running** — the [LaunchedEffect] below detects the flag change
+ *     (delivered via [MainActivity.onNewIntent]) and navigates directly to [Chatbot]
+ *     without going through Splash (which is already off the back-stack).
+ */
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun MerakiNavigation() {
+fun MerakiNavigation(navigateToChatbot: Boolean = false) {
     val navController = rememberNavController()
     val currentDestination by navController.currentBackStackEntryFlow.collectAsState(initial = null)
     val adaptiveInfo = rememberWindowAdaptiveInfo()
+
+    // Handle deep-link when the app is already running (onNewIntent path).
+    // We only navigate here when the current destination is NOT Splash — Splash handles
+    // the fresh-launch case itself via the navigateToChatbot parameter.
+    LaunchedEffect(navigateToChatbot) {
+        if (navigateToChatbot) {
+            val isSplash = currentDestination?.destination
+                ?.hasRoute<Splash>() == true
+            if (!isSplash) {
+                navController.navigate(Chatbot()) {
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
 
     Scaffold {
         AdaptiveScreen(
@@ -103,7 +129,7 @@ fun MerakiNavigation() {
                 startDestination = Splash,
                 modifier = Modifier
             ) {
-                addNavGraph(navController)
+                addNavGraph(navController, navigateToChatbot)
             }
         }
     }
@@ -112,9 +138,12 @@ fun MerakiNavigation() {
 /**
  * Defines all screen destinations using type-safe composable<T> registrations.
  * Arguments are extracted via backStackEntry.toRoute<T>() instead of navArgument().
+ *
+ * Phase 5: [navigateToChatbot] is forwarded to [SplashScreen] so fresh-launch
+ * notification deep-links bypass [Home] and land directly on [Chatbot].
  */
-fun NavGraphBuilder.addNavGraph(navController: NavController) {
-    composable<Splash> { SplashScreen(navController) }
+fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot: Boolean = false) {
+    composable<Splash> { SplashScreen(navController, navigateToChatbot = navigateToChatbot) }
     composable<Home> { HomeScreen(navController) }
     composable<Register> { RegisterScreen(navController) }
     composable<Insights> {

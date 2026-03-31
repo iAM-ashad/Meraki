@@ -2,15 +2,19 @@ package com.iamashad.meraki.integration
 
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
-import com.google.firebase.ai.Chat
-import com.google.firebase.ai.GenerativeModel
-import com.google.firebase.ai.type.GenerateContentResponse
 import com.google.firebase.auth.FirebaseAuth
-import com.iamashad.meraki.data.ChatMessage
+import com.iamashad.meraki.data.EmotionDao
+import com.iamashad.meraki.model.EmotionCategory
+import com.iamashad.meraki.model.EmotionIntensity
+import com.iamashad.meraki.model.EmotionResult
 import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.repository.ChatRepository
+import com.iamashad.meraki.repository.GroqRepository
+import com.iamashad.meraki.repository.UserPreferencesRepository
 import com.iamashad.meraki.rules.MainDispatcherRule
 import com.iamashad.meraki.screens.chatbot.ChatViewModel
+import com.iamashad.meraki.utils.EmotionClassifier
+import com.iamashad.meraki.utils.MemoryManager
 import io.mockk.coEvery
 import io.mockk.coJustRun
 import io.mockk.every
@@ -40,8 +44,12 @@ import org.junit.Test
  *   7. Bot's response appears in uiState.messages
  *   8. isTyping indicator turns off
  *
- * [GenerativeModel] is fully mocked so the test is deterministic.
- * [FirebaseAuth.getInstance] static call is intercepted with [mockkStatic].
+ * Phase 6 (Groq migration): Updated to use [GroqRepository] mock instead of the
+ * removed Firebase [GenerativeModel].  [sendMessageStream] is stubbed to return a
+ * [flowOf] so the test is deterministic.
+ *
+ * Phase 3 update: [EmotionClassifier.classify] is stubbed to return a HAPPY/MEDIUM
+ * result for any input so existing assertions remain valid.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatFlowTest {
@@ -52,8 +60,13 @@ class ChatFlowTest {
     // ── dependencies ──────────────────────────────────────────────────────────
 
     private val chatRepository: ChatRepository = mockk(relaxed = true)
-    private val generativeModel: GenerativeModel = mockk(relaxed = true)
-    private val mockChat: Chat = mockk(relaxed = true)
+    private val groqRepository: GroqRepository = mockk(relaxed = true)
+    private val userPreferencesRepository: UserPreferencesRepository = mockk(relaxed = true)
+    // Phase 3: on-device emotion intelligence mocks
+    private val emotionClassifier: EmotionClassifier = mockk(relaxed = true)
+    private val emotionDao: EmotionDao = mockk(relaxed = true)
+    // Phase 4: long-term session memory mock
+    private val memoryManager: MemoryManager = mockk(relaxed = true)
 
     private lateinit var viewModel: ChatViewModel
 
@@ -64,10 +77,39 @@ class ChatFlowTest {
             every { currentUser } returns null
         }
         every { chatRepository.getAllMessages(any()) } returns flowOf(emptyList())
-        coJustRun { chatRepository.insertMessage(any()) }
+        coEvery { chatRepository.insertMessage(any()) } returns 1L
         coJustRun { chatRepository.clearChatHistory(any()) }
 
-        viewModel = ChatViewModel(chatRepository, generativeModel)
+        // Phase 2: daily cap — default to 0 so the cap is never hit in these tests.
+        coEvery { userPreferencesRepository.getDailyMessageCount() } returns 0
+        coJustRun { userPreferencesRepository.incrementDailyMessageCount() }
+
+        // Phase 3: stub classifier to return HAPPY for any input so legacy assertions hold.
+        coEvery { emotionClassifier.classify(any()) } returns EmotionResult(
+            primary    = EmotionCategory.HAPPY,
+            intensity  = EmotionIntensity.MEDIUM,
+            confidence = 0.80f
+        )
+        coEvery { emotionDao.insertEmotionLog(any()) } returns 1L
+        coJustRun { emotionDao.clearLogsForSession(any()) }
+
+        // Phase 4: no prior summaries
+        coEvery { memoryManager.getRecentSummaries() } returns emptyList()
+        coJustRun { memoryManager.summariseAndSave(any(), any(), any()) }
+
+        // Default Groq stub — overridden per-test via stubAiResponse
+        every {
+            groqRepository.sendMessageStream(any(), any(), any(), any(), any())
+        } returns flowOf("Default response")
+
+        viewModel = ChatViewModel(
+            chatRepository,
+            groqRepository,
+            userPreferencesRepository,
+            emotionClassifier,
+            emotionDao,
+            memoryManager
+        )
     }
 
     @After
@@ -75,14 +117,12 @@ class ChatFlowTest {
         unmockkAll()
     }
 
-    // ── helper: make generativeModel.startChat(...).sendMessage(...) resolve ──
+    // ── helper: stub groqRepository.sendMessageStream to emit a single token ──
 
     private fun stubAiResponse(responseText: String) {
-        val response = mockk<GenerateContentResponse>(relaxed = true) {
-            every { text } returns responseText
-        }
-        every { generativeModel.startChat(history = any()) } returns mockChat
-        coEvery { mockChat.sendMessage(any<String>()) } returns response
+        every {
+            groqRepository.sendMessageStream(any(), any(), any(), any(), any())
+        } returns flowOf(responseText)
     }
 
     // ── scenario tests ────────────────────────────────────────────────────────
@@ -121,6 +161,7 @@ class ChatFlowTest {
         viewModel.sendMessage("Happy")
         advanceUntilIdle()
 
+        // Phase 3: EmotionClassifier stub returns HAPPY → key == "happy"
         assertThat(viewModel.uiState.value.activeContext).isEqualTo("happy")
     }
 
@@ -135,12 +176,7 @@ class ChatFlowTest {
             val gradients = viewModel.determineGradientColors()
             assertThat(gradients).isNotEmpty()
 
-            // "happy" gradient contains bright yellows: 0xFFFFF176 and 0xFFFFC107
-            val hexValues = gradients.map { color ->
-                // androidx.compose.ui.graphics.Color.value gives ARGB packed as long
-                color.value.toString(16).uppercase()
-            }
-            // Verify the gradient changed from the neutral default
+            // Verify the active context was set to "happy" so the gradient is non-neutral
             assertThat(viewModel.uiState.value.activeContext).isEqualTo("happy")
         }
 
@@ -181,7 +217,7 @@ class ChatFlowTest {
             // 1) user message present
             assertThat(state.messages).hasSize(2)
             assertThat(state.messages.first().role).isEqualTo("user")
-            // 2) context updated from analyzeEmotion("Happy") → "happy"
+            // 2) context updated via EmotionClassifier stub → "happy"
             assertThat(state.activeContext).isEqualTo("happy")
             // 3) bot replied
             assertThat(state.messages.last().role).isEqualTo("model")
