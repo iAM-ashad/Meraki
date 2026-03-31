@@ -3,11 +3,10 @@ package com.iamashad.meraki.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
-import com.iamashad.meraki.repository.QuotesRepository
+import com.iamashad.meraki.model.MindfulNudge
+import com.iamashad.meraki.repository.NudgeRepository
 import com.iamashad.meraki.utils.MemoryManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,18 +20,14 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeScreenViewModel @Inject constructor(
-    private val quotesRepository: QuotesRepository, // Repository to fetch quotes
-    private val firestore: FirebaseFirestore, // Firestore instance for streak logging
-    private val memoryManager: MemoryManager  // For reading the last session's dominant emotion
+    private val nudgeRepository: NudgeRepository,
+    private val firestore: FirebaseFirestore,
+    private val memoryManager: MemoryManager
 ) : ViewModel() {
 
-    // StateFlow to hold a list of quotes (quote -> author)
-    private val _quotes = MutableStateFlow<List<Pair<String, String>>>(emptyList())
-    val quotes: StateFlow<List<Pair<String, String>>> = _quotes.asStateFlow()
-
-    // Optional author field (not used currently)
-    private val _author = MutableStateFlow("Anonymous")
-    val author: StateFlow<String> = _author.asStateFlow()
+    // StateFlow to hold a list of mindful nudges
+    private val _nudges = MutableStateFlow<List<MindfulNudge>>(emptyList())
+    val nudges: StateFlow<List<MindfulNudge>> = _nudges.asStateFlow()
 
     /**
      * The dominant emotion from the user's most recent chat session.
@@ -46,8 +41,8 @@ class HomeScreenViewModel @Inject constructor(
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     init {
-        // Automatically fetch quotes when ViewModel is created
-        fetchInitialQuotes()
+        // Automatically fetch initial nudges when ViewModel is created
+        fetchInitialNudges()
         loadDominantEmotion()
     }
 
@@ -63,30 +58,24 @@ class HomeScreenViewModel @Inject constructor(
         }
     }
 
-    // Fetches 5 quotes concurrently and stores them in state
-    private fun fetchInitialQuotes() {
+    private fun fetchInitialNudges() {
         viewModelScope.launch {
             try {
-                val response = (1..5).map {
-                    async { quotesRepository.getRandomQuote() }
-                }.awaitAll()
-
-                val initialQuotes = response.map { it.quote to it.author }
-                _quotes.emit(initialQuotes)
+                val initialNudges = nudgeRepository.getInitialNudges()
+                _nudges.emit(initialNudges)
             } catch (e: Exception) {
-                println("Failed to fetch initial quotes: ${e.localizedMessage}")
+                println("Failed to fetch initial nudges: ${e.localizedMessage}")
             }
         }
     }
 
-    // Fetch a single quote and append it to the current list
-    fun fetchSingleQuote() {
+    fun fetchNextNudge() {
         viewModelScope.launch {
             try {
-                val newQuote = quotesRepository.getRandomQuote()
-                _quotes.emit(_quotes.value + (newQuote.quote to newQuote.author))
+                val nextNudge = nudgeRepository.getNextNudge()
+                _nudges.emit(_nudges.value + nextNudge)
             } catch (e: Exception) {
-                println("Failed to fetch new quote: ${e.localizedMessage}")
+                println("Failed to fetch new nudge: ${e.localizedMessage}")
             }
         }
     }

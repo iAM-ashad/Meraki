@@ -76,6 +76,8 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iamashad.meraki.R
+import com.iamashad.meraki.model.MindfulNudge
+import com.iamashad.meraki.model.NudgeType
 import com.iamashad.meraki.navigation.Breathing
 import com.iamashad.meraki.navigation.MoodTracker
 import com.iamashad.meraki.navigation.Settings
@@ -182,7 +184,7 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(dimens.paddingMedium)
                 ) {
                     item {
-                        QuoteCardStack(homeViewModel)
+                        NudgeCardStack(homeViewModel)
                     }
 
                     item {
@@ -248,7 +250,7 @@ fun HomeScreen(
                 }
 
                 item {
-                    QuoteCardStack(homeViewModel)
+                    NudgeCardStack(homeViewModel)
                 }
 
                 item {
@@ -735,20 +737,20 @@ fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
 }
 
 @Composable
-fun QuoteCardStack(viewModel: HomeScreenViewModel) {
-    val quotes by viewModel.quotes.collectAsState()
+fun NudgeCardStack(viewModel: HomeScreenViewModel) {
+    val nudges by viewModel.nudges.collectAsState()
     var currentIndex by remember { mutableIntStateOf(0) }
     val screenWidth =
         with(LocalDensity.current) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
     val scope = rememberCoroutineScope()
     val dimens = LocalDimens.current
 
-    if (quotes.isEmpty()) {
+    if (nudges.isEmpty()) {
         LoadingIndicator()
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             // Render only the top card and one background card
-            quotes.forEachIndexed { index, quote ->
+            nudges.forEachIndexed { index, nudge ->
                 if (index == currentIndex || index == currentIndex + 1) {
                     val isTopCard = index == currentIndex
                     val swipeOffset = remember { Animatable(0f) }
@@ -756,7 +758,7 @@ fun QuoteCardStack(viewModel: HomeScreenViewModel) {
 
                     Box(
                         modifier = Modifier
-                            .zIndex((quotes.size - index).toFloat())
+                            .zIndex((nudges.size - index).toFloat())
                             .graphicsLayer(
                                 scaleX = if (isTopCard) 1f else 0.95f,
                                 scaleY = if (isTopCard) 1f else 0.95f,
@@ -765,9 +767,8 @@ fun QuoteCardStack(viewModel: HomeScreenViewModel) {
                             )
                     ) {
                         if (isTopCard) {
-                            SwipeableCard(
-                                quote = quote.first,
-                                author = quote.second,
+                            SwipeableNudgeCard(
+                                nudge = nudge,
                                 swipeOffset = swipeOffset,
                                 alpha = alpha,
                                 screenWidth = screenWidth,
@@ -777,17 +778,16 @@ fun QuoteCardStack(viewModel: HomeScreenViewModel) {
                                         alpha.animateTo(0f)
                                         currentIndex++
 
-                                        // Fetch a single new quote when reaching the end of the current stack
-                                        if (currentIndex >= quotes.size - 1) {
-                                            viewModel.fetchSingleQuote()
+                                        // Fetch a single new nudge when reaching the end of the current stack
+                                        if (currentIndex >= nudges.size - 1) {
+                                            viewModel.fetchNextNudge()
                                         }
                                     }
                                 }
                             )
                         } else {
-                            QuoteCard(
-                                quote = quote.first,
-                                author = quote.second,
+                            NudgeCard(
+                                nudge = nudge,
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -802,7 +802,7 @@ fun QuoteCardStack(viewModel: HomeScreenViewModel) {
                     .padding(dimens.paddingMedium),
                 horizontalArrangement = Arrangement.Center
             ) {
-                repeat(quotes.size) { index ->
+                repeat(nudges.size) { index ->
                     Box(
                         modifier = Modifier
                             .size(dimens.paddingSmall)
@@ -820,9 +820,8 @@ fun QuoteCardStack(viewModel: HomeScreenViewModel) {
 }
 
 @Composable
-fun SwipeableCard(
-    quote: String,
-    author: String,
+fun SwipeableNudgeCard(
+    nudge: MindfulNudge,
     swipeOffset: Animatable<Float, AnimationVector1D>,
     alpha: Animatable<Float, AnimationVector1D>,
     screenWidth: Float,
@@ -855,20 +854,36 @@ fun SwipeableCard(
                 }
             )
     ) {
-        QuoteCard(
-            quote = quote,
-            author = author,
+        NudgeCard(
+            nudge = nudge,
             modifier = Modifier.fillMaxWidth()
         )
     }
 }
 
 @Composable
-fun QuoteCard(
-    quote: String,
-    author: String,
+fun NudgeCard(
+    nudge: MindfulNudge,
     modifier: Modifier = Modifier
 ) {
+    val (iconRes, backgroundColor, label) = when (nudge.type) {
+        NudgeType.AFFIRMATION -> Triple(
+            R.drawable.ic_quote,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            "Affirmation"
+        )
+        NudgeType.REFLECTION -> Triple(
+            R.drawable.ic_journal,
+            MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+            "Reflection"
+        )
+        NudgeType.INSIGHT -> Triple(
+            R.drawable.ic_insights,
+            MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+            "AI Insight"
+        )
+    }
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -883,7 +898,7 @@ fun QuoteCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            backgroundColor,
                             MaterialTheme.colorScheme.surface
                         )
                     )
@@ -891,31 +906,52 @@ fun QuoteCard(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_quote),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = null,
+                    tint = when (nudge.type) {
+                        NudgeType.AFFIRMATION -> MaterialTheme.colorScheme.primary
+                        NudgeType.REFLECTION -> MaterialTheme.colorScheme.secondary
+                        NudgeType.INSIGHT -> MaterialTheme.colorScheme.tertiary
+                    },
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = when (nudge.type) {
+                            NudgeType.AFFIRMATION -> MaterialTheme.colorScheme.primary
+                            NudgeType.REFLECTION -> MaterialTheme.colorScheme.secondary
+                            NudgeType.INSIGHT -> MaterialTheme.colorScheme.tertiary
+                        }
+                    )
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "\"$quote\"",
+                text = nudge.text ?: "Take a moment for yourself.",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     textAlign = TextAlign.Center,
-                    fontStyle = FontStyle.Italic
+                    fontStyle = if (nudge.type == NudgeType.AFFIRMATION) FontStyle.Italic else FontStyle.Normal
                 ),
                 color = MaterialTheme.colorScheme.onSurface
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                modifier = Modifier.width(50.dp)
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                modifier = Modifier.width(40.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "- $author",
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
+                text = nudge.source ?: "Meraki AI",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Light),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

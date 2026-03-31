@@ -5,7 +5,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.iamashad.meraki.BuildConfig
 import com.iamashad.meraki.network.GroqApiService
-import com.iamashad.meraki.network.QuotesAPI
 import com.iamashad.meraki.repository.FirestoreRepository
 import com.iamashad.meraki.repository.MoodRepository
 import com.iamashad.meraki.utils.ConnectivityStatus
@@ -30,38 +29,11 @@ import javax.inject.Singleton
 object NetworkModule {
 
     /**
-     * Qualifier annotation for distinguishing the Retrofit instance used for Quotes API.
-     */
-    @Qualifier
-    @Retention(AnnotationRetention.BINARY)
-    annotation class QuotesRetrofit
-
-    /**
      * Qualifier annotation for the Groq Cloud Retrofit instance.
-     * Prevents Hilt from confusing it with the [QuotesRetrofit] instance.
      */
     @Qualifier
     @Retention(AnnotationRetention.BINARY)
     annotation class GroqRetrofit
-
-    /**
-     * Provides a singleton Retrofit instance configured with the Quotes API base URL.
-     */
-    @QuotesRetrofit
-    @Provides
-    @Singleton
-    fun provideQuotesRetrofit(): Retrofit = Retrofit.Builder()
-        .baseUrl(QUOTES_API_BASE_URL)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-
-    /**
-     * Provides a QuotesAPI instance created using the qualified Retrofit builder.
-     */
-    @Provides
-    @Singleton
-    fun provideQuotesApi(@QuotesRetrofit retrofit: Retrofit): QuotesAPI =
-        retrofit.create(QuotesAPI::class.java)
 
     /**
      * Provides a singleton instance of ConnectivityStatus to observe network status.
@@ -165,11 +137,6 @@ object NetworkModule {
     fun provideGroqApiService(@GroqRetrofit retrofit: Retrofit): GroqApiService =
         retrofit.create(GroqApiService::class.java)
 }
-
-/**
- * Base URL used for accessing the Quotes API service.
- */
-const val QUOTES_API_BASE_URL = "https://zenquotes.io/"
 
 /**
  * Base URL for the Groq Cloud API.
