@@ -93,7 +93,7 @@ class MemoryManager @Inject constructor(
                 ?.key
 
             if (recurringTheme != null) {
-                return "You mentioned $recurringTheme last time. How are things going with that?"
+                return "You've been carrying a lot around $recurringTheme lately. How are things going with that?"
             }
 
             // ── Pattern 2: negative emotion on today's named day-of-week ─────
@@ -106,7 +106,7 @@ class MemoryManager @Inject constructor(
             }
             val recentEmotion = recent.first().dominantEmotion
             if (dayName != null && recentEmotion in listOf("anxious", "sad", "stressed")) {
-                return "$dayName evenings can feel heavy sometimes. Meraki is here if you need to talk."
+                return "$dayName evenings can feel heavy sometimes — you don't have to sit with it alone."
             }
 
             // ── Pattern 3: dominant-emotion fallback ──────────────────────────
@@ -117,7 +117,7 @@ class MemoryManager @Inject constructor(
                 ?.key
                 ?: return null
 
-            return "You've been feeling $dominantEmotion lately. How are you holding up today?"
+            return "You've been carrying a lot of $dominantEmotion lately. How are you doing today?"
         }
     }
 

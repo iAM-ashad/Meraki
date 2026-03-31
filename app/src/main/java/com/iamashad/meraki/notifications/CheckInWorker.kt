@@ -135,25 +135,30 @@ class CheckInWorker(
             return Result.success()
         }
 
-        // ── Smart nudge path ─────────────────────────────────────────────────
+        // ── Smart nudge path (evening window: 18:00–23:00 only) ─────────────
         if (prefs.smartNudgesEnabled.first()) {
-            val summaries = ChatDatabase.getInstance(context)
-                .sessionSummaryDao()
-                .getLastFourteenSummaries()
+            val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            if (currentHour in 18..23) {
+                val summaries = ChatDatabase.getInstance(context)
+                    .sessionSummaryDao()
+                    .getLastFourteenSummaries()
 
-            if (summaries.size >= 4) {
-                // Delegate to MemoryManager's companion to avoid duplicating the pattern logic.
-                val nudge = MemoryManager.generateSmartNudge(summaries)
-                if (nudge != null) {
-                    NotificationHelper.send(
-                        context  = context,
-                        notifId  = NotificationHelper.NOTIF_ID_NUDGE,
-                        title    = "Meraki",
-                        body     = nudge
-                    )
-                    Log.d(TAG, "Smart nudge sent: $nudge")
-                    return Result.success()
+                if (summaries.size >= 4) {
+                    // Delegate to MemoryManager's companion to avoid duplicating the pattern logic.
+                    val nudge = MemoryManager.generateSmartNudge(summaries)
+                    if (nudge != null) {
+                        NotificationHelper.send(
+                            context  = context,
+                            notifId  = NotificationHelper.NOTIF_ID_NUDGE,
+                            title    = "Meraki",
+                            body     = nudge
+                        )
+                        Log.d(TAG, "Smart nudge sent: $nudge")
+                        return Result.success()
+                    }
                 }
+            } else {
+                Log.d(TAG, "Outside evening window (hour=$currentHour) — falling through to daily check-in")
             }
         }
 

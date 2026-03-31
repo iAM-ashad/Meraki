@@ -72,6 +72,12 @@ fun OnBoardingScreen(navController: NavController) {
             subtitle = "Step into a world of self-discovery and transformation. You deserve a life filled with joy, clarity, and strength.",
             animation = R.raw.lottie_onb4,
             iterations = LottieConstants.IterateForever
+        ),
+        OnboardingPage(
+            title = "Meraki Learns With You",
+            subtitle = "After a few conversations, Meraki may send you a gentle evening nudge — something warm and tailored to what you've been carrying. You can turn this off any time in Settings.",
+            animation = R.raw.lottie_onb2,
+            iterations = LottieConstants.IterateForever
         )
     )
 

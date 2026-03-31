@@ -206,7 +206,7 @@ fun SettingsScreen(
             SettingToggle(
                 icon     = R.drawable.ic_dynamic_colors,
                 title    = "Smart Nudges",
-                subtitle = "Personalised nudges based on your patterns (available after 4 sessions)",
+                subtitle = "Personalised evening check-ins based on your patterns — you can turn this off any time",
                 isChecked = smartNudgesEnabled,
                 onToggle  = { enabled ->
                     settingsViewModel.setSmartNudgesEnabled(enabled)
@@ -360,9 +360,10 @@ fun SettingsScreen(
             title = { Text("Enable Smart Nudges?") },
             text = {
                 Text(
-                    "You've had 4 or more sessions with Meraki. Smart Nudges can now " +
-                    "recognise your patterns and send personalised check-ins — like reminding " +
-                    "you about topics you've mentioned before. Would you like to turn them on?"
+                    "You've had 4 or more conversations with Meraki. Based on what you've " +
+                    "shared, Meraki can now send you a gentle evening nudge — something warm " +
+                    "and personal, timed between 6 pm and 11 pm. You can turn this off any " +
+                    "time in Settings. Would you like to enable it?"
                 )
             },
             confirmButton = {
