@@ -1,14 +1,25 @@
 package com.iamashad.meraki.screens.home
 
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.horizontalScroll
@@ -26,12 +37,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,8 +71,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
@@ -66,6 +86,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -79,6 +100,7 @@ import com.iamashad.meraki.R
 import com.iamashad.meraki.model.MindfulNudge
 import com.iamashad.meraki.model.NudgeType
 import com.iamashad.meraki.navigation.Breathing
+import com.iamashad.meraki.navigation.Chatbot
 import com.iamashad.meraki.navigation.MoodTracker
 import com.iamashad.meraki.navigation.Settings
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
@@ -92,6 +114,7 @@ import com.iamashad.meraki.utils.getMoodEmoji
 import com.iamashad.meraki.utils.getMoodPromptSubtext
 import com.iamashad.meraki.utils.rememberWindowAdaptiveInfo
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -113,6 +136,16 @@ fun HomeScreen(
     val isLoading by moodTrackerViewModel.loading.collectAsState()
     var streakCount by remember { mutableIntStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Living Mood Card — collect AI insight + pattern alert state
+    val weeklyInsight by homeViewModel.weeklyInsight.collectAsState()
+    val isInsightLoading by homeViewModel.insightLoading.collectAsState()
+    val patternAlert by homeViewModel.patternAlert.collectAsState()
+
+    // Trigger insight + pattern generation whenever the mood list grows
+    LaunchedEffect(lastMoods.size) {
+        homeViewModel.generateWeeklyInsight(lastMoods)
+    }
 
     // Mood-Aware UI: read the last session's dominant emotion and derive subtle tint colors.
     val dominantEmotion by homeViewModel.dominantEmotion.collectAsState()
@@ -195,7 +228,13 @@ fun HomeScreen(
                         when {
                             errorMessage != null -> ErrorMessage(errorMessage!!)
                             isLoading -> LoadingIndicator()
-                            lastMoods.isNotEmpty() -> MoodLogsCard(moodLogs = lastMoods.takeLast(7))
+                            lastMoods.isNotEmpty() -> LivingMoodCard(
+                                moodLogs = lastMoods.takeLast(7),
+                                weeklyInsight = weeklyInsight,
+                                isInsightLoading = isInsightLoading,
+                                patternAlert = patternAlert,
+                                navController = navController
+                            )
                             else -> EmptyMoodLogs()
                         }
                     }
@@ -261,7 +300,13 @@ fun HomeScreen(
                     when {
                         errorMessage != null -> ErrorMessage(errorMessage!!)
                         isLoading -> LoadingIndicator()
-                        lastMoods.isNotEmpty() -> MoodLogsCard(moodLogs = lastMoods.takeLast(7))
+                        lastMoods.isNotEmpty() -> LivingMoodCard(
+                            moodLogs = lastMoods.takeLast(7),
+                            weeklyInsight = weeklyInsight,
+                            isInsightLoading = isInsightLoading,
+                            patternAlert = patternAlert,
+                            navController = navController
+                        )
                         else -> EmptyMoodLogs()
                     }
                 }
@@ -652,6 +697,427 @@ fun StreakMeterCard(streakCount: Int) {
 }
 
 
+// =============================================================================
+// Living Mood Card — replaces MoodLogsCard with a 3-state swipeable mini-dashboard
+// =============================================================================
+
+/**
+ * A card that cycles between three states via horizontal swipe:
+ *  0 — Curve      : a smooth sparkline of the last 7 days with tinted gradient fill
+ *  1 — AI Insight : a single AI-generated sentence summarising the week
+ *  2 — Pattern    : a warm, actionable pattern alert (or empty if none detected)
+ */
+@Composable
+fun LivingMoodCard(
+    moodLogs: List<Pair<String, Int>>,
+    weeklyInsight: String?,
+    isInsightLoading: Boolean,
+    patternAlert: PatternAlert?,
+    navController: NavController
+) {
+    val dimens = LocalDimens.current
+    val scope = rememberCoroutineScope()
+
+    // Current page: 0 = Curve, 1 = Insight, 2 = Pattern
+    var page by remember { mutableIntStateOf(0) }
+    val pageCount = if (patternAlert != null) 3 else 2
+
+    // Horizontal swipe tracking
+    val swipeDelta = remember { Animatable(0f) }
+    val dragState = rememberDraggableState { delta ->
+        scope.launch { swipeDelta.snapTo(swipeDelta.value + delta) }
+    }
+
+    Card(
+        shape = RoundedCornerShape(dimens.cornerRadius),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant),
+        elevation = CardDefaults.cardElevation(dimens.elevation),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(dimens.paddingLarge * 13)
+            .draggable(
+                orientation = Orientation.Horizontal,
+                state = dragState,
+                onDragStopped = { velocity ->
+                    scope.launch {
+                        val threshold = 80f
+                        when {
+                            swipeDelta.value < -threshold && page < pageCount - 1 -> page++
+                            swipeDelta.value > threshold && page > 0 -> page--
+                        }
+                        swipeDelta.animateTo(0f, spring(stiffness = Spring.StiffnessMedium))
+                    }
+                }
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(dimens.paddingMedium)
+        ) {
+            // ---- Header row ----
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val title = when (page) {
+                    0 -> "7-Day Curve"
+                    1 -> "Weekly Insight"
+                    else -> "Pattern Detected"
+                }
+                val subtitle = when (page) {
+                    0 -> "Swipe to see your AI insight →"
+                    1 -> "← Curve   Pattern →"
+                    else -> "← Back"
+                }
+                Column {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        )
+                    )
+                }
+                // Dot indicators
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    repeat(pageCount) { idx ->
+                        val dotSize by animateFloatAsState(
+                            targetValue = if (idx == page) 8f else 5f,
+                            animationSpec = spring(),
+                            label = "dotSize$idx"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(dotSize.dp)
+                                .background(
+                                    color = if (idx == page) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                    shape = CircleShape
+                                )
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(dimens.paddingSmall))
+
+            // ---- Page content ----
+            AnimatedContent(
+                targetState = page,
+                transitionSpec = {
+                    val direction = if (targetState > initialState) 1 else -1
+                    (slideInHorizontally { width -> direction * width } + fadeIn()) togetherWith
+                            (slideOutHorizontally { width -> -direction * width } + fadeOut())
+                },
+                label = "livingMoodPage",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) { currentPage ->
+                when (currentPage) {
+                    0 -> LivingSparklineChart(
+                        moodLogs = moodLogs.takeLast(7),
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    1 -> LivingInsightPage(
+                        weeklyInsight = weeklyInsight,
+                        isLoading = isInsightLoading,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    else -> patternAlert?.let {
+                        LivingPatternPage(
+                            alert = it,
+                            navController = navController,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// State 0 — The Curve: sparkline with dynamic gradient fill
+// ---------------------------------------------------------------------------
+
+@Composable
+fun LivingSparklineChart(
+    moodLogs: List<Pair<String, Int>>,
+    modifier: Modifier = Modifier
+) {
+    if (moodLogs.isEmpty()) return
+
+    val dimens = LocalDimens.current
+
+    // Which point the user has tapped (null = none)
+    var tappedIndex by remember { mutableStateOf<Int?>(null) }
+    // Store computed point positions for hit-testing
+    val pointPositions = remember { mutableListOf<Offset>() }
+
+    // Derive gradient colours from average mood
+    val avg = moodLogs.map { it.second }.average()
+    val lineColor = when {
+        avg >= 65 -> Color(0xFF66BB6A)   // warm green
+        avg <= 40 -> Color(0xFF42A5F5)   // cool blue
+        else -> Color(0xFFDC8DF3)        // signature purple (neutral)
+    }
+    val fillTop = lineColor.copy(alpha = 0.35f)
+    val fillBottom = lineColor.copy(alpha = 0.02f)
+
+    Box(modifier = modifier) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(moodLogs) {
+                    detectTapGestures { position ->
+                        // Find the nearest data-point within 44px — dismiss if none
+                        val hit = pointPositions.indexOfFirst {
+                            abs(it.x - position.x) < 44f && abs(it.y - position.y) < 44f
+                        }
+                        tappedIndex = if (hit != -1) hit else null
+                    }
+                }
+        ) {
+            val w = size.width
+            val h = size.height
+            val vPad = 20.dp.toPx()
+            val scores = moodLogs.map { it.second }
+            val maxS = scores.max()
+            val minS = scores.min()
+            val range = (maxS - minS).coerceAtLeast(1)
+            val xStep = if (moodLogs.size > 1) w / (moodLogs.size - 1).toFloat() else w
+
+            fun xOf(i: Int) = i * xStep
+            fun yOf(s: Int) = h - vPad - (s - minS) / range.toFloat() * (h - 2 * vPad)
+
+            // Build bezier path
+            val linePath = Path()
+            scores.forEachIndexed { i, s ->
+                val x = xOf(i)
+                val y = yOf(s)
+                if (i == 0) linePath.moveTo(x, y) else {
+                    val cx = x - xStep / 2f
+                    val prevY = yOf(scores[i - 1])
+                    linePath.cubicTo(cx, prevY, cx, y, x, y)
+                }
+            }
+
+            // Closed fill path (line + baseline)
+            val fillPath = Path().apply {
+                addPath(linePath)
+                lineTo(xOf(scores.lastIndex), h)
+                lineTo(xOf(0), h)
+                close()
+            }
+
+            // Draw gradient fill
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(fillTop, fillBottom),
+                    startY = 0f,
+                    endY = h
+                )
+            )
+
+            // Draw the line
+            drawPath(
+                path = linePath,
+                color = lineColor,
+                style = Stroke(
+                    width = 5.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round
+                )
+            )
+
+            // Collect point positions for hit-testing and draw dots
+            pointPositions.clear()
+            scores.forEachIndexed { i, s ->
+                val cx = xOf(i)
+                val cy = yOf(s)
+                pointPositions.add(Offset(cx, cy))
+                drawCircle(
+                    color = lineColor,
+                    radius = 5.dp.toPx(),
+                    center = Offset(cx, cy)
+                )
+                // Highlighted dot
+                if (tappedIndex == i) {
+                    drawCircle(
+                        color = Color.White,
+                        radius = 7.dp.toPx(),
+                        center = Offset(cx, cy),
+                        style = Stroke(width = 2.dp.toPx())
+                    )
+                }
+            }
+        }
+
+        // Tap tooltip
+        tappedIndex?.let { idx ->
+            val (date, score) = moodLogs[idx]
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = dimens.paddingSmall, top = dimens.paddingSmall / 2)
+            ) {
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = getMoodEmoji(score),
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "$score / 100",
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                        Text(
+                            text = date,
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// State 1 — The AI Insight
+// ---------------------------------------------------------------------------
+
+@Composable
+fun LivingInsightPage(
+    weeklyInsight: String?,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            isLoading -> CircularProgressIndicator(
+                modifier = Modifier.size(28.dp),
+                strokeWidth = 2.dp,
+                color = MaterialTheme.colorScheme.primary
+            )
+            weeklyInsight != null -> Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(horizontal = 8.dp)
+            ) {
+                Text(
+                    text = "✨",
+                    fontSize = 28.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = weeklyInsight,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontStyle = FontStyle.Italic,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 22.sp
+                    )
+                )
+            }
+            else -> Text(
+                text = "Log a few moods to unlock your weekly insight.",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center
+                ),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// State 2 — Pattern Alert
+// ---------------------------------------------------------------------------
+
+@Composable
+fun LivingPatternPage(
+    alert: PatternAlert,
+    navController: NavController,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "🔍",
+            fontSize = 24.sp
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = alert.message,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center,
+                lineHeight = 21.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Button(
+            onClick = {
+                when (alert.actionType) {
+                    PatternActionType.BREATHING -> navController.navigate(Breathing)
+                    PatternActionType.CHATBOT -> navController.navigate(
+                        Chatbot(prompt = "I've been noticing some patterns in my mood. Can we talk about it?")
+                    )
+                }
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = when (alert.actionType) {
+                    PatternActionType.BREATHING -> "Try breathing exercise"
+                    PatternActionType.CHATBOT -> "Talk it through"
+                },
+                style = MaterialTheme.typography.labelLarge
+            )
+        }
+    }
+}
+
+// =============================================================================
+// Legacy MoodLogsCard — kept for reference; replaced by LivingMoodCard above
+// =============================================================================
+
 @Composable
 fun MoodLogsCard(moodLogs: List<Pair<String, Int>>) {
 
@@ -1010,7 +1476,6 @@ fun EmptyMoodLogs() {
     ) {
         Image(
             painter = painterResource(id = R.drawable.img_moodtrack),
-            // Phase 6: corrected from "Make Journals" — this is a mood tracker illustration.
             contentDescription = "No mood entries yet",
             modifier = Modifier
                 .size(dimens.avatarSize)
@@ -1073,5 +1538,3 @@ fun LoadingIndicator() {
         )
     }
 }
-
-
