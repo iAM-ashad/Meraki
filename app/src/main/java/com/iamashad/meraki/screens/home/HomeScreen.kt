@@ -37,7 +37,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -55,7 +54,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.window.core.layout.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -78,7 +76,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
-
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
@@ -91,6 +88,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.window.core.layout.WindowWidthSizeClass
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -174,8 +172,9 @@ fun HomeScreen(
 
     val adaptiveInfo = rememberWindowAdaptiveInfo()
     ProvideDimens(adaptiveInfo) {
-        val isLargeScreen = adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED ||
-                LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val isLargeScreen =
+            adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED ||
+                    LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
         if (isLargeScreen) {
             Row(
@@ -235,6 +234,7 @@ fun HomeScreen(
                                 patternAlert = patternAlert,
                                 navController = navController
                             )
+
                             else -> EmptyMoodLogs()
                         }
                     }
@@ -307,6 +307,7 @@ fun HomeScreen(
                             patternAlert = patternAlert,
                             navController = navController
                         )
+
                         else -> EmptyMoodLogs()
                     }
                 }
@@ -325,7 +326,6 @@ fun HomeScreen(
         }
     }
 }
-
 
 
 @Composable
@@ -558,14 +558,19 @@ fun CelebrationDialog(
 }
 
 @Composable
-fun MoodPromptCard(navController: NavController, userName: String?, dominantEmotion: String = "neutral") {
+fun MoodPromptCard(
+    navController: NavController,
+    userName: String?,
+    dominantEmotion: String = "neutral"
+) {
     val firstName = userName?.split(" ")?.firstOrNull()
     val dimens = LocalDimens.current
 
     // Mood-Aware UI: subtext softens for negative emotions, brightens for positive ones.
     val subtext = getMoodPromptSubtext(dominantEmotion)
 
-    Card(shape = RoundedCornerShape(dimens.cornerRadius),
+    Card(
+        shape = RoundedCornerShape(dimens.cornerRadius),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
         elevation = CardDefaults.cardElevation(dimens.elevation),
         modifier = Modifier
@@ -829,11 +834,13 @@ fun LivingMoodCard(
                         moodLogs = moodLogs.takeLast(7),
                         modifier = Modifier.fillMaxSize()
                     )
+
                     1 -> LivingInsightPage(
                         weeklyInsight = weeklyInsight,
                         isLoading = isInsightLoading,
                         modifier = Modifier.fillMaxSize()
                     )
+
                     else -> patternAlert?.let {
                         LivingPatternPage(
                             alert = it,
@@ -1028,6 +1035,7 @@ fun LivingInsightPage(
                 strokeWidth = 2.dp,
                 color = MaterialTheme.colorScheme.primary
             )
+
             weeklyInsight != null -> Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
@@ -1048,6 +1056,7 @@ fun LivingInsightPage(
                     )
                 )
             }
+
             else -> Text(
                 text = "Log a few moods to unlock your weekly insight.",
                 style = MaterialTheme.typography.bodySmall.copy(
@@ -1338,11 +1347,13 @@ fun NudgeCard(
             MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
             "Affirmation"
         )
+
         NudgeType.REFLECTION -> Triple(
             R.drawable.ic_journal,
             MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
             "Reflection"
         )
+
         NudgeType.INSIGHT -> Triple(
             R.drawable.ic_insights,
             MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),

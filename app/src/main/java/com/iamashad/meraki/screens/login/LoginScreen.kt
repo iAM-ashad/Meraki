@@ -99,7 +99,8 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                // Phase 1 fix: was hardcoded Color.White — broken in dark mode
+                .background(MaterialTheme.colorScheme.surface)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {

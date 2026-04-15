@@ -70,6 +70,19 @@ class UserPreferencesRepository @Inject constructor(
          * Prevents the dialog from re-appearing every time the user opens Settings.
          */
         private val KEY_HAS_SHOWN_NUDGE_PROMPT = booleanPreferencesKey("has_shown_nudge_prompt")
+
+        // ── Onboarding Overhaul: one-shot completion gate ─────────────────────
+
+        /**
+         * Phase 1 (Onboarding Overhaul): Set to true after [WelcomeAIScreen] completes.
+         * Read by [com.iamashad.meraki.screens.splash.SplashScreen] to skip onboarding
+         * for returning authenticated users.
+         *
+         * This is a hard gate — once true the flow is never shown again for this account
+         * on this device. Re-install resets it (DataStore is cleared with app data).
+         */
+        private val KEY_HAS_COMPLETED_ONBOARDING =
+            booleanPreferencesKey("has_completed_onboarding")
     }
 
     // ── Phase 2: daily message cap ────────────────────────────────────────────
@@ -201,6 +214,25 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun markNudgePromptShown() {
         context.userPreferencesDataStore.edit { prefs ->
             prefs[KEY_HAS_SHOWN_NUDGE_PROMPT] = true
+        }
+    }
+
+    // ── Onboarding Overhaul: completion gate accessors ────────────────────────
+
+    /**
+     * Observable flow for the onboarding completion gate.
+     * Default: **false** — new installs always run through onboarding once.
+     */
+    val hasCompletedOnboarding: Flow<Boolean> = context.userPreferencesDataStore.data
+        .map { prefs -> prefs[KEY_HAS_COMPLETED_ONBOARDING] ?: false }
+
+    /**
+     * Marks onboarding as permanently completed.
+     * Called from [WelcomeAIScreen] after the AI welcome message renders.
+     */
+    suspend fun markOnboardingComplete() {
+        context.userPreferencesDataStore.edit { prefs ->
+            prefs[KEY_HAS_COMPLETED_ONBOARDING] = true
         }
     }
 }

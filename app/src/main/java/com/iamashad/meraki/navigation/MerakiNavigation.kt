@@ -143,6 +143,8 @@ fun MerakiNavigation(navigateToChatbot: Boolean = false) {
  * notification deep-links bypass [Home] and land directly on [Chatbot].
  */
 fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot: Boolean = false) {
+    // Onboarding Overhaul — Phase 1: SplashScreen uses SplashViewModel (Hilt) to read the
+    // hasCompletedOnboarding flag and gate authenticated users onto the onboarding flow.
     composable<Splash> { SplashScreen(navController, navigateToChatbot = navigateToChatbot) }
     composable<Home> { HomeScreen(navController) }
     composable<Register> { RegisterScreen(navController) }
@@ -188,6 +190,39 @@ fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot:
             navController.navigate(Login)
         }
     }
+
+    // ── Onboarding Overhaul: 4 new destinations ──────────────────────────────
+
+    // Phase 3: Pre-account mood capture — between Onboarding and CreateUser
+    composable<MoodSeed> {
+        val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>()
+        com.iamashad.meraki.screens.onboarding.MoodSeedScreen(navController, viewModel)
+    }
+
+    // Phase 2: Full-screen avatar picker — step 2 of sign-up
+    composable<AvatarCelebration> { backStackEntry ->
+        val args = backStackEntry.toRoute<AvatarCelebration>()
+        val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>()
+        com.iamashad.meraki.screens.register.AvatarCelebrationScreen(
+            userId = args.userId,
+            navController = navController,
+            viewModel = viewModel
+        )
+    }
+
+    // Phase 3: AI-powered personalised welcome + first journal prompt
+    composable<WelcomeMeraki> {
+        val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>()
+        com.iamashad.meraki.screens.onboarding.WelcomeAIScreen(navController, viewModel)
+    }
+
+    // Phase 4: Explained notification opt-in with NL time input
+    composable<NotificationSetup> {
+        val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>()
+        com.iamashad.meraki.screens.onboarding.NotificationSetupScreen(navController, viewModel)
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     composable<AddJournal> { backStackEntry ->
         val args = backStackEntry.toRoute<AddJournal>()

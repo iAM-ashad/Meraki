@@ -67,3 +67,29 @@ import kotlinx.serialization.Serializable
 
 /** Mood analytics and visual insights dashboard. */
 @Serializable object Insights
+
+// ── Onboarding Overhaul routes ────────────────────────────────────────────────
+
+/**
+ * Phase 3: Pre-account mood capture screen.
+ * Inserted between [Onboarding] and [CreateUser].
+ */
+@Serializable object MoodSeed
+
+/**
+ * Phase 2: Full-screen avatar picker — step 2 of the sign-up flow.
+ * [userId] passed from [CreateUser] after successful Firebase account creation.
+ */
+@Serializable data class AvatarCelebration(val userId: String = "")
+
+/**
+ * Phase 3: AI-generated personalised welcome screen shown after [AvatarCelebration].
+ * Streams a Groq welcome using name + mood seed; displays the first journal prompt.
+ */
+@Serializable object WelcomeMeraki
+
+/**
+ * Phase 4: Explained notification opt-in with natural-language time input.
+ * Replaces the cold runtime permission dialog. Shown after [WelcomeMeraki].
+ */
+@Serializable object NotificationSetup

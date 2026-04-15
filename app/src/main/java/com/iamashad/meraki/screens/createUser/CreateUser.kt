@@ -34,8 +34,8 @@ import androidx.navigation.NavController
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.PrivacyPolicyText
 import com.iamashad.meraki.components.showToast
+import com.iamashad.meraki.navigation.AvatarCelebration
 import com.iamashad.meraki.navigation.CreateUser
-import com.iamashad.meraki.navigation.Home
 import com.iamashad.meraki.screens.register.AuthUiEvent
 import com.iamashad.meraki.screens.register.RegisterViewModel
 import com.iamashad.meraki.utils.LocalDimens
@@ -59,7 +59,7 @@ fun CreateUserScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var selectedAvatar by remember { mutableStateOf<Int?>(null) }
+    // Phase 2: selectedAvatar removed — avatar selection moved to AvatarCelebrationScreen.
     var acceptPolicy by remember { mutableStateOf(false) }
 
     // Phase 2: collect consolidated AuthUiState instead of separate errorMessage StateFlow
@@ -70,11 +70,18 @@ fun CreateUserScreen(
     val context = LocalContext.current
 
     // Phase 6: collect one-time navigation/toast events from AuthUiEvent channel.
+    // Onboarding Overhaul (Phase 2): on success navigate to AvatarCelebration (step 2)
+    // instead of Home — passes the new userId so the avatar can be saved to Firestore.
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
             when (event) {
-                is AuthUiEvent.NavigateToHome -> navController.navigate(Home) {
-                    popUpTo<CreateUser> { inclusive = true }
+                is AuthUiEvent.NavigateToHome -> {
+                    // Redirect to AvatarCelebration — the new step 2 of sign-up.
+                    val userId = com.google.firebase.auth.FirebaseAuth
+                        .getInstance().currentUser?.uid.orEmpty()
+                    navController.navigate(AvatarCelebration(userId = userId)) {
+                        popUpTo<CreateUser> { inclusive = true }
+                    }
                 }
                 is AuthUiEvent.ShowToast -> showToast(context, event.message)
                 else -> Unit
@@ -82,12 +89,7 @@ fun CreateUserScreen(
         }
     }
 
-    // List of available avatar drawable resources
-    val avatars = listOf(
-        R.drawable.avatar1, R.drawable.avatar2, R.drawable.avatar3,
-        R.drawable.avatar4, R.drawable.avatar5, R.drawable.avatar6,
-        R.drawable.avatar7, R.drawable.avatar8, R.drawable.avatar9, R.drawable.avatar10
-    )
+    // Phase 2: avatars list removed — avatar selection moved to AvatarCelebrationScreen.
 
     val adaptiveInfo = rememberWindowAdaptiveInfo()
 
@@ -95,7 +97,8 @@ fun CreateUserScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                // Phase 1 fix: was hardcoded Color.White — broken in dark mode
+                .background(MaterialTheme.colorScheme.surface)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -213,34 +216,9 @@ fun CreateUserScreen(
                     .focusRequester(focusRequester)
             )
 
-            Spacer(modifier = Modifier.height(dimens.paddingMedium))
-
-            // Avatar Picker
-            Text(
-                text = "Choose Your Avatar",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    color = MaterialTheme.colorScheme.inversePrimary
-                )
-            )
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(dimens.paddingSmall / 4),
-                modifier = Modifier.padding(horizontal = dimens.paddingSmall / 2)
-            ) {
-                items(avatars) { avatarRes ->
-                    Image(
-                        painter = painterResource(id = avatarRes),
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(dimens.avatarSize / 6)
-                            .clip(CircleShape)
-                            .background(
-                                if (selectedAvatar == avatarRes) MaterialTheme.colorScheme.inversePrimary else Color.Transparent
-                            )
-                            .clickable { selectedAvatar = avatarRes }
-                            .padding(dimens.paddingSmall / 2)
-                    )
-                }
-            }
+            // Phase 2: Avatar picker removed from this screen.
+            // Avatar selection has been moved to AvatarCelebrationScreen (step 2 of sign-up),
+            // where it can be a rewarding moment rather than a buried form field.
 
             Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
@@ -271,7 +249,8 @@ fun CreateUserScreen(
                         return@Button
                     }
                     // Phase 6: no callback — navigation/toast handled via AuthUiEvent channel.
-                    viewModel.registerUser(email, password, name, selectedAvatar)
+                    // Phase 2: pass null for avatar — it will be saved in AvatarCelebrationScreen.
+                    viewModel.registerUser(email, password, name, null)
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.inversePrimary,
