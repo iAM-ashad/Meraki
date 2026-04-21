@@ -1535,17 +1535,17 @@ fun EmptyMoodLogs() {
 
 @Composable
 fun LoadingIndicator() {
-    val dimens = LocalDimens.current
-
+    // Replaced CircularProgressIndicator with the themed Meraki video loader.
+    // The fixed height matches the original placeholder so downstream layout stays stable.
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp),
-        contentAlignment = Alignment.Center
+            .height(200.dp)
     ) {
-        CircularProgressIndicator(
-            color = MaterialTheme.colorScheme.background,
-            strokeWidth = dimens.paddingSmall
+        com.iamashad.meraki.components.MerakiVideoLoader(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
         )
     }
 }

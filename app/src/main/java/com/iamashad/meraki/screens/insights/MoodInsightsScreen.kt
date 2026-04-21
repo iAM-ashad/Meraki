@@ -49,6 +49,7 @@ fun MoodInsightsScreen(
     navController: NavController
 ) {
     val insights by viewModel.moodInsights.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     val filteredReasons = remember(searchQuery, insights) {
@@ -65,7 +66,15 @@ fun MoodInsightsScreen(
     ProvideDimens(adaptiveInfo) {
         val dimens = LocalDimens.current
 
-        if (insights == null || insights?.reasonsAnalysis.isNullOrEmpty()) {
+        if (isLoading) {
+            // Show video loader while insights are being computed.
+            // This prevents the empty-state illustration from appearing before data arrives.
+            Box(modifier = Modifier.fillMaxSize()) {
+                com.iamashad.meraki.components.MerakiVideoLoader(
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        } else if (insights == null || insights?.reasonsAnalysis.isNullOrEmpty()) {
             EmptyInsightsScreen { navController.navigate(Journal) }
         } else {
             if (adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED ||

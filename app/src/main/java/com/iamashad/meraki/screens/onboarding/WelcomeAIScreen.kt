@@ -18,7 +18,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.iamashad.meraki.components.MerakiVideoLoader
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -135,13 +135,18 @@ fun WelcomeAIScreen(
 
         // AI welcome message with typewriter render
         if (uiState.isGeneratingWelcome && displayedWelcome.isEmpty()) {
-            CircularProgressIndicator(
+            // Full-screen video overlay while Groq generates the personalised welcome
+            Box(
                 modifier = Modifier
-                    .size(28.dp)
-                    .padding(top = dimens.paddingSmall),
-                color = MaterialTheme.colorScheme.primary,
-                strokeWidth = 3.dp
-            )
+                    .fillMaxWidth()
+                    .height(120.dp)
+            ) {
+                MerakiVideoLoader(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                )
+            }
         } else {
             Box(
                 modifier = Modifier

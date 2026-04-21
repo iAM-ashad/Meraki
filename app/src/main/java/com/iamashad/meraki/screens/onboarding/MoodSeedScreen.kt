@@ -34,21 +34,20 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iamashad.meraki.R
-import com.iamashad.meraki.navigation.CreateUser
+import com.iamashad.meraki.navigation.WelcomeMeraki
 import com.iamashad.meraki.navigation.MoodSeed
 import com.iamashad.meraki.utils.LocalDimens
 
 /**
- * Phase 3: Pre-account mood capture screen.
+ * Mood capture screen — positioned between [AvatarCelebrationScreen] and [WelcomeAIScreen].
  *
- * Positioned between [OnBoardingScreen] and [CreateUserScreen].
  * Presents a single question — "Before we begin — how are you feeling right now?" —
  * with 5 emotion chips. The selection is stored in [OnboardingViewModel.selectMood]
- * and later persisted to Room via [OnboardingViewModel.persistMoodSeed] after
- * Firebase account creation in [CreateUserScreen].
+ * and persisted to Room via [OnboardingViewModel.persistMoodSeed] in [WelcomeAIScreen].
  *
- * The mood is intentionally captured BEFORE sign-up so the AI has emotional context
- * from the very first interaction, even before the user has a UID.
+ * Placed after account creation so the AI welcome immediately follows, giving the mood
+ * selection a visible payoff on the very next screen instead of being interrupted by
+ * the sign-up form.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -69,7 +68,7 @@ fun MoodSeedScreen(
     )
 
     val lottieComposition by rememberLottieComposition(
-        LottieCompositionSpec.RawRes(R.raw.lottie_heartcare)
+        LottieCompositionSpec.RawRes(R.raw.lottie_onboarding)
     )
     val lottieProgress by animateLottieCompositionAsState(
         lottieComposition, iterations = LottieConstants.IterateForever
@@ -93,7 +92,7 @@ fun MoodSeedScreen(
         Spacer(modifier = Modifier.height(dimens.paddingMedium))
 
         Text(
-            text = "Before we begin —",
+            text = "Before we begin",
             style = MaterialTheme.typography.bodyLarge.copy(
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 textAlign = TextAlign.Center
@@ -103,7 +102,7 @@ fun MoodSeedScreen(
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "how are you feeling\nright now?",
+            text = "How are you feeling\nright now?",
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -161,11 +160,11 @@ fun MoodSeedScreen(
 
         Button(
             onClick = {
-                // Navigate to CreateUser whether or not a mood was selected.
-                // If no mood selected it defaults to "neutral" in the ViewModel.
+                // Navigate to WelcomeAI — the mood feeds directly into the AI welcome.
+                // If no mood selected, default to "Calm".
                 if (uiState.selectedMood == null) viewModel.selectMood("Calm")
-                navController.navigate(CreateUser) {
-                    popUpTo<MoodSeed> { inclusive = false }
+                navController.navigate(WelcomeMeraki) {
+                    popUpTo<MoodSeed> { inclusive = true }
                 }
             },
             colors = ButtonDefaults.buttonColors(

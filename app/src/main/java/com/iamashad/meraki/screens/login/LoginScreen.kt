@@ -96,6 +96,7 @@ fun LoginScreen(
     val adaptiveInfo = rememberWindowAdaptiveInfo()
 
     ProvideDimens(adaptiveInfo) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -245,5 +246,14 @@ fun LoginScreen(
             }
 
         }
+
+        // Full-screen video overlay while authentication request is in flight.
+        // Pointer input is blocked by the Box, preventing double-taps or back navigation.
+        if (uiState.isLoading) {
+            com.iamashad.meraki.components.MerakiVideoLoader(
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        } // end Box
     }
 }

@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import com.iamashad.meraki.components.MerakiVideoLoader
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -28,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +84,19 @@ fun NotificationSetupScreen(
     val focusManager = LocalFocusManager.current
 
     var timeInput by remember { mutableStateOf("") }
+    // Tracks whether we're waiting for Groq to finish parsing before navigating.
+    var pendingNavigation by remember { mutableStateOf(false) }
+
+    // Navigate to Home only once Groq has finished parsing the time input.
+    // Without this gate the user lands on Home before parsedCheckInTime is updated.
+    LaunchedEffect(uiState.isParsingTime) {
+        if (pendingNavigation && !uiState.isParsingTime) {
+            pendingNavigation = false
+            navController.navigate(Home) {
+                popUpTo<NotificationSetup> { inclusive = true }
+            }
+        }
+    }
 
     // Android 13+ notification permission launcher
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -94,6 +110,7 @@ fun NotificationSetupScreen(
         lottieComposition, iterations = LottieConstants.IterateForever
     )
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -191,11 +208,6 @@ fun NotificationSetupScreen(
             onClick = {
                 focusManager.clearFocus()
 
-                // Parse the time input via Groq (falls back to 20:00 on failure)
-                if (timeInput.isNotBlank()) {
-                    viewModel.parseAndSetCheckInTime(timeInput)
-                }
-
                 // Request Android 13+ notification permission
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     notificationPermissionLauncher.launch(
@@ -203,13 +215,21 @@ fun NotificationSetupScreen(
                     )
                 }
 
-                // Enable daily check-in
+                // Enable daily check-in flag in DataStore
                 viewModel.enableNotifications()
 
-                navController.navigate(Home) {
-                    popUpTo<NotificationSetup> { inclusive = true }
+                if (timeInput.isNotBlank()) {
+                    // Parse the natural-language time via Groq and defer navigation until done.
+                    pendingNavigation = true
+                    viewModel.parseAndSetCheckInTime(timeInput)
+                } else {
+                    // No time input — navigate immediately (default 20:00 will be used)
+                    navController.navigate(Home) {
+                        popUpTo<NotificationSetup> { inclusive = true }
+                    }
                 }
             },
+            enabled = !uiState.isParsingTime,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             ),
@@ -252,7 +272,14 @@ fun NotificationSetupScreen(
         }
 
         Spacer(modifier = Modifier.height(dimens.paddingMedium))
+    } // end Column
+
+    // Video loader overlay while Groq parses the natural-language time input.
+    // Interaction is implicitly blocked because the button is disabled while isParsingTime == true.
+    if (uiState.isParsingTime) {
+        MerakiVideoLoader(modifier = Modifier.fillMaxSize())
     }
+    } // end Box
 }
 
 @Composable

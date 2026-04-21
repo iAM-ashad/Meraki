@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,6 +48,7 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import androidx.window.core.layout.WindowWidthSizeClass
@@ -193,13 +195,9 @@ fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot:
 
     // ── Onboarding Overhaul: 4 new destinations ──────────────────────────────
 
-    // Phase 3: Pre-account mood capture — between Onboarding and CreateUser
-    composable<MoodSeed> {
-        val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>()
-        com.iamashad.meraki.screens.onboarding.MoodSeedScreen(navController, viewModel)
-    }
-
-    // Phase 2: Full-screen avatar picker — step 2 of sign-up
+    // Phase 2: Full-screen avatar picker — step 2 of sign-up.
+    // Kept outside OnboardingGraph: it's entered from CreateUser with a userId
+    // arg and only needs its own ViewModel scope (selectedAvatar is independent).
     composable<AvatarCelebration> { backStackEntry ->
         val args = backStackEntry.toRoute<AvatarCelebration>()
         val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>()
@@ -210,16 +208,39 @@ fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot:
         )
     }
 
-    // Phase 3: AI-powered personalised welcome + first journal prompt
-    composable<WelcomeMeraki> {
-        val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>()
-        com.iamashad.meraki.screens.onboarding.WelcomeAIScreen(navController, viewModel)
-    }
+    // Phase 3–4: MoodSeed → WelcomeMeraki → NotificationSetup are nested inside a
+    // single named graph so that hiltViewModel() can be scoped to the graph's back
+    // stack entry.  All three composables receive the *same* OnboardingViewModel
+    // instance, which means the mood selected in MoodSeedScreen is visible in
+    // WelcomeAIScreen without any extra argument passing.
+    navigation<OnboardingGraph>(startDestination = MoodSeed) {
 
-    // Phase 4: Explained notification opt-in with NL time input
-    composable<NotificationSetup> {
-        val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>()
-        com.iamashad.meraki.screens.onboarding.NotificationSetupScreen(navController, viewModel)
+        // Phase 3: Pre-account mood capture — between AvatarCelebration and WelcomeAIScreen
+        composable<MoodSeed> { backStackEntry ->
+            val graphEntry = remember(backStackEntry) {
+                navController.getBackStackEntry<OnboardingGraph>()
+            }
+            val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
+            com.iamashad.meraki.screens.onboarding.MoodSeedScreen(navController, viewModel)
+        }
+
+        // Phase 3: AI-powered personalised welcome + first journal prompt
+        composable<WelcomeMeraki> { backStackEntry ->
+            val graphEntry = remember(backStackEntry) {
+                navController.getBackStackEntry<OnboardingGraph>()
+            }
+            val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
+            com.iamashad.meraki.screens.onboarding.WelcomeAIScreen(navController, viewModel)
+        }
+
+        // Phase 4: Explained notification opt-in with NL time input
+        composable<NotificationSetup> { backStackEntry ->
+            val graphEntry = remember(backStackEntry) {
+                navController.getBackStackEntry<OnboardingGraph>()
+            }
+            val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
+            com.iamashad.meraki.screens.onboarding.NotificationSetupScreen(navController, viewModel)
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -16,24 +16,22 @@ import com.iamashad.meraki.navigation.Register
 import com.iamashad.meraki.navigation.Splash
 
 /**
- * Auth-gate screen shown at cold-start before the first real destination is known.
+ * Invisible auth-gate composable shown at cold-start.
  *
- * Phase 5 addition: [navigateToChatbot] flag.
- * When a notification deep-link caused this fresh launch, [navigateToChatbot] is true.
- * Authenticated users are routed directly to [Chatbot] instead of [Home]; unauthenticated
- * users always go to [Register] regardless of the deep-link (security boundary).
+ * Renders nothing — navigation fires as soon as DataStore emits the
+ * [SplashViewModel.hasCompletedOnboarding] value, which is typically within one
+ * frame. The Android 12+ system splash (dark background, no icon) bridges the gap
+ * until Compose is ready, so the user never sees a blank screen.
  *
- * Onboarding Overhaul — Phase 1:
- * Reads [SplashViewModel.hasCompletedOnboarding] from DataStore.
- * Authenticated users who have NOT yet completed the new onboarding arc are routed
- * to [Onboarding] instead of [Home], ensuring the flow runs exactly once per account.
- *
- * Navigation waits until the DataStore value is available (non-null) to prevent a flash
- * where returning users briefly see the onboarding screen.
+ * Routing rules:
+ *  - Unauthenticated → [Register]
+ *  - Authenticated, onboarding incomplete → [Onboarding]
+ *  - Authenticated, onboarding complete, notification deep-link → [Chatbot]
+ *  - Authenticated, onboarding complete → [Home]
  *
  * @param navController      App-level NavController.
  * @param navigateToChatbot  True when the launch originated from a notification tap.
- * @param viewModel          Hilt ViewModel that exposes the onboarding gate flag.
+ * @param viewModel          Hilt ViewModel that exposes the DataStore readiness gate.
  */
 @Composable
 fun SplashScreen(
@@ -45,17 +43,16 @@ fun SplashScreen(
         mutableStateOf(FirebaseAuth.getInstance().currentUser != null)
     }
 
-    // null = DataStore not yet read; wait before navigating to avoid flicker
+    // Wait for DataStore to emit a real (non-null) value before navigating.
     val hasCompletedOnboarding by viewModel.hasCompletedOnboarding.collectAsState()
 
     LaunchedEffect(hasCompletedOnboarding) {
-        // Wait until DataStore emits a real value (not the null placeholder)
         val onboardingDone = hasCompletedOnboarding ?: return@LaunchedEffect
 
         if (isLoggedIn) {
             if (!onboardingDone) {
                 // Authenticated user who hasn't finished onboarding yet (e.g. fresh install
-                // with existing Firebase account, or onboarding interrupted and app re-launched)
+                // with existing Firebase account, or onboarding interrupted and app re-launched).
                 navController.navigate(Onboarding) {
                     popUpTo<Splash> { inclusive = true }
                 }

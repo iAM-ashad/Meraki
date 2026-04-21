@@ -94,6 +94,7 @@ fun CreateUserScreen(
     val adaptiveInfo = rememberWindowAdaptiveInfo()
 
     ProvideDimens(adaptiveInfo) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -285,5 +286,13 @@ fun CreateUserScreen(
                 Text(text = uiState.errorMessage!!, color = MaterialTheme.colorScheme.error)
             }
         }
+
+        // Full-screen video overlay while the registration request is in flight.
+        if (uiState.isLoading) {
+            com.iamashad.meraki.components.MerakiVideoLoader(
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        } // end Box
     }
 }

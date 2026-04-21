@@ -49,6 +49,19 @@ class SettingsViewModel @Inject constructor(
     private val _profilePicRes = MutableStateFlow(R.drawable.avatar1)
     val profilePicRes: StateFlow<Int> = _profilePicRes.asStateFlow()
 
+    /** True while fetchUserProfile() or updateUserAvatar() is in flight. */
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    /**
+     * Flips to true once updateUserAvatar() confirms Firestore success.
+     * The Settings screen observes this to navigate back to Home only after
+     * the write is confirmed, rather than doing an optimistic navigate-immediately.
+     * Reset to false after the screen has consumed the event.
+     */
+    private val _avatarUpdateComplete = MutableStateFlow(false)
+    val avatarUpdateComplete: StateFlow<Boolean> = _avatarUpdateComplete.asStateFlow()
+
     /** Number of stored session summaries (used to gate the smart-nudge auto-prompt). */
     private val _sessionCount = MutableStateFlow(0)
     val sessionCount: StateFlow<Int> = _sessionCount.asStateFlow()
@@ -60,6 +73,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun fetchUserProfile(userId: String) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 val document = firestore.collection("users").document(userId).get().await()
                 if (document.exists()) {
@@ -68,23 +82,35 @@ class SettingsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 println("Failed to fetch user profile: ${e.localizedMessage}")
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     fun updateUserAvatar(newAvatarRes: Int) {
         val userId = user.value?.uid ?: return
+        _avatarUpdateComplete.value = false
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 firestore.collection("users").document(userId)
                     .update("profilePicRes", newAvatarRes)
                     .await()
                 _profilePicRes.emit(newAvatarRes)
-                fetchUserProfile(userId)
+                // Signal navigation only after Firestore confirms the write.
+                _avatarUpdateComplete.value = true
             } catch (e: Exception) {
                 println("Failed to update avatar: ${e.localizedMessage}")
+            } finally {
+                _isLoading.value = false
             }
         }
+    }
+
+    /** Call after the UI has consumed the avatarUpdateComplete signal to reset it. */
+    fun consumeAvatarUpdateComplete() {
+        _avatarUpdateComplete.value = false
     }
 
     // ── Phase 5: Notification preferences ────────────────────────────────────

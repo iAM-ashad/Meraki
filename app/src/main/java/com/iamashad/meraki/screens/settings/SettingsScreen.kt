@@ -111,6 +111,18 @@ fun SettingsScreen(
 
     val user by settingsViewModel.user.collectAsState()
     val profilePicRes by settingsViewModel.profilePicRes.collectAsState()
+    val isAvatarUpdating by settingsViewModel.isLoading.collectAsState()
+    val avatarUpdateComplete by settingsViewModel.avatarUpdateComplete.collectAsState()
+
+    // Navigate to Home once the Firestore avatar write confirms success.
+    LaunchedEffect(avatarUpdateComplete) {
+        if (avatarUpdateComplete) {
+            settingsViewModel.consumeAvatarUpdateComplete()
+            navController.navigate(Home) {
+                popUpTo<Settings> { inclusive = false }
+            }
+        }
+    }
 
     val registerUiState by registerViewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(registerUiState.toastMessage) {
@@ -132,6 +144,7 @@ fun SettingsScreen(
         }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -272,7 +285,24 @@ fun SettingsScreen(
                 showPasswordDialog = true
             }
         }
+    } // end Column
+
+    // Full-screen video overlay while avatar is being saved to Firestore.
+    // Navigation to Home is gated behind avatarUpdateComplete, not triggered here.
+    if (isAvatarUpdating) {
+        com.iamashad.meraki.components.MerakiVideoLoader(
+            modifier = Modifier.fillMaxSize()
+        )
     }
+
+    // Full-screen video overlay during account deletion (reauth → Firestore → auth delete).
+    // The multi-step chain can take a few seconds; this prevents double-tap on "Delete".
+    if (registerUiState.isLoading) {
+        com.iamashad.meraki.components.MerakiVideoLoader(
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+    } // end Box
 
     // ── Dialogs ───────────────────────────────────────────────────────────────
 
@@ -474,8 +504,9 @@ fun AvatarSelectionDialog(
                         .size(80.dp)
                         .clip(CircleShape)
                         .clickable {
+                            // Navigation to Home is now deferred until Firestore confirms
+                            // the write (via settingsViewModel.avatarUpdateComplete).
                             onAvatarSelected(it)
-                            navController.navigate(Home)
                         })
             }
         }

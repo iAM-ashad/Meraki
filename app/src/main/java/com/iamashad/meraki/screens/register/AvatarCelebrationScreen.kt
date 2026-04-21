@@ -24,7 +24,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import com.iamashad.meraki.components.MerakiVideoLoader
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,7 +49,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iamashad.meraki.R
 import com.iamashad.meraki.navigation.AvatarCelebration
-import com.iamashad.meraki.navigation.WelcomeMeraki
+import com.iamashad.meraki.navigation.MoodSeed
 import com.iamashad.meraki.screens.onboarding.OnboardingViewModel
 import com.iamashad.meraki.utils.LocalDimens
 
@@ -63,7 +63,7 @@ import com.iamashad.meraki.utils.LocalDimens
  * UX details:
  *  - Selected avatar scales up with a bouncy spring and gains a glowing primary border.
  *  - A Lottie confetti animation plays briefly after any selection.
- *  - "Continue" saves the avatar and navigates to [WelcomeMeraki] (Phase 3).
+ *  - "Continue" saves the avatar and navigates to [MoodSeedScreen] (mood capture before AI welcome).
  */
 @Composable
 fun AvatarCelebrationScreen(
@@ -91,10 +91,10 @@ fun AvatarCelebrationScreen(
         R.drawable.avatar7, R.drawable.avatar8, R.drawable.avatar9, R.drawable.avatar10
     )
 
-    // Listen for successful avatar save → navigate to WelcomeMeraki
+    // Listen for successful avatar save → navigate to MoodSeed before the AI welcome
     LaunchedEffect(uiState.avatarSaved) {
         if (uiState.avatarSaved) {
-            navController.navigate(WelcomeMeraki) {
+            navController.navigate(MoodSeed) {
                 popUpTo<AvatarCelebration> { inclusive = true }
             }
         }
@@ -206,18 +206,10 @@ fun AvatarCelebrationScreen(
                     .fillMaxWidth()
                     .height(52.dp)
             ) {
-                if (uiState.isSavingAvatar) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text = "Continue →",
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
+                Text(
+                    text = "Continue →",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                )
             }
 
             Spacer(modifier = Modifier.height(dimens.paddingMedium))
@@ -232,6 +224,11 @@ fun AvatarCelebrationScreen(
                     .fillMaxSize()
                     .graphicsLayer { alpha = 0.75f }
             )
+        }
+
+        // Saving overlay — MerakiVideoLoader covers all content while Firestore write is in flight
+        if (uiState.isSavingAvatar) {
+            MerakiVideoLoader(modifier = Modifier.fillMaxSize())
         }
     }
 }

@@ -30,6 +30,11 @@ class JournalViewModel @Inject constructor(
     private val _isSearching = MutableStateFlow(false)
     val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
 
+    // True from init until the first Firestore emission resolves, and during add/delete ops.
+    // Screens should gate "Empty State" illustrations behind this flag to prevent flicker.
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     private val _errorState = MutableStateFlow<String?>(null)
     val errorState: StateFlow<String?> = _errorState.asStateFlow()
 
@@ -42,11 +47,14 @@ class JournalViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 repository.listenToJournals(userId).collectLatest { updatedJournals ->
+                    // First emission signals that the initial load is complete.
+                    _isLoading.value = false
                     if (!_isSearching.value) {
                         _journals.value = updatedJournals
                     }
                 }
             } catch (e: Exception) {
+                _isLoading.value = false
                 _errorState.value = e.localizedMessage
             }
         }
@@ -88,20 +96,26 @@ class JournalViewModel @Inject constructor(
 
     fun addJournal(journal: Journal) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 repository.addJournal(journal)
             } catch (e: Exception) {
                 _errorState.value = e.localizedMessage
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     fun deleteJournal(journalId: String) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 repository.deleteJournal(journalId)
             } catch (e: Exception) {
                 _errorState.value = e.localizedMessage
+            } finally {
+                _isLoading.value = false
             }
         }
     }

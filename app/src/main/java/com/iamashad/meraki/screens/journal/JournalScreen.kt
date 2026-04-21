@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.iamashad.meraki.R
 import com.iamashad.meraki.components.AppSearchBar
 import com.iamashad.meraki.components.JournalCard
@@ -39,6 +40,7 @@ fun JournalScreen(
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     val journals by if (isSearching) {
         viewModel.searchResults.collectAsState()
     } else {
@@ -86,7 +88,23 @@ fun JournalScreen(
 
                 HeaderCard()
 
-                if (journals.isEmpty()) {
+                if (isLoading) {
+                    // Show video loader while initial Firestore data is in flight.
+                    // This prevents the "empty state" illustration from flickering briefly
+                    // on first launch before journals arrive.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        com.iamashad.meraki.components.MerakiVideoLoader(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                        )
+                    }
+                } else if (journals.isEmpty()) {
                     EmptyJournalList()
                 } else {
                     if (isLargeScreen) {

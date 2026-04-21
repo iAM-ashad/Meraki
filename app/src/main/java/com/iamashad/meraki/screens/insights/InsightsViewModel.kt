@@ -24,6 +24,11 @@ class InsightsViewModel @Inject constructor(
     // Publicly exposed immutable state flow
     val moodInsights: StateFlow<MoodInsightsAnalyzer.MoodInsights?> = _moodInsights.asStateFlow()
 
+    // True while fetchMoodInsights() is running. Screens must check this before showing
+    // the "no insights" empty state to avoid an empty-state flicker on first load.
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     init {
         // Automatically fetch insights on ViewModel initialization
         fetchMoodInsights()
@@ -39,6 +44,7 @@ class InsightsViewModel @Inject constructor(
         val userId = firebaseAuth.currentUser?.uid.orEmpty()
 
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 // Retrieve all mood journals from Firestore
                 val journals = repository.getAllJournals(userId)
@@ -51,6 +57,8 @@ class InsightsViewModel @Inject constructor(
             } catch (e: Exception) {
                 // Log or handle any errors during fetch or analysis
                 e.printStackTrace()
+            } finally {
+                _isLoading.value = false
             }
         }
     }

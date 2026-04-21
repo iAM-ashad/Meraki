@@ -71,6 +71,16 @@ import kotlinx.serialization.Serializable
 // ── Onboarding Overhaul routes ────────────────────────────────────────────────
 
 /**
+ * Nested nav-graph wrapper for Phase 3–4 screens (MoodSeed → WelcomeMeraki →
+ * NotificationSetup).  Declaring a graph route here means every composable nested
+ * inside navigation<OnboardingGraph> shares a single back-stack entry, so
+ * hiltViewModel() scoped to that entry gives all three screens the same
+ * OnboardingViewModel instance — mood selected in MoodSeedScreen is visible in
+ * WelcomeAIScreen and NotificationSetupScreen without any extra plumbing.
+ */
+@Serializable object OnboardingGraph
+
+/**
  * Phase 3: Pre-account mood capture screen.
  * Inserted between [Onboarding] and [CreateUser].
  */

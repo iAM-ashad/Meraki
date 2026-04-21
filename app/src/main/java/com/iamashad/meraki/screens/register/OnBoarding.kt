@@ -46,7 +46,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iamashad.meraki.R
-import com.iamashad.meraki.navigation.MoodSeed
+import com.iamashad.meraki.navigation.CreateUser
 import com.iamashad.meraki.utils.LocalDimens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -63,7 +63,7 @@ import kotlinx.coroutines.launch
  *  - Slide 3 (AI Companion) shows a live typewriter animation of a canned sample
  *    AI message, making the AI feel alive before the user has typed a word.
  *
- * Navigation target after onboarding: [MoodSeed] (Phase 3 pre-account mood capture).
+ * Navigation target after onboarding: [CreateUser] (account creation).
  */
 @Composable
 fun OnBoardingScreen(navController: NavController) {
@@ -89,7 +89,7 @@ fun OnBoardingScreen(navController: NavController) {
         ),
         OnboardingPage(
             title = "Your AI Companion",
-            subtitle = "Meraki learns who you are and grows with you — here's a taste of what's waiting:",
+            subtitle = "Meraki learns who you are and grows with you",
             // Phase 1 fix: lottie_onb4 (distinct) instead of the old duplicate lottie_onb2
             animation = R.raw.lottie_onb4,
             iterations = LottieConstants.IterateForever,
@@ -178,7 +178,7 @@ fun OnBoardingScreen(navController: NavController) {
                     scope.launch {
                         if (pagerState.currentPage == pages.size - 1) {
                             // Navigate to MoodSeed (Phase 3) — not CreateUser directly
-                            navController.navigate(MoodSeed)
+                            navController.navigate(CreateUser)
                         } else {
                             pagerState.animateScrollToPage(pagerState.currentPage + 1)
                         }
@@ -204,7 +204,7 @@ fun OnBoardingScreen(navController: NavController) {
         // Phase 1: Skip button — top-right corner.
         // Respects user's time; no confirmation dialog gating this action.
         TextButton(
-            onClick = { navController.navigate(MoodSeed) },
+            onClick = { navController.navigate(CreateUser) },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(top = 8.dp, end = 8.dp)
@@ -278,7 +278,7 @@ fun AIPreviewOnboardingContent(
 ) {
     val dimens = LocalDimens.current
 
-    val sampleAIMessage = "Hey — I noticed you've been carrying a lot lately. " +
+    val sampleAIMessage = "Hey, I noticed you've been carrying a lot lately. " +
             "How are you feeling right now? I'm here, and I'm not going anywhere. 💙"
 
     var displayedText by remember { mutableStateOf("") }

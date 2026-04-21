@@ -173,6 +173,8 @@ class RegisterViewModel @Inject constructor(
     /**
      * Delete the current user's account.
      * Phase 6: onComplete callback removed — success/failure emitted as AuthUiEvent.
+     * Video Loader: isLoading is now toggled so the MerakiVideoLoader overlay in
+     * SettingsScreen covers the multi-step reauthenticate → delete → navigate chain.
      */
     fun deleteUserAccount(password: String) {
         val user = firebaseAuth.currentUser ?: run {
@@ -183,6 +185,9 @@ class RegisterViewModel @Inject constructor(
             viewModelScope.launch { _events.send(AuthUiEvent.ShowToast("No email associated with this account")) }
             return
         }
+
+        // Signal loading for the full delete chain (reauth → Firestore delete → auth delete).
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
         val credential = EmailAuthProvider.getCredential(email, password)
         user.reauthenticate(credential).addOnCompleteListener { reauthTask ->
@@ -197,12 +202,13 @@ class RegisterViewModel @Inject constructor(
                             // Delete Firebase Auth user
                             user.delete().addOnCompleteListener { accountDeleteTask ->
                                 if (accountDeleteTask.isSuccessful) {
-                                    _uiState.update { it.copy(currentUser = null) }
+                                    _uiState.update { it.copy(currentUser = null, isLoading = false) }
                                     viewModelScope.launch {
                                         _events.send(AuthUiEvent.ShowToast("Account successfully deleted."))
                                         _events.send(AuthUiEvent.NavigateToLogin)
                                     }
                                 } else {
+                                    _uiState.update { it.copy(isLoading = false) }
                                     viewModelScope.launch {
                                         _events.send(
                                             AuthUiEvent.ShowToast(
@@ -213,6 +219,7 @@ class RegisterViewModel @Inject constructor(
                                 }
                             }
                         } else {
+                            _uiState.update { it.copy(isLoading = false) }
                             viewModelScope.launch {
                                 _events.send(
                                     AuthUiEvent.ShowToast(
@@ -223,6 +230,7 @@ class RegisterViewModel @Inject constructor(
                         }
                     }
             } else {
+                _uiState.update { it.copy(isLoading = false) }
                 viewModelScope.launch {
                     _events.send(
                         AuthUiEvent.ShowToast(

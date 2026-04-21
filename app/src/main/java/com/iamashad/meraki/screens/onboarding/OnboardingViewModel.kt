@@ -223,6 +223,7 @@ class OnboardingViewModel @Inject constructor(
      * Example inputs: "9pm", "around 9 at night", "after dinner (8:30)".
      */
     fun parseAndSetCheckInTime(rawInput: String) {
+        _uiState.update { it.copy(isParsingTime = true) }
         viewModelScope.launch(ioDispatcher) {
             try {
                 val prompt = """
@@ -237,13 +238,13 @@ class OnboardingViewModel @Inject constructor(
 
                 val parsedTime = if (TIME_REGEX.matches(result)) result else DEFAULT_CHECKIN_TIME
                 userPreferencesRepository.setPreferredCheckInTime(parsedTime)
-                _uiState.update { it.copy(parsedCheckInTime = parsedTime) }
+                _uiState.update { it.copy(parsedCheckInTime = parsedTime, isParsingTime = false) }
                 Log.d(TAG, "Check-in time set to $parsedTime (raw: '$rawInput')")
 
             } catch (e: Exception) {
                 Log.e(TAG, "Time parse failed, using default: ${e.message}", e)
                 userPreferencesRepository.setPreferredCheckInTime(DEFAULT_CHECKIN_TIME)
-                _uiState.update { it.copy(parsedCheckInTime = DEFAULT_CHECKIN_TIME) }
+                _uiState.update { it.copy(parsedCheckInTime = DEFAULT_CHECKIN_TIME, isParsingTime = false) }
             }
         }
     }
@@ -297,5 +298,9 @@ data class OnboardingUiState(
     val firstJournalPrompt: String = "",
 
     // Phase 4: notification time
-    val parsedCheckInTime: String = "20:00"
+    val parsedCheckInTime: String = "20:00",
+
+    // True while Groq is parsing the natural-language time input.
+    // NotificationSetupScreen gates its "Enable reminders" navigation behind this flag.
+    val isParsingTime: Boolean = false
 )
