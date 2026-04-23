@@ -96,10 +96,9 @@ fun MoodTrackerScreen(
             }
         },
         containerColor = Color.Transparent
-    ) { paddingValues ->
+    ) { _ ->
         Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)) {
+            .fillMaxSize()) {
             ProvideDimens(adaptiveInfo) {
                 val isLargeScreen =
                     adaptiveInfo.windowSizeClass.windowWidthSizeClass == WindowWidthSizeClass.EXPANDED ||
