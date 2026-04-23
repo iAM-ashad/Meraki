@@ -220,7 +220,8 @@ fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot:
             val graphEntry = remember(backStackEntry) {
                 navController.getBackStackEntry<OnboardingGraph>()
             }
-            val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
+            val viewModel =
+                hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
             com.iamashad.meraki.screens.onboarding.MoodSeedScreen(navController, viewModel)
         }
 
@@ -229,7 +230,8 @@ fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot:
             val graphEntry = remember(backStackEntry) {
                 navController.getBackStackEntry<OnboardingGraph>()
             }
-            val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
+            val viewModel =
+                hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
             com.iamashad.meraki.screens.onboarding.WelcomeAIScreen(navController, viewModel)
         }
 
@@ -238,7 +240,8 @@ fun NavGraphBuilder.addNavGraph(navController: NavController, navigateToChatbot:
             val graphEntry = remember(backStackEntry) {
                 navController.getBackStackEntry<OnboardingGraph>()
             }
-            val viewModel = hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
+            val viewModel =
+                hiltViewModel<com.iamashad.meraki.screens.onboarding.OnboardingViewModel>(graphEntry)
             com.iamashad.meraki.screens.onboarding.NotificationSetupScreen(navController, viewModel)
         }
     }
@@ -318,8 +321,7 @@ fun AdaptiveScreen(
 ) {
     val showBottomBar = currentDestination?.let { dest ->
         dest.hasRoute<Home>() || dest.hasRoute<MoodTracker>() ||
-                dest.hasRoute<Journal>() || dest.hasRoute<Insights>() ||
-                dest.hasRoute<Chatbot>()
+                dest.hasRoute<Journal>() || dest.hasRoute<Insights>()
     } ?: false
 
     when (windowSize.windowSizeClass.windowWidthSizeClass) {
