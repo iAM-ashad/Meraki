@@ -40,4 +40,19 @@ interface SessionSummaryDao {
      */
     @Query("DELETE FROM session_summaries")
     suspend fun clearAllSummaries()
+
+    // ── Confidence-score aggregates ───────────────────────────────────────────
+
+    /**
+     * Returns the total number of saved session summaries.
+     *
+     * Unlike [getLastFourteenSummaries] this is an unbounded count so that the
+     * confidence score reflects cumulative engagement rather than just the
+     * two-week sliding window used for memory injection.
+     *
+     * Used by [com.iamashad.meraki.repository.ConfidenceScoreRepository] as the
+     * "session count" component of the user confidence score.
+     */
+    @Query("SELECT COUNT(*) FROM session_summaries")
+    suspend fun getTotalSessionCount(): Int
 }

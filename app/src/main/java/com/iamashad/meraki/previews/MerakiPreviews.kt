@@ -17,7 +17,7 @@ package com.iamashad.meraki.previews
 //    while still giving a pixel-accurate representation of each screen.
 //
 //  • BreathingScreen() takes no parameters and is called directly. Because
-//    ExoPlayer side-effects don't execute during preview rendering, the
+//    ExoPlayer side effects don't execute during preview rendering, the
 //    composable's layout and visual state are still fully visible.
 //
 //  • All previews are wrapped in MerakiTheme(dynamicColor = false) so that
@@ -71,6 +71,10 @@ import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
+import com.iamashad.meraki.components.JournalCard
+import com.iamashad.meraki.components.MoodTrendGraph
+import com.iamashad.meraki.model.ConfidenceScore
+import com.iamashad.meraki.model.InsightTier
 import com.iamashad.meraki.model.Journal
 import com.iamashad.meraki.model.Message
 import com.iamashad.meraki.model.MindfulNudge
@@ -89,7 +93,6 @@ import com.iamashad.meraki.screens.home.LivingInsightPage
 import com.iamashad.meraki.screens.home.LivingMoodCard
 import com.iamashad.meraki.screens.home.LivingPatternPage
 import com.iamashad.meraki.screens.home.LivingSparklineChart
-import com.iamashad.meraki.screens.home.MoodPromptCard
 import com.iamashad.meraki.screens.home.NudgeCard
 import com.iamashad.meraki.screens.home.PatternActionType
 import com.iamashad.meraki.screens.home.PatternAlert
@@ -98,8 +101,6 @@ import com.iamashad.meraki.screens.journal.EmptyJournalList
 import com.iamashad.meraki.screens.journal.HeaderCard
 import com.iamashad.meraki.screens.moodtracker.CircularMoodSelector
 import com.iamashad.meraki.screens.moodtracker.ToggleButtonBar
-import com.iamashad.meraki.components.JournalCard
-import com.iamashad.meraki.components.MoodTrendGraph
 import com.iamashad.meraki.ui.theme.MerakiTheme
 import com.iamashad.meraki.utils.ProvideDimens
 import com.iamashad.meraki.utils.rememberWindowAdaptiveInfo
@@ -199,6 +200,26 @@ private object MockData {
         Pair("Fri", 61),
         Pair("Sat", 72),
         Pair("Sun", 80)
+    )
+
+    // ── Confidence scores for insight tier previews ──────────────────────────
+    /** Represents a brand-new user — FORMING tier, insight placeholder shown. */
+    val confidenceForming = ConfidenceScore.EMPTY
+
+    /** Represents a user with a handful of mood logs — LOW tier. */
+    val confidenceLow = ConfidenceScore.compute(
+        moodLogCount = 6,
+        sessionCount = 1,
+        avgEmotionConfidence = 0.55f,
+        chatMessageCount = 5
+    )
+
+    /** Represents a regular user with sessions and moods — HIGH tier for most previews. */
+    val confidenceHigh = ConfidenceScore.compute(
+        moodLogCount = 18,
+        sessionCount = 9,
+        avgEmotionConfidence = 0.72f,
+        chatMessageCount = 28
     )
 
     // ── Pattern alert ────────────────────────────────────────────────────────
@@ -341,18 +362,12 @@ fun HomeScreenPreview() {
 
             // ── LivingMoodCard — Insight page (page 1 of 2) ─────────────────
             LivingMoodCard(
-                moodLogs = MockData.moodLogsWeek,
                 weeklyInsight = "Your mood rose by 37 points this week — a clear upward trend driven by consistent rest and outdoor time. Keep it up!",
                 isInsightLoading = false,
                 patternAlert = null,
+                insightTier = InsightTier.HIGH,
+                confidenceScore = MockData.confidenceHigh,
                 navController = nav
-            )
-
-            // ── Context-aware mood prompt ────────────────────────────────────
-            MoodPromptCard(
-                navController = nav,
-                userName = "Ashad",
-                dominantEmotion = "calm"
             )
         }
     }
@@ -380,17 +395,12 @@ fun HomeScreenPatternAlertPreview() {
 
             // LivingMoodCard — shows Pattern Alert as the active page
             LivingMoodCard(
-                moodLogs = MockData.moodLogsWeek,
                 weeklyInsight = null,
                 isInsightLoading = false,
                 patternAlert = MockData.patternAlert,
+                insightTier = InsightTier.HIGH,
+                confidenceScore = MockData.confidenceHigh,
                 navController = nav
-            )
-
-            MoodPromptCard(
-                navController = nav,
-                userName = "Ashad",
-                dominantEmotion = "anxious"
             )
         }
     }
@@ -461,10 +471,11 @@ private fun LivingSparklineChartPreview() {
 private fun LivingMoodCardInsightPreview() {
     MerakiTheme(dynamicColor = false) {
         LivingMoodCard(
-            moodLogs = MockData.moodLogsWeek,
             weeklyInsight = "Consistent rest and outdoor time are clearly lifting your mood. Your resilience is showing!",
             isInsightLoading = false,
             patternAlert = null,
+            insightTier = InsightTier.HIGH,
+            confidenceScore = MockData.confidenceHigh,
             navController = rememberNavController()
         )
     }
@@ -479,10 +490,11 @@ private fun LivingMoodCardInsightPreview() {
 private fun LivingMoodCardLoadingPreview() {
     MerakiTheme(dynamicColor = false) {
         LivingMoodCard(
-            moodLogs = MockData.moodLogsWeek,
             weeklyInsight = null,
             isInsightLoading = true,
             patternAlert = null,
+            insightTier = InsightTier.LOW,
+            confidenceScore = MockData.confidenceLow,
             navController = rememberNavController()
         )
     }
@@ -493,57 +505,74 @@ private fun LivingMoodCardLoadingPreview() {
 private fun LivingMoodCardPatternPreview() {
     MerakiTheme(dynamicColor = false) {
         LivingMoodCard(
-            moodLogs = MockData.moodLogsWeek,
             weeklyInsight = null,
             isInsightLoading = false,
             patternAlert = MockData.patternAlert,
+            insightTier = InsightTier.MODERATE,
+            confidenceScore = MockData.confidenceHigh,
             navController = rememberNavController()
         )
     }
 }
 
-@Preview(name = "LivingInsightPage · Loaded", showBackground = true, device = Devices.PIXEL_7)
+@Preview(
+    name = "LivingInsightPage · Loaded · HIGH tier",
+    showBackground = true,
+    device = Devices.PIXEL_7
+)
 @Composable
 private fun LivingInsightPageLoadedPreview() {
     MerakiTheme(dynamicColor = false) {
         LivingInsightPage(
             weeklyInsight = "A clear upward trend this week. Your evening wind-down routine seems to be making a real difference.",
-            isLoading = false
+            isLoading = false,
+            insightTier = InsightTier.HIGH,
+            confidenceScore = MockData.confidenceHigh
         )
     }
 }
 
-@Preview(name = "LivingPatternPage · Breathing CTA", showBackground = true, device = Devices.PIXEL_7)
+@Preview(
+    name = "LivingInsightPage · FORMING placeholder",
+    showBackground = true,
+    device = Devices.PIXEL_7
+)
+@Composable
+private fun LivingInsightPageFormingPreview() {
+    MerakiTheme(dynamicColor = false) {
+        LivingInsightPage(
+            weeklyInsight = null,
+            isLoading = false,
+            insightTier = InsightTier.FORMING,
+            confidenceScore = MockData.confidenceForming
+        )
+    }
+}
+
+@Preview(name = "LivingInsightPage · LOW badge", showBackground = true, device = Devices.PIXEL_7)
+@Composable
+private fun LivingInsightPageLowPreview() {
+    MerakiTheme(dynamicColor = false) {
+        LivingInsightPage(
+            weeklyInsight = "You had a steady week overall — a couple of dips on Tuesday and Thursday, but you bounced back.",
+            isLoading = false,
+            insightTier = InsightTier.LOW,
+            confidenceScore = MockData.confidenceLow
+        )
+    }
+}
+
+@Preview(
+    name = "LivingPatternPage · Breathing CTA",
+    showBackground = true,
+    device = Devices.PIXEL_7
+)
 @Composable
 private fun LivingPatternPagePreview() {
     MerakiTheme(dynamicColor = false) {
         LivingPatternPage(
             alert = MockData.patternAlert,
             navController = rememberNavController()
-        )
-    }
-}
-
-@Preview(name = "MoodPromptCard · Calm", showBackground = true, device = Devices.PIXEL_7)
-@Composable
-private fun MoodPromptCardCalmPreview() {
-    MerakiTheme(dynamicColor = false) {
-        MoodPromptCard(
-            navController = rememberNavController(),
-            userName = "Ashad",
-            dominantEmotion = "calm"
-        )
-    }
-}
-
-@Preview(name = "MoodPromptCard · Anxious", showBackground = true, device = Devices.PIXEL_7)
-@Composable
-private fun MoodPromptCardAnxiousPreview() {
-    MerakiTheme(dynamicColor = false) {
-        MoodPromptCard(
-            navController = rememberNavController(),
-            userName = "Ashad",
-            dominantEmotion = "anxious"
         )
     }
 }
@@ -692,7 +721,11 @@ private fun MoodTrendGraphUpwardPreview() {
     }
 }
 
-@Preview(name = "ToggleButtonBar · 7 Days Selected", showBackground = true, device = Devices.PIXEL_7)
+@Preview(
+    name = "ToggleButtonBar · 7 Days Selected",
+    showBackground = true,
+    device = Devices.PIXEL_7
+)
 @Composable
 private fun ToggleButtonBarPreview() {
     MerakiTheme(dynamicColor = false) {

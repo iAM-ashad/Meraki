@@ -57,4 +57,28 @@ interface EmotionDao {
     /** Deletes all emotion log entries associated with a given session. */
     @Query("DELETE FROM emotion_logs WHERE sessionId = :sessionId")
     suspend fun clearLogsForSession(sessionId: String)
+
+    // ── Confidence-score aggregates ───────────────────────────────────────────
+
+    /**
+     * Returns the total number of emotion-log rows across all sessions.
+     *
+     * Used by [com.iamashad.meraki.repository.ConfidenceScoreRepository] as the
+     * "mood log count" component of the user confidence score.
+     */
+    @Query("SELECT COUNT(*) FROM emotion_logs")
+    suspend fun getTotalLogCount(): Int
+
+    /**
+     * Returns the mean classifier confidence across all emotion-log rows,
+     * or 0.0 when the table is empty.
+     *
+     * The COALESCE guard prevents SQLite from returning NULL on an empty table
+     * (which would otherwise crash Kotlin's non-nullable Float mapping).
+     *
+     * Used by [com.iamashad.meraki.repository.ConfidenceScoreRepository] as the
+     * "average emotion confidence" component of the user confidence score.
+     */
+    @Query("SELECT COALESCE(AVG(confidence), 0.0) FROM emotion_logs")
+    suspend fun getAverageConfidence(): Float
 }

@@ -52,4 +52,19 @@ interface ChatDao {
      */
     @Query("DELETE FROM chat_messages WHERE userId = :userId")
     suspend fun clearChatHistory(userId: String)
+
+    // ── Confidence-score aggregates ───────────────────────────────────────────
+
+    /**
+     * Returns the number of user-authored chat messages (role = 'user') for a given userId.
+     *
+     * This acts as a proxy for "conversational depth" — the more messages the user
+     * has sent, the more the intelligence system has learned about their tone,
+     * preferences, and emotional vocabulary.
+     *
+     * Used by [com.iamashad.meraki.repository.ConfidenceScoreRepository] as the
+     * "chat message count" component of the user confidence score.
+     */
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE userId = :userId AND role = 'user'")
+    suspend fun getUserMessageCount(userId: String): Int
 }

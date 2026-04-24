@@ -392,13 +392,6 @@ fun NewConversationScreen(
                             ),
                             modifier = Modifier.padding(bottom = dimens.paddingLarge)
                         )
-                        Text(
-                            text = "Tap below to start a conversation :)",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                            ),
-                            modifier = Modifier.padding(bottom = dimens.paddingMedium)
-                        )
 
                         Spacer(modifier = Modifier.weight(1f))
 
@@ -407,6 +400,16 @@ fun NewConversationScreen(
                                 onClick = { viewModel.loadPreviousConversation() }
                             )
                         }
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        Text(
+                            text = "Tap below to start a conversation :)",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            ),
+                            modifier = Modifier.padding(bottom = dimens.paddingMedium)
+                        )
 
                         StartConversationButton(onClick = { viewModel.startNewConversation() })
                     }

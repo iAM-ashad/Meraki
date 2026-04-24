@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -95,11 +94,12 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.iamashad.meraki.R
+import com.iamashad.meraki.model.ConfidenceScore
+import com.iamashad.meraki.model.InsightTier
 import com.iamashad.meraki.model.MindfulNudge
 import com.iamashad.meraki.model.NudgeType
 import com.iamashad.meraki.navigation.Breathing
 import com.iamashad.meraki.navigation.Chatbot
-import com.iamashad.meraki.navigation.MoodTracker
 import com.iamashad.meraki.navigation.Settings
 import com.iamashad.meraki.screens.moodtracker.MoodTrackerViewModel
 import com.iamashad.meraki.screens.settings.SettingsViewModel
@@ -109,7 +109,6 @@ import com.iamashad.meraki.utils.daysOfWeek
 import com.iamashad.meraki.utils.getHomeMoodTint
 import com.iamashad.meraki.utils.getMoodColor
 import com.iamashad.meraki.utils.getMoodEmoji
-import com.iamashad.meraki.utils.getMoodPromptSubtext
 import com.iamashad.meraki.utils.rememberWindowAdaptiveInfo
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -135,10 +134,12 @@ fun HomeScreen(
     var streakCount by remember { mutableIntStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Living Mood Card — collect AI insight + pattern alert state
+    // Living Mood Card — collect AI insight, pattern alert, and confidence state
     val weeklyInsight by homeViewModel.weeklyInsight.collectAsState()
     val isInsightLoading by homeViewModel.insightLoading.collectAsState()
     val patternAlert by homeViewModel.patternAlert.collectAsState()
+    val insightTier by homeViewModel.insightTier.collectAsState()
+    val confidenceScore by homeViewModel.confidenceScore.collectAsState()
 
     // Trigger insight + pattern generation whenever the mood list grows
     LaunchedEffect(lastMoods.size) {
@@ -220,18 +221,15 @@ fun HomeScreen(
                     }
 
                     item {
-                        MoodPromptCard(navController, user?.displayName, dominantEmotion)
-                    }
-
-                    item {
                         when {
                             errorMessage != null -> ErrorMessage(errorMessage!!)
                             isLoading -> LoadingIndicator()
                             lastMoods.isNotEmpty() -> LivingMoodCard(
-                                moodLogs = lastMoods.takeLast(7),
                                 weeklyInsight = weeklyInsight,
                                 isInsightLoading = isInsightLoading,
                                 patternAlert = patternAlert,
+                                insightTier = insightTier,
+                                confidenceScore = confidenceScore,
                                 navController = navController
                             )
 
@@ -293,18 +291,15 @@ fun HomeScreen(
                 }
 
                 item {
-                    MoodPromptCard(navController, user?.displayName, dominantEmotion)
-                }
-
-                item {
                     when {
                         errorMessage != null -> ErrorMessage(errorMessage!!)
                         isLoading -> LoadingIndicator()
                         lastMoods.isNotEmpty() -> LivingMoodCard(
-                            moodLogs = lastMoods.takeLast(7),
                             weeklyInsight = weeklyInsight,
                             isInsightLoading = isInsightLoading,
                             patternAlert = patternAlert,
+                            insightTier = insightTier,
+                            confidenceScore = confidenceScore,
                             navController = navController
                         )
 
@@ -362,7 +357,6 @@ fun VerticalWeeklyCalendar(navController: NavController) {
                     .fillMaxWidth(.8f)
                     .clip(RoundedCornerShape(dimens.cornerRadius))
                     .background(backgroundColor)
-                    .clickable { navController.navigate(MoodTracker) }
                     .padding(vertical = dimens.paddingSmall, horizontal = dimens.paddingMedium),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -441,8 +435,7 @@ fun WeeklyCalendar(navController: NavController) {
                 modifier = Modifier
                     .size(dimens.avatarSize / 5)
                     .clip(CircleShape)
-                    .background(backgroundColor)
-                    .clickable { navController.navigate(MoodTracker) },
+                    .background(backgroundColor),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -558,72 +551,6 @@ fun CelebrationDialog(
 }
 
 @Composable
-fun MoodPromptCard(
-    navController: NavController,
-    userName: String?,
-    dominantEmotion: String = "neutral"
-) {
-    val firstName = userName?.split(" ")?.firstOrNull()
-    val dimens = LocalDimens.current
-
-    // Mood-Aware UI: subtext softens for negative emotions, brightens for positive ones.
-    val subtext = getMoodPromptSubtext(dominantEmotion)
-
-    Card(
-        shape = RoundedCornerShape(dimens.cornerRadius),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        elevation = CardDefaults.cardElevation(dimens.elevation),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = dimens.paddingMedium)
-            .clickable {
-                navController.navigate(MoodTracker)
-            }) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(dimens.paddingMedium)
-        ) {
-            Column {
-                Text(
-                    text = "Hey $firstName, how are you feeling today?",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-                Text(
-                    text = subtext,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .size(dimens.avatarSize / 7)
-                    .aspectRatio(1f)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "🌟",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        textAlign = TextAlign.Center
-                    ),
-                    color = Color.White,
-                    modifier = Modifier.padding(dimens.paddingSmall / 2)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 fun ProfileCard(
     profilePicRes: Int,
     userName: String,
@@ -714,20 +641,21 @@ fun StreakMeterCard(streakCount: Int) {
  */
 @Composable
 fun LivingMoodCard(
-    moodLogs: List<Pair<String, Int>>,
     weeklyInsight: String?,
     isInsightLoading: Boolean,
     patternAlert: PatternAlert?,
+    insightTier: InsightTier,
+    confidenceScore: ConfidenceScore,
     navController: NavController
 ) {
     val dimens = LocalDimens.current
     val scope = rememberCoroutineScope()
 
-    // Current page: 0 = Curve, 1 = Insight, 2 = Pattern
+    // Current page: 0 = Insight, 1 = Pattern (optional)
     var page by remember { mutableIntStateOf(0) }
-    val pageCount = if (patternAlert != null) 3 else 2
+    val pageCount = if (patternAlert != null) 2 else 1
 
-    // Horizontal swipe tracking
+    // Horizontal swipe tracking (only needed when pattern page exists)
     val swipeDelta = remember { Animatable(0f) }
     val dragState = rememberDraggableState { delta ->
         scope.launch { swipeDelta.snapTo(swipeDelta.value + delta) }
@@ -767,13 +695,11 @@ fun LivingMoodCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 val title = when (page) {
-                    0 -> "7-Day Curve"
-                    1 -> "Weekly Insight"
+                    0 -> "Weekly Insight"
                     else -> "Pattern Detected"
                 }
                 val subtitle = when (page) {
-                    0 -> "Swipe to see your AI insight →"
-                    1 -> "← Curve   Pattern →"
+                    0 -> if (patternAlert != null) "Pattern →" else ""
                     else -> "← Back"
                 }
                 Column {
@@ -783,33 +709,37 @@ fun LivingMoodCard(
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    if (subtitle.isNotEmpty()) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                            )
                         )
-                    )
+                    }
                 }
-                // Dot indicators
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    repeat(pageCount) { idx ->
-                        val dotSize by animateFloatAsState(
-                            targetValue = if (idx == page) 8f else 5f,
-                            animationSpec = spring(),
-                            label = "dotSize$idx"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(dotSize.dp)
-                                .background(
-                                    color = if (idx == page) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                    shape = CircleShape
-                                )
-                        )
+                // Dot indicators — only shown when there are multiple pages
+                if (pageCount > 1) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        repeat(pageCount) { idx ->
+                            val dotSize by animateFloatAsState(
+                                targetValue = if (idx == page) 8f else 5f,
+                                animationSpec = spring(),
+                                label = "dotSize$idx"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(dotSize.dp)
+                                    .background(
+                                        color = if (idx == page) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                                        shape = CircleShape
+                                    )
+                            )
+                        }
                     }
                 }
             }
@@ -830,14 +760,11 @@ fun LivingMoodCard(
                     .weight(1f)
             ) { currentPage ->
                 when (currentPage) {
-                    0 -> LivingSparklineChart(
-                        moodLogs = moodLogs.takeLast(7),
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    1 -> LivingInsightPage(
+                    0 -> LivingInsightPage(
                         weeklyInsight = weeklyInsight,
                         isLoading = isInsightLoading,
+                        insightTier = insightTier,
+                        confidenceScore = confidenceScore,
                         modifier = Modifier.fillMaxSize()
                     )
 
@@ -1016,13 +943,35 @@ fun LivingSparklineChart(
 }
 
 // ---------------------------------------------------------------------------
-// State 1 — The AI Insight
+// State 1 — The AI Insight (confidence-tier aware)
 // ---------------------------------------------------------------------------
 
+/**
+ * Renders the Weekly Insight page of the LivingMoodCard.
+ *
+ * Content adapts to the current [InsightTier]:
+ *
+ *   [InsightTier.FORMING]  — Warm placeholder with a linear progress bar showing
+ *                            how far along the user is toward the LOW threshold.
+ *                            No AI call has been made; this avoids showing a
+ *                            meaningless "insight" built from a single mood log.
+ *
+ *   [InsightTier.LOW]      — Real AI insight shown with a subtle "still learning"
+ *                            confidence badge so the user understands it will
+ *                            improve with more data.
+ *
+ *   [InsightTier.MODERATE] — AI insight shown with the standard ✨ icon. The
+ *                            badge communicates solid confidence.
+ *
+ *   [InsightTier.HIGH]     — AI insight shown with ✨ and a "Personalized for you"
+ *                            badge, rewarding the user's long-term engagement.
+ */
 @Composable
 fun LivingInsightPage(
     weeklyInsight: String?,
     isLoading: Boolean,
+    insightTier: InsightTier,
+    confidenceScore: ConfidenceScore,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -1030,12 +979,20 @@ fun LivingInsightPage(
         contentAlignment = Alignment.Center
     ) {
         when {
+            // ── Loading spinner (Groq call in-flight) ──────────────────────────
             isLoading -> CircularProgressIndicator(
                 modifier = Modifier.size(28.dp),
                 strokeWidth = 2.dp,
                 color = MaterialTheme.colorScheme.primary
             )
 
+            // ── FORMING: not enough data for any real insight ─────────────────
+            insightTier == InsightTier.FORMING -> FormingInsightPlaceholder(
+                confidenceScore = confidenceScore,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // ── LOW / MODERATE / HIGH: real AI insight available ──────────────
             weeklyInsight != null -> Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
@@ -1055,10 +1012,13 @@ fun LivingInsightPage(
                         lineHeight = 22.sp
                     )
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                InsightConfidenceBadge(tier = insightTier)
             }
 
+            // ── Fallback (tier >= LOW but Groq returned null) ─────────────────
             else -> Text(
-                text = "Log a few moods to unlock your weekly insight.",
+                text = "Log a few more moods to unlock your weekly insight.",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     textAlign = TextAlign.Center
@@ -1066,6 +1026,115 @@ fun LivingInsightPage(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
+    }
+}
+
+/**
+ * Placeholder shown when the user is in the [InsightTier.FORMING] state.
+ *
+ * Displays a warm message and a linear progress bar that fills as the user
+ * logs more moods, giving them a tangible sense of progress toward their first
+ * real insight.
+ */
+@Composable
+private fun FormingInsightPlaceholder(
+    confidenceScore: ConfidenceScore,
+    modifier: Modifier = Modifier
+) {
+    // Progress toward the LOW threshold (0.20) — clamp to [0, 1]
+    val progressTowardLow = (confidenceScore.value / ConfidenceScore.THRESHOLD_LOW).coerceIn(0f, 1f)
+
+    // How many mood logs are still needed to cross the LOW threshold at current pace.
+    // Simplified: LOW threshold needs roughly 6 mood logs (0.20 / 0.35 * 20 ≈ 11... but
+    // we also count sessions). Use the mood-log count as the primary user-facing metric
+    // since it's the action the user controls most directly.
+    val logsNeeded =
+        (((ConfidenceScore.THRESHOLD_LOW / 0.35f) * 20f).toInt() - confidenceScore.moodLogCount)
+            .coerceAtLeast(1)
+
+    val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = progressTowardLow,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 800),
+        label = "insightProgress"
+    )
+
+    Column(
+        modifier = modifier.padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "🌱",
+            fontSize = 28.sp
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Your insight is forming.",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
+            )
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Log about $logsNeeded more mood${if (logsNeeded == 1) "" else "s"} and we'll have enough to say something meaningful.",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                textAlign = TextAlign.Center,
+                lineHeight = 18.sp
+            )
+        )
+        Spacer(modifier = Modifier.height(14.dp))
+        androidx.compose.material3.LinearProgressIndicator(
+            progress = { animatedProgress },
+            modifier = Modifier
+                .fillMaxWidth(0.75f)
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp)),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "${(progressTowardLow * 100).toInt()}% there",
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
+            )
+        )
+    }
+}
+
+/**
+ * Small pill badge shown beneath the AI insight text to communicate the
+ * current confidence tier to the user in a non-technical way.
+ */
+@Composable
+private fun InsightConfidenceBadge(tier: InsightTier) {
+    val (label, containerColor) = when (tier) {
+        InsightTier.LOW -> "Still getting to know you" to MaterialTheme.colorScheme.surfaceVariant
+        InsightTier.MODERATE -> "Based on your patterns" to MaterialTheme.colorScheme.primaryContainer
+        InsightTier.HIGH -> "Personalized for you" to MaterialTheme.colorScheme.primaryContainer
+        InsightTier.FORMING -> return // Never shown at FORMING
+    }
+    val textColor = when (tier) {
+        InsightTier.LOW -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        else -> MaterialTheme.colorScheme.onPrimaryContainer
+    }
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(containerColor)
+            .padding(horizontal = 10.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(
+                color = textColor,
+                fontWeight = FontWeight.Medium
+            )
+        )
     }
 }
 

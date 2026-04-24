@@ -9,6 +9,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.iamashad.meraki.data.ChatDatabase
+import com.iamashad.meraki.model.ConfidenceScore
+import com.iamashad.meraki.model.InsightTier
 import com.iamashad.meraki.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.first
 import java.util.Calendar
@@ -41,8 +43,15 @@ class WeeklyInsightWorker(
         /** Unique WorkManager work name. */
         const val WORK_NAME = "meraki_weekly_insight_worker"
 
-        /** Minimum sessions required in the past week to generate an insight. */
-        private const val MIN_SESSIONS_FOR_INSIGHT = 3
+        /**
+         * Minimum confidence tier required before a weekly notification is sent.
+         *
+         * Using [InsightTier.LOW] (score ≥ 0.20) means the user must have logged
+         * at least a handful of moods or had a couple of sessions — enough for the
+         * dominant-emotion summary to be trustworthy.  At [InsightTier.FORMING] we
+         * stay silent rather than erode trust with a premature insight.
+         */
+        private val MIN_TIER_FOR_NOTIFICATION = InsightTier.LOW
 
         /** Look-back window for "this week" sessions (7 days in milliseconds). */
         private const val ONE_WEEK_MS = 7L * 24 * 60 * 60 * 1000
@@ -105,17 +114,40 @@ class WeeklyInsightWorker(
             return Result.success()
         }
 
-        // ── Load all recent summaries from the database ───────────────────────
-        val allSummaries = ChatDatabase.getInstance(context)
-            .sessionSummaryDao()
-            .getLastFourteenSummaries()
+        // ── Gate 2: confidence score must reach at least LOW ─────────────────
+        //
+        // The worker accesses the database directly (no Hilt injection) so we
+        // compute the confidence score inline.  Chat message count is omitted
+        // because the worker has no Firebase userId at this point; the remaining
+        // three components still cover 90 % of the score weight.
+        val db           = ChatDatabase.getInstance(context)
+        val moodLogCount = db.emotionDao().getTotalLogCount()
+        val avgConf      = db.emotionDao().getAverageConfidence()
+        val sessionCount = db.sessionSummaryDao().getTotalSessionCount()
 
-        // ── Gate 2: filter to sessions from the past 7 days ──────────────────
-        val oneWeekAgo     = System.currentTimeMillis() - ONE_WEEK_MS
-        val weekSummaries  = allSummaries.filter { it.date >= oneWeekAgo }
+        val confidence = ConfidenceScore.compute(
+            moodLogCount         = moodLogCount,
+            sessionCount         = sessionCount,
+            avgEmotionConfidence = avgConf,
+            chatMessageCount     = 0          // not available in worker context
+        )
 
-        if (weekSummaries.size < MIN_SESSIONS_FOR_INSIGHT) {
-            Log.d(TAG, "Only ${weekSummaries.size} sessions this week — minimum is $MIN_SESSIONS_FOR_INSIGHT, skipping")
+        if (confidence.tier.ordinal < MIN_TIER_FOR_NOTIFICATION.ordinal) {
+            Log.d(
+                TAG,
+                "Confidence tier ${confidence.tier} (score=${confidence.value}) is below " +
+                "$MIN_TIER_FOR_NOTIFICATION — skipping notification to preserve user trust."
+            )
+            return Result.success()
+        }
+
+        // ── Load all recent summaries and filter to this week ────────────────
+        val allSummaries  = db.sessionSummaryDao().getLastFourteenSummaries()
+        val oneWeekAgo    = System.currentTimeMillis() - ONE_WEEK_MS
+        val weekSummaries = allSummaries.filter { it.date >= oneWeekAgo }
+
+        if (weekSummaries.isEmpty()) {
+            Log.d(TAG, "No sessions in the past 7 days — skipping")
             return Result.success()
         }
 
@@ -140,7 +172,11 @@ class WeeklyInsightWorker(
             body     = "This week you mostly felt $dominantEmotion. Tap to reflect."
         )
 
-        Log.d(TAG, "Weekly insight sent: dominantEmotion=$dominantEmotion (${weekSummaries.size} sessions)")
+        Log.d(
+            TAG,
+            "Weekly insight sent: dominantEmotion=$dominantEmotion " +
+            "(${weekSummaries.size} sessions, confidence=${confidence.value}, tier=${confidence.tier})"
+        )
         return Result.success()
     }
 }

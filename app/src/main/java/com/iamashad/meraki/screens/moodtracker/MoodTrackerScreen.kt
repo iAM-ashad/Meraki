@@ -121,10 +121,11 @@ fun MoodTrackerScreen(
                                 .padding(vertical = dimens.paddingLarge)
                                 .align(Alignment.CenterVertically)
                         ) {
-                            if (moodTrend.isEmpty()) {
+                            if (moodTrend.size < 2) {
                                 EmptyMoodTrend(
                                     modifier = Modifier
-                                        .fillMaxHeight()
+                                        .fillMaxHeight(),
+                                    entriesLogged = moodTrend.size
                                 )
                             } else {
                                 val recentMoodTrend = moodTrend.takeLast(entryCount)
@@ -269,10 +270,11 @@ fun MoodTrackerScreen(
                                 )
                             )
                     ) {
-                        if (moodTrend.isEmpty()) {
+                        if (moodTrend.size < 2) {
                             EmptyMoodTrend(
                                 modifier = Modifier
-                                    .fillMaxHeight(0.45f)
+                                    .fillMaxHeight(0.45f),
+                                entriesLogged = moodTrend.size
                             )
                         } else {
                             val recentMoodTrend = moodTrend.takeLast(entryCount)
@@ -662,8 +664,30 @@ fun CircularMoodSelector(
 }
 
 @Composable
-fun EmptyMoodTrend(modifier: Modifier = Modifier) {
+fun EmptyMoodTrend(
+    modifier: Modifier = Modifier,
+    entriesLogged: Int = 0,
+    minEntriesForGraph: Int = 2
+) {
     val dimens = LocalDimens.current
+
+    val remaining = (minEntriesForGraph - entriesLogged).coerceAtLeast(0)
+    val headline: String
+    val subtitle: String
+    when {
+        entriesLogged <= 0 -> {
+            headline = "No mood trend yet"
+            subtitle = "Log your mood a few times and we’ll start building your trend here."
+        }
+        remaining == 1 -> {
+            headline = "You’re off to a great start!"
+            subtitle = "Log your mood 1 more time to see your trend come to life."
+        }
+        else -> {
+            headline = "Almost there!"
+            subtitle = "Log your mood $remaining more times to build your trend graph."
+        }
+    }
 
     Column(
         modifier = modifier
@@ -672,7 +696,7 @@ fun EmptyMoodTrend(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "No mood trend available yet.",
+            text = headline,
             style = MaterialTheme.typography.headlineMedium.copy(
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
@@ -680,11 +704,12 @@ fun EmptyMoodTrend(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(dimens.paddingSmall))
         Text(
-            text = "Log your mood regularly to see insightful trends here.",
+            text = subtitle,
             style = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
-            )
+            ),
+            modifier = Modifier.padding(horizontal = dimens.paddingLarge)
         )
     }
     Box(

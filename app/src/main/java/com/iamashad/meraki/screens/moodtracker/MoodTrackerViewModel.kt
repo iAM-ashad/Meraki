@@ -116,11 +116,11 @@ class MoodTrackerViewModel @Inject constructor(
             val prompt = when {
                 // Priority 1 – follow up on a difficult previous session
                 lastEmotion == "anxious" ->
-                    "Yesterday felt a bit heavy — how are you doing today?"
+                    "Yesterday felt a bit heavy, how are you doing today?"
                 lastEmotion == "sad" ->
                     "You seemed down last time. How are things feeling now?"
                 lastEmotion == "stressed" ->
-                    "Things felt stressful before — any lighter today?"
+                    "Things felt stressful before, any lighter today?"
 
                 // Priority 2 – mood history patterns (Sunday specific)
                 sundayPatternDetected ->
@@ -128,15 +128,15 @@ class MoodTrackerViewModel @Inject constructor(
 
                 // Priority 3 – day-of-week pattern (Generic)
                 dayOfWeek == Calendar.SUNDAY ->
-                    "Sundays can feel heavy sometimes — how are you holding up?"
+                    "Sundays can feel heavy sometimes, how are you holding up?"
                 dayOfWeek == Calendar.MONDAY ->
-                    "New week starting — how are you feeling as it begins?"
+                    "New week starting! How are you feeling as it begins?"
                 dayOfWeek == Calendar.SATURDAY ->
                     "Happy weekend! How's your energy feeling today?"
 
                 // Priority 4 – time-of-day greeting fallback
                 hour in 5..11 ->
-                    "Good morning — how are you starting the day?"
+                    "Good morning, how are you starting the day?"
                 hour in 12..17 ->
                     "How's your afternoon going so far?"
                 hour in 18..21 ->
