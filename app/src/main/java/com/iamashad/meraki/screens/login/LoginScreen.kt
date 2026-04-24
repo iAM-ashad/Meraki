@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -247,12 +248,19 @@ fun LoginScreen(
 
         }
 
-        // Full-screen video overlay while authentication request is in flight.
+        // Full-screen loading overlay while authentication request is in flight.
         // Pointer input is blocked by the Box, preventing double-taps or back navigation.
         if (uiState.isLoading) {
-            com.iamashad.meraki.components.MerakiVideoLoader(
-                modifier = Modifier.fillMaxSize()
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         } // end Box
     }

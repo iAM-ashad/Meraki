@@ -24,7 +24,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import com.iamashad.meraki.components.MerakiVideoLoader
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -226,9 +226,18 @@ fun AvatarCelebrationScreen(
             )
         }
 
-        // Saving overlay — MerakiVideoLoader covers all content while Firestore write is in flight
+        // Saving overlay — covers all content while Firestore write is in flight
         if (uiState.isSavingAvatar) {
-            MerakiVideoLoader(modifier = Modifier.fillMaxSize())
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

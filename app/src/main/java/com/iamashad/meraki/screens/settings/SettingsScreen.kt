@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -287,20 +288,34 @@ fun SettingsScreen(
         }
     } // end Column
 
-    // Full-screen video overlay while avatar is being saved to Firestore.
+    // Full-screen loading overlay while avatar is being saved to Firestore.
     // Navigation to Home is gated behind avatarUpdateComplete, not triggered here.
     if (isAvatarUpdating) {
-        com.iamashad.meraki.components.MerakiVideoLoader(
-            modifier = Modifier.fillMaxSize()
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 
-    // Full-screen video overlay during account deletion (reauth → Firestore → auth delete).
+    // Full-screen loading overlay during account deletion (reauth → Firestore → auth delete).
     // The multi-step chain can take a few seconds; this prevents double-tap on "Delete".
     if (registerUiState.isLoading) {
-        com.iamashad.meraki.components.MerakiVideoLoader(
-            modifier = Modifier.fillMaxSize()
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
     } // end Box
 

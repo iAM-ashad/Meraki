@@ -67,11 +67,14 @@ fun MoodInsightsScreen(
         val dimens = LocalDimens.current
 
         if (isLoading) {
-            // Show video loader while insights are being computed.
+            // Show a simple loader while insights are being computed.
             // This prevents the empty-state illustration from appearing before data arrives.
-            Box(modifier = Modifier.fillMaxSize()) {
-                com.iamashad.meraki.components.MerakiVideoLoader(
-                    modifier = Modifier.fillMaxSize()
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         } else if (insights == null || insights?.reasonsAnalysis.isNullOrEmpty()) {

@@ -173,8 +173,8 @@ class RegisterViewModel @Inject constructor(
     /**
      * Delete the current user's account.
      * Phase 6: onComplete callback removed — success/failure emitted as AuthUiEvent.
-     * Video Loader: isLoading is now toggled so the MerakiVideoLoader overlay in
-     * SettingsScreen covers the multi-step reauthenticate → delete → navigate chain.
+     * isLoading is toggled so the loading overlay in SettingsScreen covers the
+     * multi-step reauthenticate → delete → navigate chain.
      */
     fun deleteUserAccount(password: String) {
         val user = firebaseAuth.currentUser ?: run {

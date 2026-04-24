@@ -55,7 +55,7 @@ class MainActivity : ComponentActivity() {
         // Must be called BEFORE super.onCreate() so the SplashScreen API can attach
         // to the window before the activity inflates its view hierarchy.
         // setKeepOnScreenCondition { false } dismisses the OS splash immediately,
-        // handing off to the MerakiVideoLoader (ExoPlayer) without any delay.
+        // handing off to the app's own Compose UI without any delay.
         installSplashScreen().setKeepOnScreenCondition { false }
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

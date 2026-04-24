@@ -287,11 +287,18 @@ fun CreateUserScreen(
             }
         }
 
-        // Full-screen video overlay while the registration request is in flight.
+        // Full-screen loading overlay while the registration request is in flight.
         if (uiState.isLoading) {
-            com.iamashad.meraki.components.MerakiVideoLoader(
-                modifier = Modifier.fillMaxSize()
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         } // end Box
     }

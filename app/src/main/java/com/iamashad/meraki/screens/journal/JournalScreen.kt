@@ -89,19 +89,15 @@ fun JournalScreen(
                 HeaderCard()
 
                 if (isLoading) {
-                    // Show video loader while initial Firestore data is in flight.
-                    // This prevents the "empty state" illustration from flickering briefly
-                    // on first launch before journals arrive.
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(300.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        com.iamashad.meraki.components.MerakiVideoLoader(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            strokeWidth = 3.dp
                         )
                     }
                 } else if (journals.isEmpty()) {

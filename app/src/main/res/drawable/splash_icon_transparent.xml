@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Fully transparent 1×1 vector used as the windowSplashScreenAnimatedIcon so that
      the OS splash screen shows only the dark background, with no visible icon.
-     This creates a seamless visual handshake with the MerakiVideoLoader that follows. -->
+     This creates a seamless visual handshake with the Compose UI that follows. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="1dp"
     android:height="1dp"
